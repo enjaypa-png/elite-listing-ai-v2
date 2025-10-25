@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String    // Hashed password
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  shops         Shop[]
+  creditLedgers CreditLedger[]
+  
+  @@map("users")
+}
+
+model Shop {
+  id               String    @id @default(cuid())
+  userId           String
+  platform         String    // "ETSY", "SHOPIFY", etc.
+  platformShopId   String    // Shop ID from platform
+  shopName         String
+  shopUrl          String?
+  accessToken      String
+  refreshToken     String?
+  tokenExpiresAt   DateTime?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listings         Listing[]
+  
+  @@unique([userId, platform, platformShopId])
+  @@map("shops")
+}
+
+model Listing {
+  id                 String    @id @default(cuid())
+  shopId             String
+  platformListingId  String
+  title              String
+  description        String
+  price              Float
+  currency           String    @default("USD")
+  quantity           Int       @default(0)
+  status             String
+  url                String?
+  imageUrls          Json
+  tags               Json
+  lastSyncedAt       DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  optimizations   Optimization[]
+  photoScores     PhotoScore[]
+  
+  @@unique([shopId, platformListingId])
+  @@map("listings")
+}
+
+model Optimization {
+  id                String   @id @default(cuid())
+  listingId         String?  // Optional - can be null for standalone optimizations
+  userId            String
+  type              String   // "title", "description", "full", "photos"
+  status            String   @default("pending") // pending, processing, completed, failed
+  creditsUsed       Int      @default(0)
+  aiModel           String?  // e.g., "gpt-4", "claude-3"
+  prompt            String?
+  originalContent   Json?    // Store original content before optimization
+  result            Json?    // Store optimization results
+  errorMessage      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  completedAt       DateTime?
+  
+  listing           Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  variants          OptimizationVariant[]
+  
+  @@map("optimizations")
+}
+
+model OptimizationVariant {
+  id              String   @id @default(cuid())
+  optimizationId  String
+  variantNumber   Int      // 1, 2, 3 for different versions
+  title           String?
+  description     String?
+  tags            Json     // Array of tags
+  score           Float?   // AI confidence score
+  reasoning       String?
+  metadata        Json?    // Additional variant-specific data
+  isSelected      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  
+  optimization    Optimization @relation(fields: [optimizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([optimizationId, variantNumber])
+  @@map("optimization_variants")
+}
+
+model PhotoScore {
+  id              String   @id @default(cuid())
+  listingId       String
+  imageUrl        String
+  overallScore    Float    // 0-100
+  compositionScore Float?
+  lightingScore   Float?
+  clarityScore    Float?
+  backgroundScore Float?
+  analysis        Json?    // Detailed AI analysis
+  suggestions     Json     // Improvement suggestions
+  createdAt       DateTime @default(now())
+  
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  @@map("photo_scores")
+}
+
+model CreditLedger {
+  id              String   @id @default(cuid())
+  userId          String
+  amount          Int      // Positive for credits added, negative for credits used
+  balance         Int      // Running balance after this transaction
+  type            String   // "purchase", "usage", "refund", "bonus"
+  description     String?
+  referenceId     String?  // Reference to related entity (e.g., optimization ID, stripe payment ID)
+  referenceType   String?  // "optimization", "purchase", etc.
+  stripePaymentId String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, createdAt])
+  @@map("credit_ledgers")
+}

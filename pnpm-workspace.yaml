@@ -1,0 +1,10 @@
+ignoredBuiltDependencies:
+  - sentry
+  - sharp
+  - supabase
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
