@@ -4,15 +4,7 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 
-// Validate OpenAI API key
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('⚠️  OPENAI_API_KEY not set in environment variables');
-}
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  project: process.env.OPENAI_PROJECT_ID,
-});
 
 // Input validation schema
 const OptimizeRequestSchema = z.object({
@@ -248,6 +240,11 @@ export async function GET() {
 
 // POST /api/optimize - Optimize listing content using OpenAI with enhanced algorithm
 export async function POST(request: NextRequest) {
+  const client = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    project: process.env.OPENAI_PROJECT_ID,
+  });
+  
   const requestId = randomUUID();
   
   try {
