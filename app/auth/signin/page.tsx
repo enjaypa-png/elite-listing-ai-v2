@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,17 +9,48 @@ export default function SignInPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSignupRedirect, setShowSignupRedirect] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(2);
+
+  useEffect(() => {
+    if (showSignupRedirect && redirectCountdown > 0) {
+      const timer = setTimeout(() => {
+        setRedirectCountdown(redirectCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showSignupRedirect && redirectCountdown === 0) {
+      router.push("/auth/signup");
+    }
+  }, [showSignupRedirect, redirectCountdown, router]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setShowSignupRedirect(false);
 
     const formData = new FormData(e.currentTarget);
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
 
     try {
+      // First check if user exists
+      const checkRes = await fetch("/api/auth/check-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const checkData = await checkRes.json();
+
+      if (!checkData.exists) {
+        setError("No account found with this email");
+        setShowSignupRedirect(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // User exists, try to sign in
       const result = await signIn("credentials", {
         email,
         password,
@@ -30,7 +61,7 @@ export default function SignInPage() {
         router.push("/dashboard");
         router.refresh();
       } else {
-        setError("Invalid email or password");
+        setError("Invalid password. Please try again.");
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -51,6 +82,20 @@ export default function SignInPage() {
           {error && (
             <div className="bg-red-900/20 border border-red-800 text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
+              {showSignupRedirect && (
+                <div className="mt-3 pt-3 border-t border-red-800">
+                  <p className="font-semibold mb-2">No account found—create one to continue</p>
+                  <Link
+                    href="/auth/signup"
+                    className="inline-block w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors text-center"
+                  >
+                    Create Account
+                  </Link>
+                  <p className="text-xs mt-2 text-red-300">
+                    Auto-redirecting in {redirectCountdown}s...
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

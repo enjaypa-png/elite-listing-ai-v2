@@ -10,6 +10,8 @@ const signUpSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+  
   try {
     const body = await request.json();
     const parsed = signUpSchema.safeParse(body);
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
       return NextResponse.json(
-        { error: firstError.message },
+        { error: firstError.message, requestId },
         { status: 400 }
       );
     }
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "User already exists" },
+        { error: "User already exists", requestId },
         { status: 409 }
       );
     }
@@ -55,16 +57,17 @@ export async function POST(request: NextRequest) {
           email: user.email,
           name: user.name,
         },
+        requestId,
       },
       { status: 201 }
     );
   } catch (error: any) {
-    console.error("Sign up error:", error);
+    console.error(`[${requestId}] Sign up error:`, error);
     
     // Handle Prisma constraint errors
     if (error.code === 'P2002') {
       return NextResponse.json(
-        { error: "User already exists" },
+        { error: "User already exists", requestId },
         { status: 409 }
       );
     }
@@ -72,14 +75,29 @@ export async function POST(request: NextRequest) {
     // Handle Prisma validation errors
     if (error.code === 'P2011' || error.code === 'P2012') {
       return NextResponse.json(
-        { error: "Invalid data provided" },
+        { error: "Invalid data provided", requestId },
         { status: 400 }
       );
     }
 
+    // Handle database connection errors
+    if (error.code === 'P1001' || error.code === 'P1002') {
+      return NextResponse.json(
+        { 
+          error: "Database connection failed. Please try again later.", 
+          requestId 
+        },
+        { status: 502 }
+      );
+    }
+
+    // Unknown errors - return 502 with request ID for tracking
     return NextResponse.json(
-      { error: "Failed to create account. Please try again." },
-      { status: 500 }
+      { 
+        error: "Failed to create account. Please try again.", 
+        requestId 
+      },
+      { status: 502 }
     );
   }
 }
