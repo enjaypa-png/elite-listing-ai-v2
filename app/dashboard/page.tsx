@@ -235,9 +235,12 @@ export default async function Dashboard() {
               <p className="text-gray-400 text-sm mb-3">
                 Analyze your product photos with AI
               </p>
-              <button className="text-blue-500 hover:text-blue-400 text-sm font-medium">
-                Coming Soon →
-              </button>
+              <Link
+                href="/analyze"
+                className="text-blue-500 hover:text-blue-400 text-sm font-medium"
+              >
+                Analyze Now →
+              </Link>
             </div>
             <div className="border border-gray-700 rounded-lg p-4">
               <h4 className="font-semibold text-white mb-2">✍️ Text Optimization</h4>

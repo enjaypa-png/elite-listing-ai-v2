@@ -1,10 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ListingOptimizerResults from './listing-optimizer-results';
 
 export default function TestOptimize() {
-  const [activeTab, setActiveTab] = useState<'optimize' | 'image' | 'keywords'>('optimize');
+  const router = useRouter();
+  
+  // Guard: Block access in production
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'production') {
+      router.push('/404');
+    }
+  }, [router]);
+
+  // If production, don't render anything
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
+  const [activeTab, setActiveTab] = useState<'optimize' | 'image' | 'keywords' | 'seo'>('optimize');
   
   // Listing Optimizer State
   const [platform, setPlatform] = useState('etsy');
@@ -31,6 +46,16 @@ export default function TestOptimize() {
   const [keywordLoading, setKeywordLoading] = useState(false);
   const [keywordResponse, setKeywordResponse] = useState<any>(null);
   const [keywordError, setKeywordError] = useState<string | null>(null);
+
+  // SEO Audit State
+  const [seoTitle, setSeoTitle] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
+  const [seoTags, setSeoTags] = useState('');
+  const [seoPlatform, setSeoPlatform] = useState('Etsy');
+  const [seoCategory, setSeoCategory] = useState('');
+  const [seoLoading, setSeoLoading] = useState(false);
+  const [seoResponse, setSeoResponse] = useState<any>(null);
+  const [seoError, setSeoError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,6 +163,41 @@ export default function TestOptimize() {
     }
   };
 
+  const handleSEOAudit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSeoLoading(true);
+    setSeoError(null);
+    setSeoResponse(null);
+
+    try {
+      const res = await fetch('/api/seo/audit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          platform: seoPlatform,
+          title: seoTitle,
+          description: seoDescription,
+          tags: seoTags,
+          category: seoCategory || undefined,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to perform SEO audit');
+      }
+
+      setSeoResponse(data);
+    } catch (err: any) {
+      setSeoError(err.message);
+    } finally {
+      setSeoLoading(false);
+    }
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-blue-600';
     if (score >= 60) return 'text-gray-600';
@@ -159,6 +219,7 @@ export default function TestOptimize() {
             Elite Listing AI
           </h1>
           <p className="text-gray-600">Optimize your Etsy listings with AI</p>
+          <p className="text-xs text-red-500 mt-2">⚠️ Development Testing Page</p>
         </div>
 
         {/* Tab Switcher */}
@@ -194,6 +255,16 @@ export default function TestOptimize() {
             >
               🔑 Keyword Generator
             </button>
+            <button
+              onClick={() => setActiveTab('seo')}
+              className={`px-8 py-3 rounded-xl font-medium transition-all ${
+                activeTab === 'seo'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              🎯 SEO Audit
+            </button>
           </div>
         </div>
 
@@ -202,7 +273,7 @@ export default function TestOptimize() {
           {/* Left Panel - Input Form */}
           <div className="bg-gray-50 rounded-3xl p-8">
             <h2 className="text-2xl font-semibold mb-6 text-gray-900">
-              {activeTab === 'optimize' ? 'Input Form' : activeTab === 'image' ? 'Image Analysis' : 'Keyword Generation'}
+              {activeTab === 'optimize' ? 'Input Form' : activeTab === 'image' ? 'Image Analysis' : activeTab === 'keywords' ? 'Keyword Generation' : 'SEO Audit'}
             </h2>
 
             {activeTab === 'optimize' ? (
@@ -244,9 +315,9 @@ export default function TestOptimize() {
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Beautiful handcrafted ceramic coffee mug..."
-                    rows={4}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-400"
+                    placeholder="Describe your product..."
+                    rows={5}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                   />
                 </div>
 
@@ -254,12 +325,12 @@ export default function TestOptimize() {
                   <label className="block text-sm font-medium mb-2 text-gray-700">
                     Tags (comma-separated)
                   </label>
-                  <textarea
+                  <input
+                    type="text"
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
-                    placeholder="oil painting, country cottage landscape, picture"
-                    rows={2}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-400"
+                    placeholder="art, painting, landscape"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                   />
                 </div>
 
@@ -272,23 +343,24 @@ export default function TestOptimize() {
                     min="0"
                     max="100"
                     value={photoScore}
-                    onChange={(e) => setPhotoScore(parseInt(e.target.value))}
-                    className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    onChange={(e) => setPhotoScore(Number(e.target.value))}
+                    className="w-full"
                   />
-                  <div className="flex justify-between text-xs text-gray-500 mt-2">
-                    <span>0</span>
-                    <span>50</span>
-                    <span>100</span>
-                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed"
                 >
                   {loading ? 'Optimizing...' : 'Optimize Listing'}
                 </button>
+
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-red-700 text-sm">{error}</p>
+                  </div>
+                )}
               </form>
             ) : activeTab === 'image' ? (
               <form onSubmit={handleImageAnalysis} className="space-y-5">
@@ -322,29 +394,21 @@ export default function TestOptimize() {
                   />
                 </div>
 
-                {imageUrl && (
-                  <div className="mt-4">
-                    <p className="text-sm text-gray-600 mb-2">Preview</p>
-                    <img
-                      src={imageUrl}
-                      alt="Product preview"
-                      className="w-full h-48 object-cover rounded-xl"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://via.placeholder.com/400x300?text=Invalid+Image+URL';
-                      }}
-                    />
-                  </div>
-                )}
-
                 <button
                   type="submit"
                   disabled={imageLoading}
-                  className="w-full py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed"
                 >
                   {imageLoading ? 'Analyzing...' : 'Analyze Image'}
                 </button>
+
+                {imageError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-red-700 text-sm">{imageError}</p>
+                  </div>
+                )}
               </form>
-            ) : (
+            ) : activeTab === 'keywords' ? (
               <form onSubmit={handleKeywordGeneration} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">
@@ -364,13 +428,13 @@ export default function TestOptimize() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Product Title
+                    Title
                   </label>
                   <input
                     type="text"
                     value={keywordTitle}
                     onChange={(e) => setKeywordTitle(e.target.value)}
-                    placeholder="Handmade Ceramic Coffee Mug..."
+                    placeholder="Handmade Leather Wallet"
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                     required
                   />
@@ -378,27 +442,27 @@ export default function TestOptimize() {
 
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Product Description
+                    Description
                   </label>
                   <textarea
                     value={keywordDescription}
                     onChange={(e) => setKeywordDescription(e.target.value)}
-                    placeholder="Describe your product in detail..."
-                    rows={4}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900 placeholder-gray-400"
+                    placeholder="Describe your product..."
+                    rows={5}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                     required
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-700">
-                    Category (Optional)
+                    Category (optional)
                   </label>
                   <input
                     type="text"
                     value={keywordCategory}
                     onChange={(e) => setKeywordCategory(e.target.value)}
-                    placeholder="e.g., Home & Living, Jewelry, Art"
+                    placeholder="Accessories"
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
                   />
                 </div>
@@ -406,380 +470,309 @@ export default function TestOptimize() {
                 <button
                   type="submit"
                   disabled={keywordLoading}
-                  className="w-full py-3.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed"
                 >
-                  {keywordLoading ? 'Generating Keywords...' : 'Generate Keywords'}
+                  {keywordLoading ? 'Generating...' : 'Generate Keywords'}
                 </button>
+
+                {keywordError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-red-700 text-sm">{keywordError}</p>
+                  </div>
+                )}
+              </form>
+            ) : (
+              <form onSubmit={handleSEOAudit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Platform
+                  </label>
+                  <select
+                    value={seoPlatform}
+                    onChange={(e) => setSeoPlatform(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
+                    required
+                  >
+                    <option value="Etsy">Etsy</option>
+                    <option value="Shopify">Shopify</option>
+                    <option value="eBay">eBay</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={seoTitle}
+                    onChange={(e) => setSeoTitle(e.target.value)}
+                    placeholder="Your listing title"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Description
+                  </label>
+                  <textarea
+                    value={seoDescription}
+                    onChange={(e) => setSeoDescription(e.target.value)}
+                    placeholder="Your listing description"
+                    rows={5}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Tags (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    value={seoTags}
+                    onChange={(e) => setSeoTags(e.target.value)}
+                    placeholder="tag1, tag2, tag3"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Category (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={seoCategory}
+                    onChange={(e) => setSeoCategory(e.target.value)}
+                    placeholder="Home & Living"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={seoLoading}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-all disabled:cursor-not-allowed"
+                >
+                  {seoLoading ? 'Auditing...' : 'Run SEO Audit'}
+                </button>
+
+                {seoError && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                    <p className="text-red-700 text-sm">{seoError}</p>
+                  </div>
+                )}
               </form>
             )}
           </div>
 
           {/* Right Panel - Results */}
           <div className="bg-gray-50 rounded-3xl p-8">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-900">
-              {activeTab === 'optimize' ? 'Results' : activeTab === 'image' ? 'Analysis Results' : 'Generated Keywords'}
-            </h2>
+            <h2 className="text-2xl font-semibold mb-6 text-gray-900">Results</h2>
 
-            {activeTab === 'optimize' ? (
-              <>
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl mb-4">
-                    <strong>Error:</strong> {error}
+            {activeTab === 'optimize' && response && (
+              <ListingOptimizerResults response={response} />
+            )}
+
+            {activeTab === 'image' && imageResponse && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <h3 className="text-xl font-semibold mb-4 text-gray-900">
+                    Image Analysis Results
+                  </h3>
+                  
+                  {/* Overall Score */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">Overall Score</span>
+                      <span className={`text-2xl font-bold ${getScoreColor(imageResponse.overallScore)}`}>
+                        {imageResponse.overallScore}/100
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full ${getScoreBgColor(imageResponse.overallScore)}`}
+                        style={{ width: `${imageResponse.overallScore}%` }}
+                      />
+                    </div>
                   </div>
-                )}
 
-                {!response && !error && (
-                  <div className="text-center py-20 text-gray-400">
-                    <div className="text-6xl mb-4">📝</div>
-                    <p className="text-sm">Fill out the form to optimize your listing</p>
-                  </div>
-                )}
-
-                {response && response.ok && (
-                  <ListingOptimizerResults 
-                    response={response} 
-                    getScoreColor={getScoreColor}
-                    getScoreBgColor={getScoreBgColor}
-                  />
-                )}
-              </>
-            ) : activeTab === 'image' ? (
-              <>
-                {imageError && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl mb-4">
-                    <strong>Error:</strong> {imageError}
-                  </div>
-                )}
-
-                {!imageResponse && !imageError && (
-                  <div className="text-center py-20 text-gray-400">
-                    <div className="text-6xl mb-4">🖼️</div>
-                    <p className="text-sm">Enter an image URL to analyze quality</p>
-                  </div>
-                )}
-
-                {imageResponse && imageResponse.ok && (
-                  <div className="space-y-5">
-                    {/* Weighted Image Optimization Index */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-sm border border-blue-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-gray-700">Weighted Image Optimization Index</span>
-                        <span className="text-xs text-gray-500">Overall Score</span>
+                  {/* Category Scores */}
+                  <div className="space-y-4 mb-6">
+                    {Object.entries(imageResponse.categoryScores || {}).map(([category, score]: [string, any]) => (
+                      <div key={category}>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-sm font-medium text-gray-700 capitalize">
+                            {category.replace(/([A-Z])/g, ' $1').trim()}
+                          </span>
+                          <span className={`font-semibold ${getScoreColor(score)}`}>
+                            {score}/100
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${getScoreBgColor(score)}`}
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <span className={`text-5xl font-bold ${getScoreColor(imageResponse.score)}`}>
-                          {imageResponse.score}
-                        </span>
-                        <div className="flex-1">
-                          <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    ))}
+                  </div>
+
+                  {/* Suggestions */}
+                  {imageResponse.suggestions && imageResponse.suggestions.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3">Improvement Suggestions</h4>
+                      <ul className="space-y-2">
+                        {imageResponse.suggestions.map((suggestion: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="text-blue-600 mt-0.5">•</span>
+                            <span>{suggestion}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'keywords' && keywordResponse && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <h3 className="text-xl font-semibold mb-4 text-gray-900">
+                    Generated Keywords
+                  </h3>
+                  
+                  {keywordResponse.keywords && keywordResponse.keywords.length > 0 && (
+                    <div className="space-y-3">
+                      {keywordResponse.keywords.map((kw: any, idx: number) => (
+                        <div key={idx} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-semibold text-gray-900">{kw.keyword}</span>
+                            <span className={`text-sm px-2 py-1 rounded ${
+                              kw.competition === 'Low' ? 'bg-green-100 text-green-700' :
+                              kw.competition === 'Medium' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {kw.competition}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                            <div>Volume: <span className="font-medium">{kw.searchVolume}</span></div>
+                            <div>Intent: <span className="font-medium">{kw.intent}</span></div>
+                            <div>CTR: <span className="font-medium">{kw.ctrPotential}%</span></div>
+                            <div>Relevance: <span className="font-medium">{kw.relevanceScore}/100</span></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'seo' && seoResponse && seoResponse.overallScore && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-2xl p-6 border border-gray-200">
+                  <h3 className="text-xl font-semibold mb-4 text-gray-900">
+                    SEO Audit Results
+                  </h3>
+                  
+                  {/* Overall Score */}
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">Overall SEO Score</span>
+                      <span className={`text-2xl font-bold ${getScoreColor(seoResponse.overallScore)}`}>
+                        {seoResponse.overallScore}/100
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full ${getScoreBgColor(seoResponse.overallScore)}`}
+                        style={{ width: `${seoResponse.overallScore}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Category Breakdown */}
+                  {seoResponse.categoryBreakdown && (
+                    <div className="space-y-4 mb-6">
+                      {Object.entries(seoResponse.categoryBreakdown).map(([category, score]: [string, any]) => (
+                        <div key={category}>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium text-gray-700 capitalize">
+                              {category}
+                            </span>
+                            <span className={`font-semibold ${getScoreColor(score)}`}>
+                              {score}/100
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
                             <div
-                              className={`h-full ${getScoreBgColor(imageResponse.score)} transition-all duration-500`}
-                              style={{ width: `${imageResponse.score}%` }}
+                              className={`h-2 rounded-full ${getScoreBgColor(score)}`}
+                              style={{ width: `${score}%` }}
                             />
                           </div>
-                          <p className="text-xs text-gray-600 mt-2">
-                            {imageResponse.score >= 90 ? 'Excellent - Optimized for maximum visibility' :
-                             imageResponse.score >= 80 ? 'Good - Minor improvements needed' :
-                             imageResponse.score >= 70 ? 'Fair - Several optimization opportunities' :
-                             imageResponse.score >= 60 ? 'Poor - Significant issues affecting performance' :
-                             'Critical - Major compliance and quality issues'}
-                          </p>
                         </div>
-                      </div>
+                      ))}
                     </div>
+                  )}
 
-                    {/* Core Quality Metrics */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm">
-                      <h3 className="font-semibold text-base mb-4 text-gray-900">Core Quality Metrics</h3>
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          { label: 'Lighting', score: imageResponse.lighting },
-                          { label: 'Composition', score: imageResponse.composition },
-                          { label: 'Clarity', score: imageResponse.clarity },
-                          { label: 'Appeal', score: imageResponse.appeal },
-                        ].map((metric, index) => (
-                          <div key={index} className="bg-gray-50 rounded-xl p-3">
-                            <p className="text-xs font-medium text-gray-500 mb-2">{metric.label}</p>
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-gray-200 rounded-full h-1.5">
-                                <div
-                                  className={`h-1.5 rounded-full ${getScoreBgColor(metric.score)}`}
-                                  style={{ width: `${metric.score}%` }}
-                                />
-                              </div>
-                              <span className={`text-sm font-semibold ${getScoreColor(metric.score)}`}>
-                                {metric.score}
+                  {/* Issues */}
+                  {seoResponse.issues && seoResponse.issues.length > 0 && (
+                    <div className="mb-6">
+                      <h4 className="font-semibold text-gray-900 mb-3">Issues Found</h4>
+                      <div className="space-y-2">
+                        {seoResponse.issues.map((issue: any, idx: number) => (
+                          <div key={idx} className={`p-3 rounded-lg border ${
+                            issue.severity === 'critical' ? 'bg-red-50 border-red-200' :
+                            issue.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                            'bg-blue-50 border-blue-200'
+                          }`}>
+                            <div className="flex items-start gap-2">
+                              <span className={`text-xs font-semibold uppercase ${
+                                issue.severity === 'critical' ? 'text-red-700' :
+                                issue.severity === 'warning' ? 'text-yellow-700' :
+                                'text-blue-700'
+                              }`}>
+                                {issue.severity}
                               </span>
+                              <span className="text-sm text-gray-700">{issue.message}</span>
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
+                  )}
 
-                    {/* Enhanced Metrics */}
-                    {(imageResponse.technicalCompliance || imageResponse.algorithmFit || imageResponse.productDominance) && (
-                      <div className="bg-white rounded-2xl p-5 shadow-sm">
-                        <h3 className="font-semibold text-base mb-4 text-gray-900">Advanced Analysis</h3>
-                        <div className="space-y-3">
-                          {imageResponse.technicalCompliance !== undefined && (
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                              <span className="text-sm text-gray-700">Technical Compliance (40%)</span>
-                              <span className={`font-semibold ${getScoreColor(imageResponse.technicalCompliance)}`}>
-                                {imageResponse.technicalCompliance}
-                              </span>
-                            </div>
-                          )}
-                          {imageResponse.algorithmFit !== undefined && (
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                              <span className="text-sm text-gray-700">Algorithm Fit (30%)</span>
-                              <span className={`font-semibold ${getScoreColor(imageResponse.algorithmFit)}`}>
-                                {imageResponse.algorithmFit}
-                              </span>
-                            </div>
-                          )}
-                          {imageResponse.productDominance !== undefined && (
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                              <span className="text-sm text-gray-700">Product Dominance</span>
-                              <span className={`font-semibold ${getScoreColor(imageResponse.productDominance)}`}>
-                                {imageResponse.productDominance}%
-                              </span>
-                            </div>
-                          )}
-                          {imageResponse.backgroundQuality !== undefined && (
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                              <span className="text-sm text-gray-700">Background Quality</span>
-                              <span className={`font-semibold ${getScoreColor(imageResponse.backgroundQuality)}`}>
-                                {imageResponse.backgroundQuality}
-                              </span>
-                            </div>
-                          )}
-                          {imageResponse.colorBalance !== undefined && (
-                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                              <span className="text-sm text-gray-700">Color Balance</span>
-                              <span className={`font-semibold ${getScoreColor(imageResponse.colorBalance)}`}>
-                                {imageResponse.colorBalance}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Technical Details */}
-                    {(imageResponse.estimatedResolution || imageResponse.aspectRatioEstimate) && (
-                      <div className="bg-white rounded-2xl p-5 shadow-sm">
-                        <h3 className="font-semibold text-base mb-3 text-gray-900">Technical Details</h3>
-                        <div className="grid grid-cols-2 gap-3">
-                          {imageResponse.estimatedResolution && (
-                            <div className="p-3 bg-gray-50 rounded-xl">
-                              <p className="text-xs text-gray-500 mb-1">Estimated Resolution</p>
-                              <p className="text-sm font-medium text-gray-900">{imageResponse.estimatedResolution}</p>
-                            </div>
-                          )}
-                          {imageResponse.aspectRatioEstimate && (
-                            <div className="p-3 bg-gray-50 rounded-xl">
-                              <p className="text-xs text-gray-500 mb-1">Aspect Ratio</p>
-                              <p className="text-sm font-medium text-gray-900">{imageResponse.aspectRatioEstimate}</p>
-                            </div>
-                          )}
-                        </div>
-                        {imageResponse.platformRequirements && (
-                          <div className="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                            <p className="text-xs font-medium text-blue-900 mb-2">Platform Requirements ({imagePlatform})</p>
-                            <div className="text-xs text-blue-800 space-y-1">
-                              <p>• Min Resolution: {imageResponse.platformRequirements.minResolution}px</p>
-                              <p>• Preferred Aspect: {imageResponse.platformRequirements.preferredAspectRatio}</p>
-                              <p>• Product Dominance: ≥{imageResponse.platformRequirements.minProductDominance}%</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Compliance Issues */}
-                    {imageResponse.complianceIssues && imageResponse.complianceIssues.length > 0 && (
-                      <div className="bg-red-50 border border-red-200 rounded-2xl p-5 shadow-sm">
-                        <h3 className="font-semibold text-base mb-3 text-red-900">⚠️ Compliance Issues</h3>
-                        <ul className="space-y-2">
-                          {imageResponse.complianceIssues.map((issue: string, index: number) => (
-                            <li key={index} className="flex items-start gap-2 text-sm text-red-800">
-                              <span className="text-red-500 mt-0.5">•</span>
-                              <span>{issue}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Feedback */}
-                    {imageResponse.feedback && (
-                      <div className="bg-white rounded-2xl p-5 shadow-sm">
-                        <h3 className="font-semibold text-base mb-2 text-gray-900">Detailed Feedback</h3>
-                        <p className="text-sm text-gray-700 leading-relaxed">{imageResponse.feedback}</p>
-                      </div>
-                    )}
-
-                    {/* Suggestions */}
-                    {imageResponse.suggestions && imageResponse.suggestions.length > 0 && (
-                      <div className="bg-green-50 border border-green-200 rounded-2xl p-5 shadow-sm">
-                        <h3 className="font-semibold text-base mb-3 text-green-900">💡 Improvement Suggestions</h3>
-                        <ul className="space-y-2">
-                          {imageResponse.suggestions.map((suggestion: string, index: number) => (
-                            <li key={index} className="flex items-start gap-2 text-sm text-green-800">
-                              <span className="text-green-500 mt-0.5">•</span>
-                              <span>{suggestion}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <details className="bg-white rounded-2xl p-5 shadow-sm">
-                      <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-900 transition-colors font-medium">
-                        View Raw JSON
-                      </summary>
-                      <pre className="mt-4 text-xs bg-gray-50 p-4 rounded-xl overflow-auto max-h-64 text-gray-700">
-                        {JSON.stringify(imageResponse, null, 2)}
-                      </pre>
-                    </details>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {keywordError && (
-                  <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl mb-4">
-                    <strong>Error:</strong> {keywordError}
-                  </div>
-                )}
-
-                {!keywordResponse && !keywordError && (
-                  <div className="text-center py-20 text-gray-400">
-                    <div className="text-6xl mb-4">🔑</div>
-                    <p className="text-sm">Fill out the form to generate keywords</p>
-                  </div>
-                )}
-
-                {keywordResponse && keywordResponse.ok && (
-                  <div className="space-y-5">
-                    {/* Summary Stats */}
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 shadow-sm border border-blue-100">
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <div className="text-2xl font-bold text-blue-600">{keywordResponse.totalKeywords}</div>
-                          <div className="text-xs text-gray-600">Total Keywords</div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-blue-600">{keywordResponse.averageRelevance}</div>
-                          <div className="text-xs text-gray-600">Avg Relevance</div>
-                        </div>
-                        <div>
-                          <div className="text-2xl font-bold text-blue-600 capitalize">{keywordResponse.topIntent}</div>
-                          <div className="text-xs text-gray-600">Top Intent</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Suggestions */}
-                    {keywordResponse.suggestions && keywordResponse.suggestions.length > 0 && (
-                      <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
-                        <h3 className="font-semibold text-sm mb-2 text-gray-900 flex items-center gap-2">
-                          💡 Suggestions
-                        </h3>
-                        <ul className="space-y-1">
-                          {keywordResponse.suggestions.map((suggestion: string, index: number) => (
-                            <li key={index} className="text-sm text-gray-700">• {suggestion}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Primary Keywords */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm">
-                      <h3 className="font-semibold text-base mb-4 text-gray-900">Primary Keywords ({keywordResponse.primaryKeywords.length})</h3>
-                      <div className="space-y-3">
-                        {keywordResponse.primaryKeywords.map((kw: any, index: number) => (
-                          <div key={index} className="border border-gray-200 rounded-xl p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{kw.keyword}</div>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-lg capitalize">{kw.intent}</span>
-                                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-lg capitalize">{kw.competition}</span>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-blue-600">{kw.keywordScore}</div>
-                                <div className="text-xs text-gray-500">Score</div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
-                              <div>
-                                <div className="text-gray-500">Volume</div>
-                                <div className="font-semibold text-gray-900">{kw.searchVolume}</div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500">CTR Potential</div>
-                                <div className="font-semibold text-gray-900">{kw.ctrPotential}%</div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500">Relevance</div>
-                                <div className="font-semibold text-gray-900">{kw.relevanceScore}%</div>
-                              </div>
-                            </div>
-                          </div>
+                  {/* Recommendations */}
+                  {seoResponse.recommendations && seoResponse.recommendations.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-3">Recommendations</h4>
+                      <ul className="space-y-2">
+                        {seoResponse.recommendations.map((rec: string, idx: number) => (
+                          <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                            <span className="text-blue-600 mt-0.5">✓</span>
+                            <span>{rec}</span>
+                          </li>
                         ))}
-                      </div>
+                      </ul>
                     </div>
+                  )}
+                </div>
+              </div>
+            )}
 
-                    {/* Secondary Keywords */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm">
-                      <h3 className="font-semibold text-base mb-4 text-gray-900">Secondary Keywords ({keywordResponse.secondaryKeywords.length})</h3>
-                      <div className="space-y-3">
-                        {keywordResponse.secondaryKeywords.map((kw: any, index: number) => (
-                          <div key={index} className="border border-gray-200 rounded-xl p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900">{kw.keyword}</div>
-                                <div className="flex items-center gap-3 mt-1">
-                                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-lg capitalize">{kw.intent}</span>
-                                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-lg capitalize">{kw.competition}</span>
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-blue-600">{kw.keywordScore}</div>
-                                <div className="text-xs text-gray-500">Score</div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 mt-3 text-xs">
-                              <div>
-                                <div className="text-gray-500">Volume</div>
-                                <div className="font-semibold text-gray-900">{kw.searchVolume}</div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500">CTR Potential</div>
-                                <div className="font-semibold text-gray-900">{kw.ctrPotential}%</div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500">Relevance</div>
-                                <div className="font-semibold text-gray-900">{kw.relevanceScore}%</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Raw JSON */}
-                    <details className="bg-white rounded-2xl p-5 shadow-sm">
-                      <summary className="cursor-pointer font-semibold text-sm text-gray-700">View Raw JSON</summary>
-                      <pre className="mt-4 text-xs bg-gray-50 p-4 rounded-xl overflow-auto max-h-64 text-gray-700">
-                        {JSON.stringify(keywordResponse, null, 2)}
-                      </pre>
-                    </details>
-                  </div>
-                )}
-              </>
+            {!response && !imageResponse && !keywordResponse && !seoResponse && (
+              <div className="text-center text-gray-400 py-12">
+                <p>Submit a form to see results</p>
+              </div>
             )}
           </div>
         </div>
