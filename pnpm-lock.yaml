@@ -15,7 +15,7 @@ importers:
         specifier: ^2.11.0
         version: 2.11.0(@prisma/client@6.18.0(prisma@6.18.0(typescript@5.9.3))(typescript@5.9.3))
       '@prisma/client':
-        specifier: ^6.17.1
+        specifier: 6.18.0
         version: 6.18.0(prisma@6.18.0(typescript@5.9.3))(typescript@5.9.3)
       '@supabase/supabase-js':
         specifier: ^2.75.1
@@ -91,7 +91,7 @@ importers:
         specifier: 15.5.6
         version: 15.5.6(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
       prisma:
-        specifier: ^6.17.1
+        specifier: 6.18.0
         version: 6.18.0(typescript@5.9.3)
       tailwindcss:
         specifier: ^4.1.14

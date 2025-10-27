@@ -15,7 +15,24 @@ export default function SignUpPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const body = Object.fromEntries(formData.entries());
+    const body = {
+      name: formData.get("name") as string,
+      email: formData.get("email") as string,
+      password: formData.get("password") as string,
+    };
+
+    // Client-side validation
+    if (!body.name || body.name.trim().length === 0) {
+      setError("Name is required");
+      setIsLoading(false);
+      return;
+    }
+
+    if (body.name.trim().length > 80) {
+      setError("Name must be less than 80 characters");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/auth/signup", {
@@ -55,12 +72,14 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
-              Name (Optional)
+              Name <span className="text-red-500">*</span>
             </label>
             <input
               id="name"
               name="name"
               type="text"
+              required
+              maxLength={80}
               className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Your name"
             />
@@ -68,7 +87,7 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-              Email Address
+              Email Address <span className="text-red-500">*</span>
             </label>
             <input
               id="email"
@@ -82,7 +101,7 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-              Password
+              Password <span className="text-red-500">*</span>
             </label>
             <input
               id="password"

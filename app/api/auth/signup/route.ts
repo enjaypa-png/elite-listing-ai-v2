@@ -4,9 +4,9 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 
 const signUpSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string().min(1).optional(),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(1, "Name is required").max(80, "Name must be less than 80 characters"),
 });
 
 export async function POST(request: NextRequest) {
@@ -15,8 +15,9 @@ export async function POST(request: NextRequest) {
     const parsed = signUpSchema.safeParse(body);
 
     if (!parsed.success) {
+      const firstError = parsed.error.errors[0];
       return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.errors },
+        { error: firstError.message },
         { status: 400 }
       );
     }
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
       data: {
         email,
         password: hashedPassword,
-        name: name || email.split("@")[0],
+        name: name.trim(),
       },
     });
 
@@ -57,10 +58,27 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Sign up error:", error);
+    
+    // Handle Prisma constraint errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "User already exists" },
+        { status: 409 }
+      );
+    }
+    
+    // Handle Prisma validation errors
+    if (error.code === 'P2011' || error.code === 'P2012') {
+      return NextResponse.json(
+        { error: "Invalid data provided" },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to create account. Please try again." },
       { status: 500 }
     );
   }
