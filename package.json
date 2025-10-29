@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint",
-    "postinstall": "prisma generate",
-    "postbuild": "prisma migrate deploy"
+    "lint": "eslint"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
