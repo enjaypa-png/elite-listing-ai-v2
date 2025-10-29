@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "postbuild": "prisma migrate deploy"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",
@@ -20,6 +22,7 @@
     "next": "^15.5.6",
     "next-auth": "^5.0.0-beta.29",
     "openai": "^6.5.0",
+    "pg": "^8.16.3",
     "postcss": "^8.5.6",
     "posthog-node": "^5.10.0",
     "react": "^19.1.0",
