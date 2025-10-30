@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { exchangeCodeForToken } from "@/lib/etsy-oauth";
 import { EtsyAPI } from "@/lib/etsy-api";
 import { prisma } from "@/lib/prisma";
 
-/**
- * Handle Etsy OAuth callback
- * GET /api/etsy/callback?code=...&state=...
- */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const session = await auth();
-    if (!session?.user?.id) {
+    // Get current user
+    const user = await getCurrentUser();
+    if (!user) {
       return NextResponse.redirect(new URL("/auth/signin", request.url));
     }
 
@@ -21,106 +17,39 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get("state");
 
     if (!code || !state) {
-      return NextResponse.redirect(
-        new URL("/dashboard?error=missing_params", request.url)
+      return NextResponse.json(
+        { error: "Missing code or state parameter" },
+        { status: 400 }
       );
     }
 
-    // Verify state (CSRF protection)
-    const savedState = request.cookies.get("etsy_oauth_state")?.value;
-    if (state !== savedState) {
-      return NextResponse.redirect(
-        new URL("/dashboard?error=invalid_state", request.url)
-      );
-    }
+    // Exchange code for access token
+    const tokenData = await exchangeCodeForToken(code);
 
-    // Get code verifier
-    const codeVerifier = request.cookies.get("etsy_oauth_verifier")?.value;
-    if (!codeVerifier) {
-      return NextResponse.redirect(
-        new URL("/dashboard?error=missing_verifier", request.url)
-      );
-    }
+    // Get shop info from Etsy
+    const etsyAPI = new EtsyAPI(tokenData.access_token);
+    const shopData = await etsyAPI.getShop();
 
-    const clientId = process.env.ETSY_API_KEY;
-    const redirectUri =
-      process.env.ETSY_REDIRECT_URI ||
-      `${process.env.NEXTAUTH_URL}/api/etsy/callback`;
-
-    if (!clientId) {
-      return NextResponse.redirect(
-        new URL("/dashboard?error=config_error", request.url)
-      );
-    }
-
-    // Exchange code for tokens
-    const { accessToken, refreshToken, expiresIn, userId } =
-      await exchangeCodeForToken({
-        code,
-        clientId,
-        redirectUri,
-        codeVerifier,
-      });
-
-    // Get shop information
-    const etsyAPI = new EtsyAPI(accessToken);
-    const shops = await etsyAPI.getUserShops(parseInt(userId));
-
-    if (shops.length === 0) {
-      return NextResponse.redirect(
-        new URL("/dashboard?error=no_shop_found", request.url)
-      );
-    }
-
-    // For now, take the first shop
-    const shop = shops[0];
-
-    // Calculate token expiration
-    const expiresAt = new Date(Date.now() + expiresIn * 1000);
-
-    // Store shop and tokens in database
-    await prisma.shop.upsert({
-      where: {
-        userId_platform_platformShopId: {
-          userId: session.user.id,
-          platform: "ETSY",
-          platformShopId: shop.shop_id.toString(),
-        },
-      },
-      create: {
-        userId: session.user.id,
+    // Save shop to database
+    await prisma.shop.create({
+      data: {
+        userId: user.id,
         platform: "ETSY",
-        platformShopId: shop.shop_id.toString(),
-        shopName: shop.shop_name,
-        shopUrl: shop.url,
-        accessToken,
-        refreshToken,
-        tokenExpiresAt: expiresAt,
-        isActive: true,
-      },
-      update: {
-        shopName: shop.shop_name,
-        shopUrl: shop.url,
-        accessToken,
-        refreshToken,
-        tokenExpiresAt: expiresAt,
-        isActive: true,
+        platformShopId: shopData.shop_id,
+        shopName: shopData.shop_name,
+        shopUrl: shopData.url,
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        tokenExpiresAt: new Date(Date.now() + tokenData.expires_in * 1000),
       },
     });
 
-    // Clear OAuth cookies
-    const response = NextResponse.redirect(
-      new URL("/dashboard?connected=true", request.url)
-    );
-    response.cookies.delete("etsy_oauth_state");
-    response.cookies.delete("etsy_oauth_verifier");
-
-    return response;
-  } catch (error) {
+    // Redirect to dashboard
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  } catch (error: any) {
     console.error("Etsy callback error:", error);
     return NextResponse.redirect(
-      new URL("/dashboard?error=connection_failed", request.url)
+      new URL("/dashboard?error=etsy_connection_failed", request.url)
     );
   }
 }
-
