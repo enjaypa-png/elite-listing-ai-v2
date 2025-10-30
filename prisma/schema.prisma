@@ -14,7 +14,6 @@ datasource db {
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
-  password      String    // Hashed password
   name          String    // Required field, max 80 chars
   emailVerified DateTime?
   image         String?
