@@ -37,6 +37,7 @@ export default function SignUpPage() {
 
       setSuccess(data.message || 'Account created! Check your email.')
       
+      // Redirect to login after 2 seconds
       setTimeout(() => {
         router.push('/auth/signin')
       }, 2000)
@@ -48,36 +49,36 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-md w-full space-y-8 rounded-2xl shadow-xl p-8 border" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
         <div className="text-center">
           <div className="flex justify-center mb-6">
             <Logo variant="full" size="md" />
           </div>
-          <h2 className="text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm" style={{ color: 'var(--muted)' }}>
+          <p className="mt-2 text-center text-sm text-gray-600">
             Start optimizing your Etsy listings with AI
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md p-4" style={{ background: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger)' }}>
-              <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
           {success && (
-            <div className="rounded-md p-4" style={{ background: 'rgba(34, 197, 94, 0.1)', borderLeft: '4px solid var(--success)' }}>
-              <p className="text-sm" style={{ color: 'var(--success)' }}>{success}</p>
+            <div className="rounded-md bg-green-50 p-4">
+              <p className="text-sm text-green-800">{success}</p>
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Full Name
               </label>
               <input
@@ -85,13 +86,7 @@ export default function SignUpPage() {
                 name="name"
                 type="text"
                 required
-                className="mt-1 block w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                style={{ 
-                  background: 'var(--input)', 
-                  borderWidth: '1px',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text)'
-                }}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="John Doe"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -99,7 +94,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
               </label>
               <input
@@ -107,13 +102,7 @@ export default function SignUpPage() {
                 name="email"
                 type="email"
                 required
-                className="mt-1 block w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  background: 'var(--input)', 
-                  borderWidth: '1px',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text)'
-                }}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -121,7 +110,7 @@ export default function SignUpPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 Password
               </label>
               <input
@@ -130,13 +119,7 @@ export default function SignUpPage() {
                 type="password"
                 required
                 minLength={8}
-                className="mt-1 block w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  background: 'var(--input)', 
-                  borderWidth: '1px',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text)'
-                }}
+                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Min. 8 characters"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -148,19 +131,16 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: loading ? 'var(--muted)' : 'var(--primary)' }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--primary-700)')}
-              onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--primary)')}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Creating account...' : 'Sign up'}
             </button>
           </div>
 
           <div className="text-center">
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            <p className="text-sm text-gray-600">
               Already have an account?{' '}
-              <Link href="/auth/signin" className="font-medium" style={{ color: 'var(--primary)' }}>
+              <Link href="/auth/signin" className="font-medium text-indigo-600 hover:text-indigo-500">
                 Sign in
               </Link>
             </p>
@@ -168,7 +148,7 @@ export default function SignUpPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
+          <p className="text-xs text-gray-500">
             🎉 Get 10 free credits when you sign up!
           </p>
         </div>
