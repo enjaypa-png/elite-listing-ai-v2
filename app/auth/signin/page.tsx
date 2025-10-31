@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 export default function SignInPage() {
   const router = useRouter()
@@ -44,7 +45,10 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
-        <div>
+        <div className="text-center">
+          <div className="flex justify-center mb-6">
+            <Logo variant="full" size="md" />
+          </div>
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Welcome back
           </h2>

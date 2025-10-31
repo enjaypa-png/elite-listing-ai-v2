@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 export default function Home() {
   return (
@@ -6,14 +9,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Header */}
         <nav className="flex justify-between items-center mb-16">
-          <div className="flex items-center space-x-2">
-            <div className="bg-indigo-600 rounded-lg p-2">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
-            <span className="text-xl font-bold text-gray-900">Elite Listing AI</span>
-          </div>
+          <Logo variant="full" size="md" href="/" />
           <div className="space-x-4">
             <Link href="/auth/signin" className="text-gray-600 hover:text-gray-900 transition-colors">
               Sign In
@@ -113,8 +109,17 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-16 pt-8 border-t border-gray-200">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <Logo variant="full" size="sm" />
+            <p className="text-sm text-gray-500 mt-4 md:mt-0">
+              © 2025 Elite Listing AI. All rights reserved.
+            </p>
+          </div>
+        </footer>
       </div>
     </div>
-  );
+  )
 }
-

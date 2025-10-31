@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -72,10 +73,7 @@ export default function DashboardPage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Elite Listing AI</h1>
-              <p className="text-sm text-gray-600">AI-Powered Etsy Listing Optimizer</p>
-            </div>
+            <Logo variant="full" size="md" href="/dashboard" />
             <button
               onClick={handleSignOut}
               className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
