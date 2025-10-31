@@ -27,11 +27,11 @@ export function Logo({ variant = 'full', size = 'md', className = '', href }: Lo
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {/* Blue bars */}
-              <rect x="30" y="20" width="15" height="35" fill="#3B82F6" transform="rotate(25 37.5 37.5)" />
-              <rect x="45" y="15" width="15" height="45" fill="#60A5FA" transform="rotate(25 52.5 37.5)" />
-              <rect x="60" y="10" width="15" height="55" fill="#93C5FD" transform="rotate(25 67.5 37.5)" />
-              {/* White bars */}
+              {/* Indigo bars (matching UI theme) */}
+              <rect x="30" y="20" width="15" height="35" fill="#4F46E5" transform="rotate(25 37.5 37.5)" />
+              <rect x="45" y="15" width="15" height="45" fill="#6366F1" transform="rotate(25 52.5 37.5)" />
+              <rect x="60" y="10" width="15" height="55" fill="#818CF8" transform="rotate(25 67.5 37.5)" />
+              {/* White/gray bars */}
               <rect x="30" y="55" width="15" height="35" fill="#FFFFFF" transform="rotate(25 37.5 72.5)" />
               <rect x="45" y="50" width="15" height="45" fill="#E5E7EB" transform="rotate(25 52.5 72.5)" />
               <rect x="60" y="45" width="15" height="55" fill="#D1D5DB" transform="rotate(25 67.5 72.5)" />
@@ -39,7 +39,7 @@ export function Logo({ variant = 'full', size = 'md', className = '', href }: Lo
           </div>
           <div className="flex flex-col">
             <span className="text-2xl font-bold">
-              <span className="text-blue-500">Elite</span>
+              <span className="text-indigo-600">Elite</span>
             </span>
             <span className="text-xl font-semibold text-gray-700 -mt-1">Listing ai</span>
           </div>
@@ -53,11 +53,11 @@ export function Logo({ variant = 'full', size = 'md', className = '', href }: Lo
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          {/* Blue bars */}
-          <rect x="30" y="20" width="15" height="35" fill="#3B82F6" transform="rotate(25 37.5 37.5)" />
-          <rect x="45" y="15" width="15" height="45" fill="#60A5FA" transform="rotate(25 52.5 37.5)" />
-          <rect x="60" y="10" width="15" height="55" fill="#93C5FD" transform="rotate(25 67.5 37.5)" />
-          {/* White bars */}
+          {/* Indigo bars (matching UI theme) */}
+          <rect x="30" y="20" width="15" height="35" fill="#4F46E5" transform="rotate(25 37.5 37.5)" />
+          <rect x="45" y="15" width="15" height="45" fill="#6366F1" transform="rotate(25 52.5 37.5)" />
+          <rect x="60" y="10" width="15" height="55" fill="#818CF8" transform="rotate(25 67.5 37.5)" />
+          {/* White/gray bars */}
           <rect x="30" y="55" width="15" height="35" fill="#FFFFFF" transform="rotate(25 37.5 72.5)" />
           <rect x="45" y="50" width="15" height="45" fill="#E5E7EB" transform="rotate(25 52.5 72.5)" />
           <rect x="60" y="45" width="15" height="55" fill="#D1D5DB" transform="rotate(25 67.5 72.5)" />
@@ -67,7 +67,7 @@ export function Logo({ variant = 'full', size = 'md', className = '', href }: Lo
       {variant === 'text' && (
         <div className="flex flex-col">
           <span className="text-2xl font-bold">
-            <span className="text-blue-500">Elite</span>
+            <span className="text-indigo-600">Elite</span>
           </span>
           <span className="text-xl font-semibold text-gray-700 -mt-1">Listing ai</span>
         </div>
