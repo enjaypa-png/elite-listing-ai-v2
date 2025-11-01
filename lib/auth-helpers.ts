@@ -38,28 +38,48 @@ export async function signUp({ email, password, name }: SignUpData) {
 
   // Create user record in our database
   try {
-    const { error: dbError } = await supabaseAdmin
+    // Check if user already exists in database
+    const { data: existingUser } = await supabaseAdmin
       .from('users')
-      .insert({
-        id: authData.user.id,
-        email: authData.user.email!,
-        name,
-        emailVerified: null, // Will be set when user verifies email
+      .select('id')
+      .eq('id', authData.user.id)
+      .single()
+
+    if (!existingUser) {
+      // Create new user record
+      const { error: dbError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: authData.user.id,
+          email: authData.user.email!,
+          name,
+          emailVerified: null, // Will be set when user verifies email
+        })
+
+      if (dbError) {
+        console.error('Failed to create user record:', dbError)
+        // If duplicate email, try to sync with existing record
+        if (dbError.code === '23505') {
+          console.log('User email already exists in DB, attempting to sync...')
+          // This means email exists with different ID - data inconsistency issue
+        }
+      }
+
+      // Give user 10 free credits (only for new users)
+      const { error: creditError } = await supabaseAdmin.from('credit_ledgers').insert({
+        userId: authData.user.id,
+        amount: 10,
+        balance: 10,
+        type: 'bonus',
+        description: 'Welcome bonus - 10 free credits',
       })
 
-    if (dbError) {
-      console.error('Failed to create user record:', dbError)
-      // Don't throw - auth user is already created
+      if (creditError) {
+        console.error('Failed to add welcome credits:', creditError)
+      }
+    } else {
+      console.log('User already exists in database, skipping creation')
     }
-
-    // Give user 10 free credits
-    await supabaseAdmin.from('credit_ledgers').insert({
-      userId: authData.user.id,
-      amount: 10,
-      balance: 10,
-      type: 'bonus',
-      description: 'Welcome bonus - 10 free credits',
-    })
   } catch (error) {
     console.error('Error creating user data:', error)
   }

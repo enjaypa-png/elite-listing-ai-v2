@@ -10,6 +10,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [purchasing, setPurchasing] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -42,6 +43,33 @@ export default function DashboardPage() {
       router.refresh()
     } catch (err) {
       console.error('Sign out error:', err)
+    }
+  }
+
+  const handleBuyCredits = async (packageType: string) => {
+    try {
+      setPurchasing(true)
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ package: packageType }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      // Redirect to Stripe checkout
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (err: any) {
+      console.error('Checkout error:', err)
+      setError(err.message || 'Failed to start checkout')
+    } finally {
+      setPurchasing(false)
     }
   }
 
@@ -205,14 +233,74 @@ export default function DashboardPage() {
               <div className="ml-3">
                 <p className="text-sm" style={{ color: 'var(--text)' }}>
                   <strong>Running low on credits!</strong> You have {user.credits} credits remaining. 
-                  <button className="underline ml-1 font-medium opacity-50 cursor-not-allowed" disabled style={{ color: 'var(--muted)' }}>
-                    Buy more credits (Coming soon)
+                  <button 
+                    onClick={() => handleBuyCredits('starter')}
+                    disabled={purchasing}
+                    className="underline ml-1 font-medium hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-wait" 
+                    style={{ color: 'var(--primary)' }}
+                  >
+                    {purchasing ? 'Processing...' : 'Buy more credits'}
                   </button>
                 </p>
               </div>
             </div>
           </div>
         )}
+
+        {/* Credit Packages */}
+        <div className="mt-6 rounded-lg p-6 border" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
+          <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text)' }}>Credit Packages</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Starter Package */}
+            <div className="border rounded-lg p-4 hover:border-[var(--primary)] transition-colors" style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+              <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--text)' }}>Starter</h4>
+              <p className="text-3xl font-bold mb-1" style={{ color: 'var(--primary)' }}>$9</p>
+              <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>10 credits</p>
+              <button
+                onClick={() => handleBuyCredits('starter')}
+                disabled={purchasing}
+                className="w-full px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-wait hover:bg-[var(--primary-700)]"
+                style={{ background: 'var(--primary)', color: 'white' }}
+              >
+                {purchasing ? 'Processing...' : 'Purchase'}
+              </button>
+            </div>
+
+            {/* Pro Package */}
+            <div className="border-2 rounded-lg p-4 relative" style={{ borderColor: 'var(--primary)', background: 'var(--surface-2)' }}>
+              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 px-3 py-1 rounded-full text-xs font-bold" style={{ background: 'var(--primary)', color: 'white' }}>
+                SAVE 13%
+              </div>
+              <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--text)' }}>Pro</h4>
+              <p className="text-3xl font-bold mb-1" style={{ color: 'var(--primary)' }}>$39</p>
+              <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>50 credits</p>
+              <button
+                onClick={() => handleBuyCredits('pro')}
+                disabled={purchasing}
+                className="w-full px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-wait hover:bg-[var(--primary-700)]"
+                style={{ background: 'var(--primary)', color: 'white' }}
+              >
+                {purchasing ? 'Processing...' : 'Purchase'}
+              </button>
+            </div>
+
+            {/* Business Package */}
+            <div className="border rounded-lg p-4 hover:border-[var(--primary)] transition-colors" style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+              <div className="text-xs font-bold mb-2" style={{ color: 'var(--success)' }}>SAVE 19%</div>
+              <h4 className="text-lg font-bold mb-2" style={{ color: 'var(--text)' }}>Business</h4>
+              <p className="text-3xl font-bold mb-1" style={{ color: 'var(--primary)' }}>$129</p>
+              <p className="text-sm mb-4" style={{ color: 'var(--muted)' }}>200 credits</p>
+              <button
+                onClick={() => handleBuyCredits('business')}
+                disabled={purchasing}
+                className="w-full px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-wait hover:bg-[var(--primary-700)]"
+                style={{ background: 'var(--primary)', color: 'white' }}
+              >
+                {purchasing ? 'Processing...' : 'Purchase'}
+              </button>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   )
