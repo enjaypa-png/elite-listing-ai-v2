@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Button, Card, Alert } from '@/components/ui'
 import tokens from '@/design-system/tokens.json'
@@ -29,7 +29,7 @@ interface EtsyShop {
   icon_url_fullxfull?: string
 }
 
-export default function EtsyIntegrationPage() {
+function EtsyIntegrationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -386,5 +386,17 @@ export default function EtsyIntegrationPage() {
         </Container>
       </main>
     </div>
+  )
+}
+
+export default function EtsyIntegrationPage() {
+  return (
+    <Suspense fallback={
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        Loading...
+      </div>
+    }>
+      <EtsyIntegrationContent />
+    </Suspense>
   )
 }
