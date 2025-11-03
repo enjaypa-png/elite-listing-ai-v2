@@ -3,23 +3,20 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Logo } from '@/components/Logo'
 
 export default function SignUpPage() {
   const router = useRouter()
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
+    name: '',
   })
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    setSuccess('')
     setLoading(true)
 
     try {
@@ -35,11 +32,8 @@ export default function SignUpPage() {
         throw new Error(data.error || 'Failed to create account')
       }
 
-      setSuccess(data.message || 'Account created! Check your email.')
-      
-      setTimeout(() => {
-        router.push('/auth/signin')
-      }, 2000)
+      router.push('/dashboard')
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -48,130 +42,186 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" style={{ background: 'var(--bg)' }}>
-      <div className="max-w-md w-full space-y-8 rounded-2xl shadow-xl p-8 border" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <Logo variant="full" size="md" />
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      padding: '1rem',
+      backgroundColor: '#0f1419',
+      fontFamily: "'Inter', sans-serif"
+    }}>
+      <div style={{
+        maxWidth: '28rem',
+        width: '100%',
+        backgroundColor: '#1a2332',
+        borderRadius: '1rem',
+        padding: '2rem',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+            <img src="/logo.png" alt="Elite Listing AI" style={{ height: '3rem', width: 'auto' }} />
           </div>
-          <h2 className="text-center text-3xl font-extrabold" style={{ color: 'var(--text)' }}>
+          <h2 style={{ 
+            fontSize: '1.875rem', 
+            fontWeight: '700', 
+            color: '#f8f9fa',
+            marginBottom: '0.5rem'
+          }}>
             Create your account
           </h2>
-          <p className="mt-2 text-center text-sm" style={{ color: 'var(--muted)' }}>
-            Start optimizing your Etsy listings with AI
+          <p style={{ fontSize: '0.875rem', color: '#a6acb5' }}>
+            Get 10 free credits to start optimizing
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md p-4" style={{ background: 'rgba(239, 68, 68, 0.1)', borderLeft: '4px solid var(--danger)' }}>
-              <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>
+            <div style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              borderLeft: '4px solid #EF4444',
+              borderRadius: '0.375rem',
+              padding: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <p style={{ fontSize: '0.875rem', color: '#EF4444' }}>{error}</p>
             </div>
           )}
 
-          {success && (
-            <div className="rounded-md p-4" style={{ background: 'rgba(34, 197, 94, 0.1)', borderLeft: '4px solid var(--success)' }}>
-              <p className="text-sm" style={{ color: 'var(--success)' }}>{success}</p>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="mt-1 block w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all" 
-                style={{ 
-                  background: 'var(--input)', 
-                  borderWidth: '1px',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text)'
-                }}
-                placeholder="John Doe"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="mt-1 block w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  background: 'var(--input)', 
-                  borderWidth: '1px',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text)'
-                }}
-                placeholder="you@example.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium" style={{ color: 'var(--text)' }}>
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={8}
-                className="mt-1 block w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  background: 'var(--input)', 
-                  borderWidth: '1px',
-                  borderColor: 'var(--input-border)',
-                  color: 'var(--text)'
-                }}
-                placeholder="Min. 8 characters"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="name" style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '500',
+              color: '#f8f9fa',
+              marginBottom: '0.5rem'
+            }}>
+              Full name
+            </label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: '#0f1419',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '0.5rem',
+                color: '#f8f9fa',
+                fontSize: '0.875rem',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
+              placeholder="John Doe"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onFocus={(e) => e.target.style.borderColor = '#00B3FF'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+            />
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-3 px-4 rounded-lg text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ background: loading ? 'var(--muted)' : 'var(--primary)' }}
-              onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--primary-700)')}
-              onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--primary)')}
-            >
-              {loading ? 'Creating account...' : 'Sign up'}
-            </button>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="email" style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '500',
+              color: '#f8f9fa',
+              marginBottom: '0.5rem'
+            }}>
+              Email address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: '#0f1419',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '0.5rem',
+                color: '#f8f9fa',
+                fontSize: '0.875rem',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
+              placeholder="you@example.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onFocus={(e) => e.target.style.borderColor = '#00B3FF'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+            />
           </div>
 
-          <div className="text-center">
-            <p className="text-sm" style={{ color: 'var(--muted)' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="password" style={{ 
+              display: 'block', 
+              fontSize: '0.875rem', 
+              fontWeight: '500',
+              color: '#f8f9fa',
+              marginBottom: '0.5rem'
+            }}>
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: '#0f1419',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '0.5rem',
+                color: '#f8f9fa',
+                fontSize: '0.875rem',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
+              placeholder="At least 8 characters"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onFocus={(e) => e.target.style.borderColor = '#00B3FF'}
+              onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: '100%',
+              padding: '0.875rem',
+              backgroundColor: loading ? '#a6acb5' : '#00B3FF',
+              color: loading ? '#f8f9fa' : '#1a1a2e',
+              border: 'none',
+              borderRadius: '0.75rem',
+              fontWeight: '600',
+              fontSize: '1rem',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s',
+              marginBottom: '1.5rem'
+            }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#0095d9')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = '#00B3FF')}
+          >
+            {loading ? 'Creating account...' : 'Create account'}
+          </button>
+
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '0.875rem', color: '#a6acb5' }}>
               Already have an account?{' '}
-              <Link href="/auth/signin" className="font-medium" style={{ color: 'var(--primary)' }}>
+              <Link href="/auth/signin" style={{ color: '#00B3FF', fontWeight: '500', textDecoration: 'none' }}>
                 Sign in
               </Link>
             </p>
           </div>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-xs" style={{ color: 'var(--muted)' }}>
-            🎉 Get 10 free credits when you sign up!
-          </p>
-        </div>
       </div>
     </div>
   )
