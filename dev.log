@@ -1,0 +1,22 @@
+
+> elite-listing-ai@0.1.0 dev
+> next dev
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /app/yarn.lock as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * /app/elite-listing-ai-v2/package-lock.json
+
+ ⚠ Port 3000 is in use by process 332, using available port 3001 instead.
+   ▲ Next.js 15.5.6
+   - Local:        http://localhost:3001
+   - Network:      http://10.64.135.57:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1372ms
+   Reload env: .env.local
+   Reload env: .env.local
+   Reload env: .env.local

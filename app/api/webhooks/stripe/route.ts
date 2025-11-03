@@ -1,188 +1,312 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/stripe';
-import { prisma } from '@/lib/prisma';
-import Stripe from 'stripe';
+import { NextRequest, NextResponse } from 'next/server'
+import { stripe } from '@/lib/stripe'
+import { prisma } from '@/lib/prisma'
+import Stripe from 'stripe'
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
+
+// Structured logging helpers
+function logInfo(message: string, data?: any) {
+  console.log(JSON.stringify({ level: 'info', message, ...data, timestamp: new Date().toISOString() }))
+}
+
+function logError(message: string, error?: any, data?: any) {
+  console.error(JSON.stringify({ 
+    level: 'error', 
+    message, 
+    error: error?.message, 
+    stack: error?.stack,
+    ...data,
+    timestamp: new Date().toISOString() 
+  }))
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.text();
-    const signature = request.headers.get('stripe-signature')!;
+    const body = await request.text()
+    const signature = request.headers.get('stripe-signature')!
 
     if (!webhookSecret) {
-      console.error('STRIPE_WEBHOOK_SECRET not configured');
+      logError('STRIPE_WEBHOOK_SECRET not configured')
       return NextResponse.json(
         { error: 'Webhook secret not configured' },
         { status: 500 }
-      );
+      )
     }
 
     // Verify webhook signature
-    let event: Stripe.Event;
+    let event: Stripe.Event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      logInfo('Webhook signature verified', { eventType: event.type, eventId: event.id })
     } catch (err: any) {
-      console.error('Webhook signature verification failed:', err.message);
+      logError('Webhook signature verification failed', err)
       return NextResponse.json(
         { error: `Webhook Error: ${err.message}` },
         { status: 400 }
-      );
+      )
     }
 
-    console.log('Received webhook event:', event.type);
+    logInfo('Processing webhook event', { eventType: event.type, eventId: event.id })
 
     // Handle different event types
     switch (event.type) {
       case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        await handleCheckoutComplete(session);
-        break;
+        const session = event.data.object as Stripe.Checkout.Session
+        await handleCheckoutComplete(session)
+        break
       }
 
       case 'charge.refunded': {
-        const charge = event.data.object as Stripe.Charge;
-        await handleRefund(charge);
-        break;
+        const charge = event.data.object as Stripe.Charge
+        await handleRefund(charge)
+        break
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logInfo('Unhandled event type', { eventType: event.type })
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, eventType: event.type })
   } catch (error: any) {
-    console.error('Webhook error:', error);
+    logError('Webhook handler failed', error)
     return NextResponse.json(
       { error: 'Webhook handler failed', details: error.message },
       { status: 500 }
-    );
+    )
   }
 }
 
 async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
+  const startTime = Date.now()
   try {
-    const userId = session.metadata?.userId;
-    const credits = parseInt(session.metadata?.credits || '0');
-    const packageType = session.metadata?.packageType;
+    const userId = session.metadata?.userId || session.metadata?.user_id
+    const credits = parseInt(session.metadata?.credits || '0')
+    const packageType = session.metadata?.packageType || session.metadata?.package_type
+    const idempotencyKey = session.metadata?.idempotency_key || session.id
 
     if (!userId || !credits) {
-      console.error('Missing metadata in checkout session:', session.id);
-      return;
+      logError('Missing metadata in checkout session', null, { sessionId: session.id })
+      
+      // Store failed event
+      try {
+        await prisma.webhookEvent.create({
+          data: {
+            userId: userId || 'unknown',
+            eventType: 'checkout.session.completed',
+            eventId: session.id,
+            stripeSessionId: session.id,
+            status: 'failed',
+            errorMessage: 'Missing userId or credits in metadata',
+            stripeCreatedAt: new Date(session.created * 1000),
+          }
+        })
+      } catch (e) {
+        logError('Failed to store webhook event', e)
+      }
+      
+      return
     }
 
-    console.log(`Processing payment for user ${userId}: ${credits} credits`);
+    logInfo('Processing checkout complete', { 
+      userId, 
+      credits, 
+      packageType,
+      sessionId: session.id,
+      idempotencyKey
+    })
 
     // Check if this payment was already processed (idempotency)
     const existingLedger = await prisma.creditLedger.findFirst({
       where: {
-        referenceId: session.id,
-        referenceType: 'purchase',
+        referenceId: idempotencyKey,
       },
-    });
+    })
 
-    if (existingLedger) {
-      console.log('Payment already processed:', session.id);
-      return;
+    const isDuplicate = !!existingLedger
+
+    if (isDuplicate) {
+      logInfo('Payment already processed (idempotent)', { 
+        referenceId: idempotencyKey,
+        existingBalance: existingLedger.balanceAfter 
+      })
+      
+      // Store duplicate event
+      await prisma.webhookEvent.create({
+        data: {
+          userId,
+          eventType: 'checkout.session.completed',
+          eventId: session.id,
+          stripeSessionId: session.id,
+          stripePaymentIntentId: session.payment_intent as string,
+          credits,
+          amount: session.amount_total || 0,
+          status: 'processed',
+          referenceId: idempotencyKey,
+          isDuplicate: true,
+          stripeCreatedAt: new Date(session.created * 1000),
+        }
+      })
+      
+      return
     }
 
     // Get current balance
-    const currentBalance = await prisma.creditLedger.aggregate({
+    const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId },
-      _sum: { amount: true },
-    });
+      orderBy: { createdAt: 'desc' },
+      select: { balanceAfter: true }
+    })
 
-    const newBalance = (currentBalance._sum.amount || 0) + credits;
+    const currentBalance = latestLedger?.balanceAfter || 0
+    const newBalance = currentBalance + credits
 
     // Add credits to ledger
     await prisma.creditLedger.create({
       data: {
         userId,
         amount: credits,
-        balance: newBalance,
-        type: 'purchase',
+        balanceAfter: newBalance,
+        transactionType: 'purchase',
         description: `${packageType} package - ${credits} credits`,
-        referenceId: session.id,
-        referenceType: 'purchase',
-        stripePaymentId: session.payment_intent as string,
+        referenceId: idempotencyKey,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: session.payment_intent as string,
         metadata: {
           sessionId: session.id,
           packageType,
           amountPaid: session.amount_total,
           currency: session.currency,
+          customerEmail: session.customer_email,
         },
       },
-    });
+    })
 
-    console.log(`Successfully added ${credits} credits to user ${userId}. New balance: ${newBalance}`);
+    // Store successful webhook event
+    await prisma.webhookEvent.create({
+      data: {
+        userId,
+        eventType: 'checkout.session.completed',
+        eventId: session.id,
+        stripeSessionId: session.id,
+        stripePaymentIntentId: session.payment_intent as string,
+        credits,
+        amount: session.amount_total || 0,
+        status: 'processed',
+        referenceId: idempotencyKey,
+        isDuplicate: false,
+        stripeCreatedAt: new Date(session.created * 1000),
+      }
+    })
+
+    const duration = Date.now() - startTime
+    logInfo('Credits added successfully', { 
+      userId, 
+      credits,
+      previousBalance: currentBalance,
+      newBalance,
+      duration,
+      referenceId: idempotencyKey,
+      stripeSessionId: session.id,
+      stripePaymentIntentId: session.payment_intent
+    })
   } catch (error) {
-    console.error('Error handling checkout complete:', error);
-    throw error;
+    logError('Error handling checkout complete', error, { sessionId: session.id })
+    
+    // Store failed event
+    try {
+      const userId = session.metadata?.userId || session.metadata?.user_id
+      if (userId) {
+        await prisma.webhookEvent.create({
+          data: {
+            userId,
+            eventType: 'checkout.session.completed',
+            eventId: session.id,
+            stripeSessionId: session.id,
+            status: 'failed',
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            stripeCreatedAt: new Date(session.created * 1000),
+          }
+        })
+      }
+    } catch (e) {
+      logError('Failed to store failed webhook event', e)
+    }
+    
+    throw error
   }
 }
 
 async function handleRefund(charge: Stripe.Charge) {
   try {
-    const paymentIntentId = charge.payment_intent as string;
+    const paymentIntentId = charge.payment_intent as string
+
+    logInfo('Processing refund', { chargeId: charge.id, paymentIntentId })
 
     // Find the original purchase
     const originalPurchase = await prisma.creditLedger.findFirst({
       where: {
-        stripePaymentId: paymentIntentId,
-        type: 'purchase',
+        stripePaymentIntentId: paymentIntentId,
+        transactionType: 'purchase',
       },
-    });
+    })
 
     if (!originalPurchase) {
-      console.error('Original purchase not found for refund:', paymentIntentId);
-      return;
+      logError('Original purchase not found for refund', null, { paymentIntentId })
+      return
     }
 
-    // Check if refund already processed
+    // Check if refund already processed (idempotency)
     const existingRefund = await prisma.creditLedger.findFirst({
       where: {
-        referenceId: charge.id,
-        referenceType: 'refund',
+        referenceId: `refund_${charge.id}`,
       },
-    });
+    })
 
     if (existingRefund) {
-      console.log('Refund already processed:', charge.id);
-      return;
+      logInfo('Refund already processed (idempotent)', { chargeId: charge.id })
+      return
     }
 
-    const userId = originalPurchase.userId;
-    const creditsToDeduct = -originalPurchase.amount; // Negative to deduct
+    const userId = originalPurchase.userId
+    const creditsToDeduct = -originalPurchase.amount // Negative to deduct
 
     // Get current balance
-    const currentBalance = await prisma.creditLedger.aggregate({
+    const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId },
-      _sum: { amount: true },
-    });
+      orderBy: { createdAt: 'desc' },
+      select: { balanceAfter: true }
+    })
 
-    const newBalance = (currentBalance._sum.amount || 0) + creditsToDeduct;
+    const currentBalance = latestLedger?.balanceAfter || 0
+    const newBalance = Math.max(0, currentBalance + creditsToDeduct) // Don't go below zero
 
     // Deduct credits
     await prisma.creditLedger.create({
       data: {
         userId,
         amount: creditsToDeduct,
-        balance: newBalance,
-        type: 'refund',
+        balanceAfter: newBalance,
+        transactionType: 'refund',
         description: `Refund - ${-creditsToDeduct} credits removed`,
-        referenceId: charge.id,
-        referenceType: 'refund',
-        stripePaymentId: paymentIntentId,
+        referenceId: `refund_${charge.id}`,
+        stripePaymentIntentId: paymentIntentId,
         metadata: {
           chargeId: charge.id,
           amountRefunded: charge.amount_refunded,
+          originalPurchaseId: originalPurchase.id,
         },
       },
-    });
+    })
 
-    console.log(`Successfully refunded ${-creditsToDeduct} credits for user ${userId}. New balance: ${newBalance}`);
+    logInfo('Refund processed successfully', { 
+      userId, 
+      creditsDeducted: -creditsToDeduct,
+      previousBalance: currentBalance,
+      newBalance 
+    })
   } catch (error) {
-    console.error('Error handling refund:', error);
-    throw error;
+    logError('Error handling refund', error, { chargeId: charge.id })
+    throw error
   }
 }

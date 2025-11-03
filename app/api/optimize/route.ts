@@ -4,7 +4,10 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 
-
+// HEAD method for health check probe
+export async function HEAD(request: NextRequest) {
+  return new NextResponse(null, { status: 200 })
+}
 
 // Input validation schema
 const OptimizeRequestSchema = z.object({

@@ -7,9 +7,10 @@ interface AlertProps {
   variant?: 'success' | 'danger' | 'warning' | 'info'
   children: React.ReactNode
   onClose?: () => void
+  style?: React.CSSProperties
 }
 
-export function Alert({ variant = 'info', children, onClose }: AlertProps) {
+export function Alert({ variant = 'info', children, onClose, style }: AlertProps) {
   const colors = {
     success: tokens.colors.success,
     danger: tokens.colors.danger,
@@ -26,7 +27,8 @@ export function Alert({ variant = 'info', children, onClose }: AlertProps) {
       marginBottom: tokens.spacing[4],
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'flex-start'
+      alignItems: 'flex-start',
+      ...style
     }}>
       <p style={{ fontSize: tokens.typography.fontSize.sm, color: colors[variant], flex: 1 }}>
         {children}

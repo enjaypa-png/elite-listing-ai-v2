@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
     // Get base URL for redirects
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
 
-    // Create Stripe checkout session
+    // Generate idempotency key for this purchase
+    const idempotencyKey = `checkout_${user.id}_${packageType}_${Date.now()}`
+
+    // Create Stripe checkout session with metadata for webhook
     const session = await stripeHelpers.createCheckoutSession({
       userId: user.id,
       userEmail: user.email,
@@ -63,6 +66,12 @@ export async function POST(request: NextRequest) {
       price: packageInfo.price,
       successUrl: `${baseUrl}/dashboard?payment=success`,
       cancelUrl: `${baseUrl}/dashboard?payment=cancelled`,
+      metadata: {
+        user_id: user.id,
+        package_type: packageType,
+        credits: packageInfo.credits.toString(),
+        idempotency_key: idempotencyKey,
+      },
     });
 
     return NextResponse.json({

@@ -20,6 +20,7 @@ export const stripeHelpers = {
     price: number;
     successUrl: string;
     cancelUrl: string;
+    metadata?: Record<string, string>;
   }) {
     return await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -45,6 +46,7 @@ export const stripeHelpers = {
         userId: params.userId,
         packageType: params.packageType,
         credits: params.credits.toString(),
+        ...(params.metadata || {}),
       },
     });
   },
