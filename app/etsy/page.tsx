@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Button, Card, Alert } from '@/components/ui'
-import designTokens from '@/design-system/designTokens.json'
+import tokens from '@/design-system/tokens.json'
 
 interface EtsyListing {
   listing_id: number
@@ -137,11 +137,11 @@ export default function EtsyIntegrationPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: designTokens.colors.background }}>
+    <div style={{ minHeight: '100vh', backgroundColor: tokens.colors.background }}>
       <header style={{
-        borderBottom: `1px solid ${designTokens.colors.border}`,
-        padding: `${designTokens.spacing[4]} 0`,
-        backgroundColor: designTokens.colors.background
+        borderBottom: `1px solid ${tokens.colors.border}`,
+        padding: `${tokens.spacing[4]} 0`,
+        backgroundColor: tokens.colors.background
       }}>
         <Container>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -153,70 +153,70 @@ export default function EtsyIntegrationPage() {
         </Container>
       </header>
 
-      <main style={{ padding: `${designTokens.spacing[8]} 0` }}>
+      <main style={{ padding: `${tokens.spacing[8]} 0` }}>
         <Container>
-          <div style={{ marginBottom: designTokens.spacing[8] }}>
+          <div style={{ marginBottom: tokens.spacing[8] }}>
             <h1 style={{
-              fontSize: designTokens.typography.fontSize['3xl'],
-              fontWeight: designTokens.typography.fontWeight.bold,
-              color: designTokens.colors.text,
-              marginBottom: designTokens.spacing[2]
+              fontSize: tokens.typography.fontSize['3xl'],
+              fontWeight: tokens.typography.fontWeight.bold,
+              color: tokens.colors.text,
+              marginBottom: tokens.spacing[2]
             }}>
               🛍️ Etsy Integration
             </h1>
-            <p style={{ color: designTokens.colors.textMuted, fontSize: designTokens.typography.fontSize.base }}>
+            <p style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.base }}>
               Connect your Etsy shop to import and optimize listings
             </p>
           </div>
 
           {error && (
-            <Alert variant="danger" style={{ marginBottom: designTokens.spacing[6] }}>
+            <Alert variant="danger" style={{ marginBottom: tokens.spacing[6] }}>
               {error}
             </Alert>
           )}
 
           {success && (
-            <Alert variant="success" style={{ marginBottom: designTokens.spacing[6] }}>
+            <Alert variant="success" style={{ marginBottom: tokens.spacing[6] }}>
               {success}
             </Alert>
           )}
 
-          <Alert variant="info" style={{ marginBottom: designTokens.spacing[6] }}>
+          <Alert variant="info" style={{ marginBottom: tokens.spacing[6] }}>
             <strong>🔧 Mock Mode Active:</strong> Using simulated Etsy data while API approval is pending. All functionality is ready - just swap in real API keys when approved.
           </Alert>
 
           {!isConnected ? (
             <Card padding="8">
-              <div style={{ textAlign: 'center', padding: `${designTokens.spacing[12]} 0` }}>
+              <div style={{ textAlign: 'center', padding: `${tokens.spacing[12]} 0` }}>
                 <div style={{
                   width: '5rem',
                   height: '5rem',
-                  backgroundColor: `${designTokens.colors.primary}15`,
-                  borderRadius: designTokens.radius.full,
+                  backgroundColor: `${tokens.colors.primary}15`,
+                  borderRadius: tokens.radius.full,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto',
-                  marginBottom: designTokens.spacing[6]
+                  marginBottom: tokens.spacing[6]
                 }}>
-                  <svg style={{ width: '2.5rem', height: '2.5rem', color: designTokens.colors.primary }} fill="currentColor" viewBox="0 0 24 24">
+                  <svg style={{ width: '2.5rem', height: '2.5rem', color: tokens.colors.primary }} fill="currentColor" viewBox="0 0 24 24">
                     <path d="M7.5 6.5C7.5 8.981 9.519 11 12 11s4.5-2.019 4.5-4.5S14.481 2 12 2 7.5 4.019 7.5 6.5zM20 21h1v-1c0-3.859-3.141-7-7-7h-4c-3.86 0-7 3.141-7 7v1h17z"/>
                   </svg>
                 </div>
                 <h2 style={{
-                  fontSize: designTokens.typography.fontSize['2xl'],
-                  fontWeight: designTokens.typography.fontWeight.semibold,
-                  color: designTokens.colors.text,
-                  marginBottom: designTokens.spacing[4]
+                  fontSize: tokens.typography.fontSize['2xl'],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text,
+                  marginBottom: tokens.spacing[4]
                 }}>
                   Connect Your Etsy Shop
                 </h2>
                 <p style={{
-                  color: designTokens.colors.textMuted,
-                  marginBottom: designTokens.spacing[8],
+                  color: tokens.colors.textMuted,
+                  marginBottom: tokens.spacing[8],
                   maxWidth: '500px',
                   margin: '0 auto',
-                  marginBottom: designTokens.spacing[8]
+                  marginBottom: tokens.spacing[8]
                 }}>
                   Link your Etsy shop to import listings, analyze performance, and optimize with AI-powered recommendations.
                 </p>
@@ -232,9 +232,9 @@ export default function EtsyIntegrationPage() {
             </Card>
           ) : (
             <>
-              <Card padding="6" hover style={{ marginBottom: designTokens.spacing[6] }}>
+              <Card padding="6" hover style={{ marginBottom: tokens.spacing[6] }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: designTokens.spacing[4] }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
                     {shop?.icon_url_fullxfull && (
                       <img
                         src={shop.icon_url_fullxfull}
@@ -242,26 +242,26 @@ export default function EtsyIntegrationPage() {
                         style={{
                           width: '4rem',
                           height: '4rem',
-                          borderRadius: designTokens.radius.lg,
+                          borderRadius: tokens.radius.lg,
                           objectFit: 'cover'
                         }}
                       />
                     )}
                     <div>
                       <h3 style={{
-                        fontSize: designTokens.typography.fontSize.xl,
-                        fontWeight: designTokens.typography.fontWeight.semibold,
-                        color: designTokens.colors.text,
-                        marginBottom: designTokens.spacing[1]
+                        fontSize: tokens.typography.fontSize.xl,
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.text,
+                        marginBottom: tokens.spacing[1]
                       }}>
                         {shop?.shop_name}
                       </h3>
-                      <p style={{ color: designTokens.colors.textMuted, fontSize: designTokens.typography.fontSize.sm }}>
+                      <p style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm }}>
                         {shop?.listing_active_count} active listings
                       </p>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: designTokens.spacing[3] }}>
+                  <div style={{ display: 'flex', gap: tokens.spacing[3] }}>
                     <Button
                       variant="primary"
                       onClick={handleImport}
@@ -279,10 +279,10 @@ export default function EtsyIntegrationPage() {
               {listings.length > 0 && (
                 <Card padding="8">
                   <h2 style={{
-                    fontSize: designTokens.typography.fontSize['2xl'],
-                    fontWeight: designTokens.typography.fontWeight.semibold,
-                    color: designTokens.colors.text,
-                    marginBottom: designTokens.spacing[6]
+                    fontSize: tokens.typography.fontSize['2xl'],
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[6]
                   }}>
                     Your Listings ({listings.length})
                   </h2>
@@ -291,17 +291,17 @@ export default function EtsyIntegrationPage() {
                     <table style={{
                       width: '100%',
                       borderCollapse: 'collapse',
-                      fontSize: designTokens.typography.fontSize.sm
+                      fontSize: tokens.typography.fontSize.sm
                     }}>
                       <thead>
-                        <tr style={{ borderBottom: `2px solid ${designTokens.colors.border}` }}>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'left', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Image</th>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'left', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Title</th>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'left', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Price</th>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'left', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Views</th>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'left', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Favs</th>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'left', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Status</th>
-                          <th style={{ padding: designTokens.spacing[3], textAlign: 'center', color: designTokens.colors.textMuted, fontWeight: designTokens.typography.fontWeight.medium }}>Action</th>
+                        <tr style={{ borderBottom: `2px solid ${tokens.colors.border}` }}>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'left', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Image</th>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'left', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Title</th>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'left', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Price</th>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'left', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Views</th>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'left', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Favs</th>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'left', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Status</th>
+                          <th style={{ padding: tokens.spacing[3], textAlign: 'center', color: tokens.colors.textMuted, fontWeight: tokens.typography.fontWeight.medium }}>Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -309,63 +309,63 @@ export default function EtsyIntegrationPage() {
                           <tr
                             key={listing.listing_id}
                             style={{
-                              borderBottom: `1px solid ${designTokens.colors.border}`,
+                              borderBottom: `1px solid ${tokens.colors.border}`,
                               transition: 'background-color 0.2s'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = designTokens.colors.backgroundAlt}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = tokens.colors.backgroundAlt}
                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                           >
-                            <td style={{ padding: designTokens.spacing[3] }}>
+                            <td style={{ padding: tokens.spacing[3] }}>
                               <img
                                 src={listing.images[0]?.url_570xN}
                                 alt={listing.title}
                                 style={{
                                   width: '3rem',
                                   height: '3rem',
-                                  borderRadius: designTokens.radius.md,
+                                  borderRadius: tokens.radius.md,
                                   objectFit: 'cover'
                                 }}
                               />
                             </td>
-                            <td style={{ padding: designTokens.spacing[3], color: designTokens.colors.text, maxWidth: '300px' }}>
+                            <td style={{ padding: tokens.spacing[3], color: tokens.colors.text, maxWidth: '300px' }}>
                               <div style={{ 
                                 overflow: 'hidden', 
                                 textOverflow: 'ellipsis', 
                                 whiteSpace: 'nowrap',
-                                fontWeight: designTokens.typography.fontWeight.medium
+                                fontWeight: tokens.typography.fontWeight.medium
                               }}>
                                 {listing.title}
                               </div>
                               <div style={{ 
-                                color: designTokens.colors.textMuted, 
-                                fontSize: designTokens.typography.fontSize.xs,
-                                marginTop: designTokens.spacing[1]
+                                color: tokens.colors.textMuted, 
+                                fontSize: tokens.typography.fontSize.xs,
+                                marginTop: tokens.spacing[1]
                               }}>
                                 {listing.tags.slice(0, 3).join(', ')}
                               </div>
                             </td>
-                            <td style={{ padding: designTokens.spacing[3], color: designTokens.colors.text }}>
+                            <td style={{ padding: tokens.spacing[3], color: tokens.colors.text }}>
                               ${listing.price} {listing.currency_code}
                             </td>
-                            <td style={{ padding: designTokens.spacing[3], color: designTokens.colors.text }}>
+                            <td style={{ padding: tokens.spacing[3], color: tokens.colors.text }}>
                               {listing.views}
                             </td>
-                            <td style={{ padding: designTokens.spacing[3], color: designTokens.colors.text }}>
+                            <td style={{ padding: tokens.spacing[3], color: tokens.colors.text }}>
                               {listing.num_favorers}
                             </td>
-                            <td style={{ padding: designTokens.spacing[3] }}>
+                            <td style={{ padding: tokens.spacing[3] }}>
                               <span style={{
-                                padding: `${designTokens.spacing[1]} ${designTokens.spacing[2]}`,
-                                borderRadius: designTokens.radius.md,
-                                fontSize: designTokens.typography.fontSize.xs,
-                                fontWeight: designTokens.typography.fontWeight.medium,
-                                backgroundColor: listing.state === 'active' ? `${designTokens.colors.success}20` : `${designTokens.colors.warning}20`,
-                                color: listing.state === 'active' ? designTokens.colors.success : designTokens.colors.warning
+                                padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                                borderRadius: tokens.radius.md,
+                                fontSize: tokens.typography.fontSize.xs,
+                                fontWeight: tokens.typography.fontWeight.medium,
+                                backgroundColor: listing.state === 'active' ? `${tokens.colors.success}20` : `${tokens.colors.warning}20`,
+                                color: listing.state === 'active' ? tokens.colors.success : tokens.colors.warning
                               }}>
                                 {listing.state}
                               </span>
                             </td>
-                            <td style={{ padding: designTokens.spacing[3], textAlign: 'center' }}>
+                            <td style={{ padding: tokens.spacing[3], textAlign: 'center' }}>
                               <Button
                                 variant="primary"
                                 size="sm"
