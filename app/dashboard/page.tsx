@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Button, Card, Alert, Footer } from '@/components/ui'
 import { HealthPanel } from '@/components/HealthPanel'
@@ -15,7 +15,7 @@ interface CreditTransaction {
   createdAt: string
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
@@ -538,5 +538,35 @@ export default function DashboardPage() {
 
       <Footer />
     </>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#0B0F14'
+      }}>
+        <div style={{
+          width: '3rem',
+          height: '3rem',
+          border: '3px solid #2A3441',
+          borderTop: '3px solid #00B3FF',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }}></div>
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   )
 }
