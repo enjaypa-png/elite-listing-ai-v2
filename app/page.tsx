@@ -265,9 +265,7 @@ export default function HomePage() {
         <div className="container">
           <div className="header-content">
             <div>
-              <svg viewBox="0 0 100 100" style={{ width: '2.5rem', height: '2.5rem' }}>
-                <path d="M20 80 L50 20 L80 80 M35 60 L65 60" stroke="#00B3FF" strokeWidth="8" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <img src="/logo.png" alt="Elite Listing AI" style={{ height: '2.5rem', width: 'auto' }} />
             </div>
             <div className="header-buttons">
               <Link href="/auth/signup">
