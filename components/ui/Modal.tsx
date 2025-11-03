@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import tokens from '../design-system/tokens.json'
+import tokens from '@/design-system/tokens.json'
 import { Button } from './Button'
 
 interface ModalProps {

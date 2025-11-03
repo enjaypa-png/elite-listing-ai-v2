@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import tokens from '../design-system/tokens.json'
+import tokens from '@/design-system/tokens.json'
 
 interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
