@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "health": "bash scripts/health.sh"
+    "health": "bash scripts/health.sh",
+    "sync-env": "bash scripts/sync-env.sh",
+    "seed-user": "curl -X POST http://localhost:3000/api/dev/seed-user"
   },
   "dependencies": {
     "@auth/core": "^0.41.0",

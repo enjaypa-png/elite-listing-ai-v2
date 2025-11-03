@@ -270,6 +270,27 @@ export function HealthPanel() {
         fontSize: tokens.typography.fontSize.sm
       }}>
         <div style={{ marginBottom: tokens.spacing[2] }}>
+          <strong style={{ color: tokens.colors.text }}>Environment:</strong>{' '}
+          <span style={{ 
+            color: envStatus.general?.nodeEnv === 'production' ? tokens.colors.success : tokens.colors.warning,
+            fontWeight: tokens.typography.fontWeight.semibold 
+          }}>
+            {envStatus.general?.nodeEnv || 'unknown'}
+          </span>
+          {envStatus.general?.nodeEnv === 'development' && (
+            <span style={{ 
+              marginLeft: tokens.spacing[2],
+              padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+              backgroundColor: `${tokens.colors.warning}15`,
+              color: tokens.colors.warning,
+              fontSize: tokens.typography.fontSize.xs,
+              borderRadius: tokens.radius.sm
+            }}>
+              DEV MODE
+            </span>
+          )}
+        </div>
+        <div style={{ marginBottom: tokens.spacing[2] }}>
           <strong style={{ color: tokens.colors.text }}>Last Webhook:</strong>{' '}
           <span style={{ color: tokens.colors.textMuted }}>
             {lastWebhook ? (
@@ -289,9 +310,13 @@ export function HealthPanel() {
           </span>
         </div>
         <div>
-          <strong style={{ color: tokens.colors.text }}>Environment:</strong>{' '}
-          <span style={{ color: tokens.colors.textMuted }}>
-            {envStatus.general?.nodeEnv || 'unknown'}
+          <strong style={{ color: tokens.colors.text }}>App URL:</strong>{' '}
+          <span style={{ 
+            color: tokens.colors.textMuted,
+            fontSize: tokens.typography.fontSize.xs,
+            fontFamily: 'monospace'
+          }}>
+            {envStatus.general?.hasAppUrl ? process.env.NEXT_PUBLIC_APP_URL || 'Set' : 'Not configured'}
           </span>
         </div>
       </div>
