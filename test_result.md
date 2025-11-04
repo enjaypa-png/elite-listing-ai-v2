@@ -342,14 +342,15 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Optimize API v1.0 - Backend Testing"
+    - "Health API - All Green/⚠️ Check"
+    - "Debug Grant Credits - Idempotency Test"
+    - "Optimize API v1.0 - Full E2E Flow"
     - "Optimizations History API"
-    - "Health API with Flags"
-    - "Credit System Integration"
+    - "Credit Ledger Audit Trail"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Phase 1 Complete: Infrastructure fixes done (Prisma binary targets, runtime exports). Phase 2 Complete: Core Optimize v1.0 API implemented with full credit system integration, database writes, and GPT-4o (temp 0.4, max_tokens 2000). Optimizations history API created. Health Panel updated for USE_REAL_STRIPE flag. NEXT STEPS: 1) Add optimization history section to dashboard 2) Add Etsy mock prefill to analyze page 3) Test backend APIs with real OpenAI key 4) Test end-to-end optimize flow with credit deduction. Environment variables ready for testing: .env.local updated with all required variables."
+    message: "Phase 1 & 2 Complete: Infrastructure fixed, Core Optimize v1.0 API implemented, Debug endpoint created. TESTING PROTOCOL: 1) Call /api/health (expect green/⚠️ only) 2) Grant +10 credits via /api/debug/grant-credits (verify ledger PURCHASE) 3) Run /api/optimize with mock Etsy data (verify 3 variants saved, USAGE -1, history renders) 4) Test idempotency on duplicate grant request 5) Verify structured JSON logs. Environment: DEBUG_GRANT_CREDITS_KEY='debug-key-12345'. Ready for backend automated testing."
