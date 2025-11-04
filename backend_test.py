@@ -310,14 +310,18 @@ class SupabaseConnectionTester:
 
 def main():
     """Main test runner"""
-    tester = APITester(BASE_URL)
+    tester = SupabaseConnectionTester(BASE_URL)
     success = tester.run_all_tests()
     
     if success:
-        print("\n🎉 All tests passed!")
+        print("\n🎉 All Supabase PostgreSQL connection tests passed!")
+        print("✅ Database connectivity confirmed")
+        print("✅ URL encoding preserved")
+        print("✅ Prisma schema accessible")
         sys.exit(0)
     else:
         print("\n⚠️  Some tests failed. Check the details above.")
+        print("❌ Database connection issues detected")
         sys.exit(1)
 
 if __name__ == "__main__":
