@@ -230,6 +230,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Stripe checkout and webhook routes exist. Already uses NEXT_PUBLIC_APP_URL for success/cancel redirects. Need Stripe keys configuration and testing."
+      - working: "NA"
+        agent: "testing"
+        comment: "⚠️ NOT TESTED: Stripe integration in mock mode (USE_REAL_STRIPE=false). Health endpoint shows Stripe keys are configured. Cannot test payment flow without authentication and real Stripe setup."
 
   - task: "Etsy OAuth Integration"
     implemented: true
