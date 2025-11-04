@@ -236,15 +236,18 @@ backend:
 
   - task: "Etsy OAuth Integration"
     implemented: true
-    working: "NA"
+    working: true
     file: "app/api/etsy/**/*.ts"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Etsy OAuth connect, callback, import, sync routes exist. Mock endpoints available. Need Etsy API keys configuration for real mode."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: Etsy integration in mock mode working. Health endpoint shows Etsy service operational=true, mode=mock. Mock endpoints available for development."
 
 frontend:
   - task: "Design System - Theme Provider"
