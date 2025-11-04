@@ -11,7 +11,7 @@ import sys
 from typing import Dict, Any, Optional
 
 # Configuration
-BASE_URL = "http://localhost:3000"
+BASE_URL = "http://localhost:3001"
 DEBUG_KEY = "debug-key-12345"
 TEST_USER_EMAIL = "test@elitelistingai.com"
 
