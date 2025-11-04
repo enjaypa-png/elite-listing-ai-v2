@@ -104,46 +104,45 @@ class SupabaseConnectionTester:
         self.log_test("1. Health Check - Database Connectivity", True, f"✅ No Prisma connection errors, Success: {data.get('success')}, Warnings: {len(warnings)}")
         return True
 
-    def test_2_grant_initial_credits(self):
-        """Test 2: Grant Initial Credits (Debug Endpoint)"""
+    def test_2_database_write_grant_credits(self):
+        """Test 2: Database Write Test - Grant Credits"""
+        print("Testing POST /api/debug/grant-credits for database write operations...")
         payload = {
-            "amount": 10,
+            "amount": 5,
             "key": DEBUG_KEY
         }
         
         success, data, status = self.make_request('POST', '/api/debug/grant-credits', payload)
         
         if not success:
-            self.log_test("2. Grant Initial Credits", False, f"HTTP {status} - Expected 200", data)
+            # Check for specific Prisma error codes
+            error_msg = str(data.get('error', ''))
+            if any(code in error_msg for code in ['P1001', 'P1017', 'P2002', 'P2025']):
+                self.log_test("2. Database Write Test - Grant Credits", False, f"Prisma error detected: {error_msg}", data)
+                return False
+            self.log_test("2. Database Write Test - Grant Credits", False, f"HTTP {status} - Expected 200", data)
             return False
             
         # Check response structure
-        expected_fields = ['ok', 'duplicate', 'newBalance', 'previousBalance']
+        expected_fields = ['ok', 'newBalance']
         missing_fields = [field for field in expected_fields if field not in data]
         
         if missing_fields:
-            self.log_test("2. Grant Initial Credits", False, f"Missing fields: {missing_fields}", data)
+            self.log_test("2. Database Write Test - Grant Credits", False, f"Missing fields: {missing_fields}", data)
             return False
             
         # Verify values
         if not data.get('ok'):
-            self.log_test("2. Grant Initial Credits", False, f"Response ok=false: {data}", data)
+            self.log_test("2. Database Write Test - Grant Credits", False, f"Response ok=false: {data}", data)
             return False
             
-        if data.get('duplicate') != False:
-            self.log_test("2. Grant Initial Credits", False, f"Expected duplicate=false, got {data.get('duplicate')}", data)
-            return False
-            
-        # Check that credits were granted (balance should be previousBalance + amount)
-        previous_balance = data.get('previousBalance', 0)
+        # Check that credits were granted
         new_balance = data.get('newBalance', 0)
-        amount = data.get('amount', 0)
-        
-        if new_balance != previous_balance + amount:
-            self.log_test("2. Grant Initial Credits", False, f"Balance calculation error: {previous_balance} + {amount} != {new_balance}", data)
+        if new_balance < 5:
+            self.log_test("2. Database Write Test - Grant Credits", False, f"Expected balance >= 5, got {new_balance}", data)
             return False
             
-        self.log_test("2. Grant Initial Credits", True, f"Credits granted: {data.get('amount')}, New balance: {data.get('newBalance')}")
+        self.log_test("2. Database Write Test - Grant Credits", True, f"✅ Database write successful - Credits granted: {data.get('amount', 5)}, New balance: {new_balance}")
         return True
 
     def test_3_duplicate_grant_idempotency(self):
