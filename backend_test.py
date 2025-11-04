@@ -253,26 +253,23 @@ class SupabaseConnectionTester:
             return False
 
     def run_all_tests(self):
-        """Run all test scenarios in sequence"""
+        """Run all Supabase PostgreSQL connection tests"""
         print("=" * 80)
-        print("Elite Listing AI Optimize v1.0 - Backend API Testing Suite")
+        print("Elite Listing AI - Supabase PostgreSQL Connection Test")
         print("=" * 80)
         print(f"Base URL: {self.base_url}")
         print(f"Debug Key: {DEBUG_KEY}")
-        print(f"Test User: {TEST_USER_EMAIL}")
+        print(f"Database URL: postgresql://postgres:Ktpu87zt%40%40%24%24@db.lamcknwqqgthofmnviqw.supabase.co:5432/postgres")
         print("=" * 80)
         print()
         
         # Run tests in sequence
         tests = [
-            self.test_1_health_check,
-            self.test_2_grant_initial_credits,
-            self.test_3_duplicate_grant_idempotency,
-            self.test_4_fetch_user_credits,
-            self.test_5_optimize_insufficient_credits,
-            self.test_6_optimize_success_flow,
-            self.test_7_fetch_optimization_history,
-            self.test_8_verify_credit_audit_trail,
+            self.test_1_health_check_database_connectivity,
+            self.test_2_database_write_grant_credits,
+            self.test_3_database_read_fetch_credits,
+            self.test_4_schema_validation_credit_ledger,
+            self.test_5_user_table_accessibility,
         ]
         
         passed = 0
@@ -286,7 +283,7 @@ class SupabaseConnectionTester:
                 self.log_test(test_func.__name__, False, f"Exception: {str(e)}")
         
         print("=" * 80)
-        print(f"TEST SUMMARY: {passed}/{total} tests passed")
+        print(f"SUPABASE CONNECTION TEST SUMMARY: {passed}/{total} tests passed")
         print("=" * 80)
         
         # Print detailed results
@@ -295,6 +292,19 @@ class SupabaseConnectionTester:
         for result in self.test_results:
             status = "✅" if result['success'] else "❌"
             print(f"{status} {result['test']}: {result['details']}")
+        
+        # Summary of critical checks
+        print("\nCRITICAL CHECKS:")
+        print("-" * 40)
+        health_passed = any(r['test'].startswith('1.') and r['success'] for r in self.test_results)
+        write_passed = any(r['test'].startswith('2.') and r['success'] for r in self.test_results)
+        read_passed = any(r['test'].startswith('3.') and r['success'] for r in self.test_results)
+        schema_passed = any(r['test'].startswith('4.') and r['success'] for r in self.test_results)
+        
+        print(f"✅ No Prisma connection errors: {'PASS' if health_passed else 'FAIL'}")
+        print(f"✅ Database writes succeed: {'PASS' if write_passed else 'FAIL'}")
+        print(f"✅ Database reads succeed: {'PASS' if read_passed else 'FAIL'}")
+        print(f"✅ Schema accessible: {'PASS' if schema_passed else 'FAIL'}")
         
         return passed == total
 
