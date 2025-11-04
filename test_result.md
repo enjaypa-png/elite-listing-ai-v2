@@ -102,9 +102,81 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Complete design system migration for Elite Listing AI Next.js app - refactor all pages to use /components/ui primitives, remove legacy components, ensure ThemeProvider drives design tokens globally, achieve consistent dark-cyan theme across all routes."
+user_problem_statement: "Implement Optimize Listing v1.0 with OpenAI GPT-4o integration, credit system, database persistence, and optimization history. Fix Vercel build issues (Prisma binary targets, runtime exports). Update health panel for USE_REAL_STRIPE flag and NEXT_PUBLIC_APP_URL validation."
 
 backend:
+  - task: "Prisma Schema with Binary Targets"
+    implemented: true
+    working: true
+    file: "prisma/schema.prisma"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Updated Prisma schema with binaryTargets for Vercel deployment: native, debian-openssl-3.0.x, rhel-openssl-3.0.x. Added WebhookEvent model. Added index on Optimization userId+createdAt."
+
+  - task: "API Routes Runtime Export"
+    implemented: true
+    working: true
+    file: "app/api/**/route.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added 'export const runtime = nodejs' to all API routes using Prisma to avoid Edge runtime issues on Vercel."
+
+  - task: "OpenAI Client Library"
+    implemented: true
+    working: true
+    file: "lib/openai.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Created singleton OpenAI client using OPENAI_API_KEY from environment."
+
+  - task: "Optimize API v1.0 - Full Integration"
+    implemented: true
+    working: "NA"
+    file: "app/api/optimize/route.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Completely rewritten optimize endpoint with: 1) Authentication check via getCurrentUser 2) Credit balance validation (requires >=1 credit) 3) GPT-4o call with temp=0.4, max_tokens=2000 4) Database writes to optimizations + optimization_variants tables 5) Credit deduction (-1) ONLY on success 6) Transaction safety with Prisma $transaction 7) Detailed logging with requestId. Ready for testing with real OpenAI key."
+
+  - task: "Optimizations History API"
+    implemented: true
+    working: "NA"
+    file: "app/api/optimizations/route.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created GET /api/optimizations with cursor-based pagination (limit, cursor params). Returns user's optimization history with variants, listings, and pagination metadata."
+
+  - task: "Health API - USE_REAL_STRIPE Support"
+    implemented: true
+    working: "NA"
+    file: "app/api/health/route.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated health endpoint to check USE_REAL_STRIPE flag and return different warnings. Stripe shows warning if in mock mode. Added NEXT_PUBLIC_APP_URL validation."
+
   - task: "Authentication APIs"
     implemented: true
     working: "NA"
@@ -127,7 +199,7 @@ backend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Stripe checkout and webhook routes created. Need Stripe keys configuration and testing."
+        comment: "Stripe checkout and webhook routes exist. Already uses NEXT_PUBLIC_APP_URL for success/cancel redirects. Need Stripe keys configuration and testing."
 
   - task: "Etsy OAuth Integration"
     implemented: true
@@ -139,19 +211,7 @@ backend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Etsy OAuth connect, callback, import, sync routes exist. Need Etsy API keys configuration."
-
-  - task: "AI Optimization API"
-    implemented: true
-    working: "NA"
-    file: "app/api/optimize/route.ts"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: true
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Core optimize endpoint exists. Need OpenAI GPT-4 key and testing with 3 variants generation."
+        comment: "Etsy OAuth connect, callback, import, sync routes exist. Mock endpoints available. Need Etsy API keys configuration for real mode."
 
 frontend:
   - task: "Design System - Theme Provider"
@@ -178,13 +238,49 @@ frontend:
         agent: "main"
         comment: "Created Button, Input, Card, Modal, Navbar, Footer, Container, Alert components using design tokens."
 
+  - task: "HealthPanel - USE_REAL_STRIPE & App URL"
+    implemented: true
+    working: "NA"
+    file: "components/HealthPanel.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated HealthPanel to display Stripe as yellow (⚠️) when USE_REAL_STRIPE=false with remediation text. Added App URL status badge. Shows correct warnings based on mock/real mode."
+
+  - task: "Dashboard - Optimization History Section"
+    implemented: false
+    working: "NA"
+    file: "app/dashboard/page.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "TODO: Add 'View Optimization History' section to dashboard that fetches from /api/optimizations and displays past optimizations with variants."
+
+  - task: "Analyze Page - Etsy Mock Prefill"
+    implemented: false
+    working: "NA"
+    file: "app/analyze/page.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "TODO: Add ability to select an imported Etsy listing (from mock or real) and prefill the optimize form with its data."
+
   - task: "Landing Page (/) Migration"
     implemented: true
     working: true
     file: "app/page.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -196,7 +292,7 @@ frontend:
     file: "app/auth/signin/page.tsx, app/auth/signup/page.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -226,46 +322,22 @@ frontend:
         agent: "main"
         comment: "Already uses Navbar, Footer, Card, Input, Button, Alert components. Design tokens applied."
 
-  - task: "Test Page (/test) Migration"
-    implemented: false
-    working: "NA"
-    file: "app/test/page.tsx"
-    stuck_count: 0
-    priority: "low"
-    needs_retesting: false
-    status_history:
-      - working: "NA"
-        agent: "main"
-        comment: "Page blocked in production. Has inline Tailwind classes. Migration deferred as low priority test-only page."
-
-  - task: "Legacy Component Removal"
-    implemented: true
-    working: true
-    file: "components/Button.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "Deleted legacy /components/Button.tsx. Verified no imports remain. All pages use /components/ui/Button now."
-
 metadata:
   created_by: "main_agent"
-  version: "2.0"
-  test_sequence: 1
-  run_ui: true
+  version: "3.0"
+  test_sequence: 2
+  run_ui: false
 
 test_plan:
   current_focus:
-    - "Landing Page UI Consistency"
-    - "Auth Flow (Signup/Signin)"
-    - "Dashboard Page Rendering"
-    - "Analyze Page UI"
+    - "Optimize API v1.0 - Backend Testing"
+    - "Optimizations History API"
+    - "Health API with Flags"
+    - "Credit System Integration"
   stuck_tasks: []
-  test_all: true
+  test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Design system migration complete for production pages (/, /auth/*, /dashboard, /analyze). Legacy Button component removed. ThemeProvider configured. All pages use UI primitives from /components/ui. Test page (/test) deferred as it's dev-only and blocked in production. Ready for automated testing to verify: 1) All routes render correctly 2) Design tokens applied consistently 3) No broken imports 4) Forms functional. After UI testing passes, move to backend API testing for auth, checkout, Etsy, and AI optimization features."
+    message: "Phase 1 Complete: Infrastructure fixes done (Prisma binary targets, runtime exports). Phase 2 Complete: Core Optimize v1.0 API implemented with full credit system integration, database writes, and GPT-4o (temp 0.4, max_tokens 2000). Optimizations history API created. Health Panel updated for USE_REAL_STRIPE flag. NEXT STEPS: 1) Add optimization history section to dashboard 2) Add Etsy mock prefill to analyze page 3) Test backend APIs with real OpenAI key 4) Test end-to-end optimize flow with credit deduction. Environment variables ready for testing: .env.local updated with all required variables."
