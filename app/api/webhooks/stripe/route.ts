@@ -97,7 +97,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
             userId: userId || 'unknown',
             eventType: 'checkout.session.completed',
             eventId: session.id,
-            stripeSessionId: session.id,
+            stripePaymentId: session.id,
             status: 'failed',
             errorMessage: 'Missing userId or credits in metadata',
             stripeCreatedAt: new Date(session.created * 1000),
@@ -139,7 +139,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
           userId,
           eventType: 'checkout.session.completed',
           eventId: session.id,
-          stripeSessionId: session.id,
+          stripePaymentId: session.id,
           stripePaymentIntentId: session.payment_intent as string,
           credits,
           amount: session.amount_total || 0,
@@ -169,11 +169,10 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
         userId,
         amount: credits,
         balance: newBalance,
-        transactionType: 'purchase',
+        type: 'purchase',
         description: `${packageType} package - ${credits} credits`,
         referenceId: idempotencyKey,
-        stripeSessionId: session.id,
-        stripePaymentIntentId: session.payment_intent as string,
+        stripePaymentId: session.id,
         metadata: {
           sessionId: session.id,
           packageType,
@@ -190,7 +189,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
         userId,
         eventType: 'checkout.session.completed',
         eventId: session.id,
-        stripeSessionId: session.id,
+        stripePaymentId: session.id,
         stripePaymentIntentId: session.payment_intent as string,
         credits,
         amount: session.amount_total || 0,
@@ -209,7 +208,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       newBalance,
       duration,
       referenceId: idempotencyKey,
-      stripeSessionId: session.id,
+      stripePaymentId: session.id,
       stripePaymentIntentId: session.payment_intent
     })
   } catch (error) {
@@ -224,7 +223,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
             userId,
             eventType: 'checkout.session.completed',
             eventId: session.id,
-            stripeSessionId: session.id,
+            stripePaymentId: session.id,
             status: 'failed',
             errorMessage: error instanceof Error ? error.message : 'Unknown error',
             stripeCreatedAt: new Date(session.created * 1000),
@@ -249,7 +248,7 @@ async function handleRefund(charge: Stripe.Charge) {
     const originalPurchase = await prisma.creditLedger.findFirst({
       where: {
         stripePaymentIntentId: paymentIntentId,
-        transactionType: 'purchase',
+        type: 'purchase',
       },
     })
 
@@ -289,10 +288,9 @@ async function handleRefund(charge: Stripe.Charge) {
         userId,
         amount: creditsToDeduct,
         balance: newBalance,
-        transactionType: 'refund',
+        type: 'refund',
         description: `Refund - ${-creditsToDeduct} credits removed`,
         referenceId: `refund_${charge.id}`,
-        stripePaymentIntentId: paymentIntentId,
         metadata: {
           chargeId: charge.id,
           amountRefunded: charge.amount_refunded,

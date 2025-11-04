@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         amount: 50,
         balance: 50,
-        transactionType: 'bonus',
+        type: 'bonus',
         description: 'Initial dev credits',
         referenceId: `dev_seed_${user.id}_${Date.now()}`,
         metadata: {

@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         amount: -1,
         balance: newBalance,
-        transactionType: 'usage',
+        type: 'usage',
         description: 'Demo optimization - AI listing enhancement',
         referenceId: optimizationId,
         relatedResourceId: optimizationId,

@@ -50,10 +50,10 @@ export async function GET(request: NextRequest) {
         id: true,
         amount: true,
         balance: true,
-        transactionType: true,
+        type: true,
         description: true,
         referenceId: true,
-        stripeSessionId: true,
+        stripePaymentId: true,
         createdAt: true,
         metadata: true
       }
@@ -61,15 +61,15 @@ export async function GET(request: NextRequest) {
 
     // Get all-time stats
     const stats = await prisma.creditLedger.groupBy({
-      by: ['transactionType'],
+      by: ['type'],
       where: { userId: user.id },
       _sum: { amount: true },
       _count: true
     })
 
-    const totalPurchased = stats.find(s => s.transactionType === 'purchase')?._sum.amount || 0
-    const totalUsed = Math.abs(stats.find(s => s.transactionType === 'usage')?._sum.amount || 0)
-    const totalBonus = stats.find(s => s.transactionType === 'bonus')?._sum.amount || 0
+    const totalPurchased = stats.find(s => s.type === 'purchase')?._sum.amount || 0
+    const totalUsed = Math.abs(stats.find(s => s.type === 'usage')?._sum.amount || 0)
+    const totalBonus = stats.find(s => s.type === 'bonus')?._sum.amount || 0
 
     logInfo('Credits fetched successfully', { 
       userId: user.id, 
@@ -91,12 +91,11 @@ export async function GET(request: NextRequest) {
         id: txn.id,
         amount: txn.amount,
         balanceAfter: txn.balance,
-        type: txn.transactionType,
-        description: txn.description,
+        type: txn.type,
+        description: txn.description || '',
         referenceId: txn.referenceId,
-        stripeSessionId: txn.stripeSessionId,
-        createdAt: txn.createdAt,
-        metadata: txn.metadata
+        stripePaymentId: txn.stripePaymentId,
+        createdAt: txn.createdAt.toISOString()
       }))
     })
   } catch (error: any) {
