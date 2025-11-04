@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Elite Listing AI Optimize v1.0 - Backend API Testing Suite
-Tests all API endpoints according to the review request specifications.
+Elite Listing AI - Supabase PostgreSQL Connection Test
+Tests database connectivity through API endpoints as specified in the review request.
 """
 
 import requests
@@ -10,8 +10,8 @@ import time
 import sys
 from typing import Dict, Any, Optional
 
-# Configuration
-BASE_URL = "http://localhost:3001"
+# Configuration - Using the external URL from frontend/.env
+BASE_URL = "https://aishophelper.preview.emergentagent.com"
 DEBUG_KEY = "debug-key-12345"
 TEST_USER_EMAIL = "test@elitelistingai.com"
 
