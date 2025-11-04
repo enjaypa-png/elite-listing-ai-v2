@@ -1,103 +1,85 @@
 <analysis>
-The trajectory details the transition of the Elite Listing AI project from an AI engineer (E1) to a human engineer. Initially, E1 misidentified the repository, leading to a crucial re-cloning of the correct GitHub project. Post-cloning, E1 performed a preliminary audit, then moved into implementing missing MVP features as per user's phase 2 request (Stripe payments, Etsy integration, RLS policies).
+The AI engineer successfully progressed the Elite Listing AI project through several critical phases. Initially, a major hurdle was resolved: identifying and correctly configuring the Next.js application to run instead of an erroneous React CRA app, which involved precise supervisor and environment variable adjustments. Following this, a comprehensive design system migration was completed, ensuring UI consistency across key pages.
 
-A significant part of the interaction involved troubleshooting Vercel deployments, UI discrepancies, and build failures. Key issues included a Git author mismatch preventing Vercel builds, an invalid Tailwind CSS utility class (), and incorrect import paths for design tokens. The AI engineer attempted multiple rollbacks, which caused user frustration due to loss of recent work and UI regressions.
-
-The user explicitly shifted focus to UI, requesting a premium dark-cyan theme and a comprehensive design system implementation. E1 created a design system (tokens, theme provider, UI components) and began refactoring pages. The current state is mid-design system implementation, with a recent fix for module import paths. The project has moved from feature implementation to foundational UI refactoring.
+Feature development commenced with a mock Etsy integration, establishing an abstraction layer, mock API endpoints, and a dedicated UI. This was followed by the implementation of a robust Stripe payment flow, encompassing database schema for credit ledgers, API endpoints for checkout and webhooks with idempotency, and a credit-aware dashboard. A pivotal Dashboard Health & Actions panel was then developed, offering real-time status and interactive controls. Throughout these developments, persistent Vercel build failures related to incorrect import paths for design tokens and missing Next.js 15  boundaries were systematically diagnosed and fixed. The trajectory concluded with the implementation of a Dev Parity Mode, enhancing the local development workflow.
 </analysis>
 
 <product_requirements>
-The Elite Listing AI is a Next.js 15.5.6 app using TypeScript, React 19, Supabase PostgreSQL, Prisma ORM 6.18.0, OpenAI API (GPT-4), and Stripe. It's deployed on Vercel.
-
-Core functionality goals:
-1.  **AI Optimization:** AI text optimizer (generate 3 listing variants with GPT-4), Image analysis feature, Keyword generator, SEO audit tool, AI recommendations (titles, tags, images, prices), Etsy sales/search data analysis, keyword volume tracking, automated keyword generation, predictive sales engine, profitability index, visual intelligence (image scoring, composition, lighting), competitor change alerts, smart rewrite tool, listing health score.
-2.  **Monetization:** Stripe payment flow for credit packages.
-3.  **Integration:** Etsy OAuth integration, Etsy listing import/sync.
-4.  **Security:** Row Level Security (RLS) policies for Supabase tables.
-5.  **UI/UX:** Professional-looking, user-friendly UI/website with a dark-cyan theme (bg-[#0B0F14], text-[#F2F6FA], primary[#00B3FF], accent[#16E0FF]). The current UI requires a comprehensive design system with global theme provider, refactoring all pages to use UI primitives, and removal of legacy CSS.
-
-Key issues identified and partially addressed: Vercel deployment problems (Git author, build errors), UI not reflecting updates, logo placeholder.
+The Elite Listing AI is a Next.js 15.5.6 application utilizing TypeScript, React 19, Supabase PostgreSQL, Prisma ORM 6.18.0, OpenAI API (GPT-4), and Stripe, deployed on Vercel. Its core goals include AI optimization features (e.g., listing variant generation, image analysis, SEO tools), monetization via Stripe for credit package purchases, and Etsy OAuth integration for listing management. Security is managed through Supabase Row Level Security. A primary objective was a professional dark-cyan UI (background: #0B0F14, text: #F2F6FA, primary: #00B3FF, accent: #16E0FF), requiring a complete design system implementation, global theme provider, refactoring all pages to use UI primitives, and eliminating legacy CSS. Previous issues included Vercel deployment problems, UI not reflecting updates, and placeholder logos.
 </product_requirements>
 
 <key_technical_concepts>
--   **Next.js 15.5.6 (TypeScript, React 19):** Core frontend framework.
--   **Supabase PostgreSQL:** Backend-as-a-Service for Auth and Database.
--   **Prisma ORM 6.18.0:** Database toolkit for data access.
--   **Stripe:** Payment gateway for credit purchases, involving webhooks.
--   **Vercel:** Deployment platform for the Next.js application.
--   **Tailwind CSS:** Utility-first CSS framework for styling.
--   **:** CSS-in-JS library, requiring  directive in Next.js.
--   **Git/GitHub:** Version control and repository management.
--   **Environment Variables:** Configuration for API keys, URLs, etc.
--   **Row Level Security (RLS):** Database security policies.
--   **Design System:** Centralized UI components and design tokens.
+-   **Next.js 15.5.6 (TypeScript, React 19):** Frontend framework leveraging App Router, , and  for data fetching.
+-   **Supabase PostgreSQL, Prisma ORM 6.18.0:** Backend-as-a-Service for Auth/Database and ORM for data management.
+-   **Stripe:** Payment gateway for credit packages, including webhooks, idempotency.
+-   **Vercel:** Deployment platform for Next.js, frequently requiring build troubleshooting.
+-   **Tailwind CSS, :** Styling methodologies.
+-   **Design System:** Centralized UI components (), design tokens (), global .
+-   **Supervisor:** Process manager for local service control.
+-   **Git/GitHub:** Version control, pull request workflow.
 </key_technical_concepts>
 
 <code_architecture>
 The application structure is a Next.js project within .
 
 
-
--   **/app/elite-listing-ai-v2/app/globals.css**: Global Tailwind CSS styles and custom CSS variables for theming.
-    -   *Changes*: Fixed an invalid  to 
--   **/app/elite-listing-ai-v2/app/layout.tsx**: Root layout for the Next.js application, where global providers and styling wrappers are typically applied.
-    -   *Changes*: Configured to wrap the application with .
--   **/app/elite-listing-ai-v2/app/page.tsx**: The landing page of the application.
-    -   *Changes*: Underwent multiple UI redesigns to match a premium dark-cyan theme, implemented  for  compatibility, and integrated the actual logo.
--   **/app/elite-listing-ai-v2/app/auth/signin/page.tsx** & **signup/page.tsx**: Authentication pages.
-    -   *Changes*: Styled to align with the new dark-cyan UI specifications, removing legacy CSS.
--   **/app/elite-listing-ai-v2/app/dashboard/page.tsx**: User dashboard page.
-    -   *Changes*: Updated to display credit packages and purchase options. Still needs full design system migration.
--   **/app/elite-listing-ai-v2/components/Button.tsx**: Custom button component, deprecated in favor of .
--   **/app/elite-listing-ai-v2/public/logo.png**: The application's logo file.
-    -   *Changes*: The user's provided logo was added here.
--   **/app/elite-listing-ai-v2/design-system/tokens.json**: Centralized JSON file containing design tokens (colors, spacing, typography, etc.).
-    -   *Created*: Essential for the new design system.
--   **/app/elite-listing-ai-v2/design-system/theme-provider.tsx**: React Context provider for applying design tokens globally.
-    -   *Created*: Wraps the entire application in .
--   **/app/elite-listing-ai-v2/components/ui/**: Directory for new, reusable UI primitive components (Button, Input, Card, Modal, Navbar, Footer, Container, Alert).
-    -   *Created*: Forms the core of the new design system.
-    -   *Changes*: Import paths for design tokens were fixed (e.g., from  to ).
--   **/app/elite-listing-ai-v2/app/api/checkout/route.ts** & **/webhooks/stripe/route.ts**: FastAPI endpoints for Stripe payment processing and webhook handling.
-    -   *Created*: Essential for credit purchase functionality.
--   **/app/elite-listing-ai-v2/app/api/etsy/import/route.ts** & **/sync/route.ts**: API routes for Etsy listing import and synchronization.
-    -   *Created*: Part of the Etsy integration.
--   **/app/elite-listing-ai-v2/supabase/rls_policies.sql**: SQL file containing Row Level Security policies for Supabase.
-    -   *Created*: To enhance database security.
--   **/app/elite-listing-ai-v2/scripts/fix-auth-user.js**: Utility script for fixing Supabase authentication issues.
-    -   *Created*: To handle duplicate user errors.
--   **/app/elite-listing-ai-v2/PROJECT_ARCHITECTURE.md**: Document summarizing the project's architecture.
-    -   *Created*: For better collaboration and onboarding.
+-   **/app/elite-listing-ai-v2/app/globals.css**: Global Tailwind CSS styles. Fixed invalid  to .
+-   **/app/elite-listing-ai-v2/app/layout.tsx**: Root layout. Configured to globally wrap the application with .
+-   **/app/elite-listing-ai-v2/app/dashboard/page.tsx**: User dashboard. Refactored to use design system, includes credit packages, purchase options, and integrated . Wrapped in .
+-   **/app/elite-listing-ai-v2/app/etsy/page.tsx**: New page for Etsy integration. Created for mock OAuth flow. Fixed  state variable name conflict and wrapped in .
+-   **/app/elite-listing-ai-v2/app/checkout/page.tsx**: New checkout page for Stripe credit packages. Created and already contained .
+-   **/app/elite-listing-ai-v2/design-system/tokens.json**: Centralized JSON for design tokens. *Created* for theme consistency.
+-   **/app/elite-listing-ai-v2/design-system/theme-provider.tsx**: React Context provider. *Created* to apply design tokens globally.
+-   **/app/elite-listing-ai-v2/components/ui/**: Directory for new UI primitives. *Created*.  updated to accept  prop.
+-   **/app/elite-listing-ai-v2/lib/etsyClient.ts**: Abstraction layer for Etsy API. *Created* to prepare for real integration.
+-   **/app/elite-listing-ai-v2/app/api/checkout/route.ts**: Stripe checkout API. Updated with idempotency.
+-   **/app/elite-listing-ai-v2/app/api/webhooks/stripe/route.ts**: Stripe webhook API. Updated with signature verification, idempotency, structured logging, and stores last event.
+-   **/app/elite-listing-ai-v2/app/api/user/credits/route.ts**: API to fetch user credits. Updated to new schema and added structured logging.
+-   **/app/elite-listing-ai-v2/app/api/optimize/route.ts**: Optimize API. Added HEAD method for health checks.
+-   **/app/elite-listing-ai-v2/app/api/optimize/demo/route.ts**: New API endpoint for demo optimization. *Created*.
+-   **/app/elite-listing-ai-v2/app/api/health/route.ts**: New health check API endpoint. *Created* and made public.
+-   **/app/elite-listing-ai-v2/app/api/dev/seed-user/route.ts**: New API endpoint to seed a test user. *Created*.
+-   **/app/elite-listing-ai-v2/components/HealthPanel.tsx**: New Dashboard Health & Actions panel. *Created*, integrated into Dashboard, displays ENV, webhook events, and Etsy status.
+-   **/app/elite-listing-ai-v2/prisma/migrations/001_credit_ledgers.sql**: SQL migration for  table. *Created* for payment system.
+-   **/app/elite-listing-ai-v2/prisma/migrations/002_webhook_events.sql**: SQL migration for  table. *Created* to persist Stripe webhook data.
+-   **/app/elite-listing-ai-v2/scripts/health.sh**: Health check bash script. *Created* and integrated into .
+-   **/app/elite-listing-ai-v2/scripts/sync-env.sh**: Script to sync Vercel environment variables. *Created* and integrated into .
+-   **/app/elite-listing-ai-v2/package.json**: Updated with new scripts (, , ).
+-   **/etc/supervisor/conf.d/supervisord.conf**: *Modified* to correctly run the Next.js application from  using yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. (then  after build).
+-   **/app/elite-listing-ai-v2/.env.local**: Updated to include  and .
 </code_architecture>
 
 <pending_tasks>
--   Full implementation and testing of all AI features (Competitor gap, AI recommendations, Etsy sales data analysis, keyword volume tracking, automated keyword generation, predictive sales engine, profitability index, visual intelligence, competitor change alerts, smart rewrite tool, listing health score).
+-   Full implementation and testing of all AI features (e.g., Competitor gap, AI recommendations, Keyword generator, SEO Audit, predictive sales engine, visual intelligence).
 -   Complete Stripe payment flow setup by the user (adding keys to Vercel, configuring webhook).
--   Complete Etsy OAuth integration setup by the user (configuring API keys).
+-   Complete Etsy OAuth integration setup by the user (configuring API keys) and transitioning from mock to real API.
 -   Applying RLS policies to Supabase (manual step required by the user).
--   Refactor remaining pages (dashboard, analyze, test) to exclusively use the new UI primitives from .
--   Perform a UI consistency audit with screenshots/diffs for all routes.
--   Implement ESLint or TypeScript rules to enforce design system usage and block legacy CSS.
+-   Refactor  to use the new UI primitives (deferred due to low priority).
+-   Implement ESLint/TypeScript rules to enforce design system usage and block legacy CSS.
+-   Implement Optimize Listing v1.0 (real GPT variants, database writes, usage deduction, and pre-fill from Etsy mock).
 </pending_tasks>
 
 <current_work>
-The AI engineer is currently in the middle of a comprehensive design system migration, a task explicitly requested by the user to address UI inconsistencies and improve the app's professional look. The immediate goal is to Apply the new UI theme and layout globally across the entire Next.js app.
+The AI engineer has just completed the implementation of the Dev Parity Mode, pushing these changes to the  branch (commit SHA ). This comprehensive feature aims to streamline the development workflow and enhance environment consistency. The work included:
 
-Before the summary request, the AI engineer had completed the following steps for the design system:
-1.  **Audited the codebase:** Identified Next.js as the framework,  equivalent, and Tailwind CSS/ for styling.
-2.  **Created design system foundations:**
-    *   : Defined color, typography, spacing tokens.
-    *   : Created a global theme provider component.
-3.  **Created UI primitive components:**
-    *   , , , , , , , .
-    *   An  was created for easier imports ().
-4.  **Integrated ThemeProvider:** Updated  to globally wrap the application with the .
-5.  **Migrated initial pages:** The landing page () and authentication pages (, ) were refactored to use the new design system.
-6.  **Troubleshot import paths:** Fixed a build error where UI components were using incorrect relative import paths for design tokens, updating them to use the  alias.
+1.  **Creation of a Seed User Endpoint**: A new API route, , was developed to easily create test users for local development and testing.
+2.  **Enhanced HealthPanel with Environment Display**: The  component was updated to dynamically display the current environment (, , etc.), offering immediate context for developers.
+3.  **Development of a Vercel Environment Synchronization Script**: A new script, [0;34m╔════════════════════════════════════════════════════════════════╗[0m
+[0;34m║          Elite Listing AI - Vercel ENV Sync                   ║[0m
+[0;34m╚════════════════════════════════════════════════════════════════╝[0m
 
-The AI engineer's last action was to start the Phase 1: Codebase Audit to confirm all routes inherit the theme provider, which is part of the overall design system migration. This involves systematically reviewing each page component to ensure it uses the new UI primitives and design tokens.
+[0;31m✗ Vercel CLI not found[0m
+
+Install with:
+  [0;32mnpm install -g vercel[0m, was created to enable developers to pull Vercel environment variables, ensuring local parity with deployment environments.
+4.  **Integration of New npm Scripts**: The  file was updated to include convenient  and  scripts, making the new functionalities easily accessible via yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command..
+5.  **Comprehensive Documentation**: A dedicated document, , was created outlining the setup and usage of Dev Parity Mode, and the  was updated with a quick start guide.
+
+This recent work follows extensive efforts in UI design system migration, fixing a critical Next.js runtime misconfiguration, integrating a mock Etsy connection, implementing the core Stripe payment flow with credit ledgers, and developing a detailed Dashboard Health & Actions panel. Critical build failures related to module import paths and Next.js  boundaries were also resolved.
 </current_work>
 
 <optional_next_step>
-Continue the codebase audit and refactor all remaining pages (, , ) to use the new UI primitives and design tokens.
+The next step is to implement Optimize Listing v1.0, which includes real GPT variants, database writes, usage deduction, and pre-filling the optimizer from mock Etsy data.
 </optional_next_step>
