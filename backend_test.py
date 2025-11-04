@@ -145,58 +145,81 @@ class SupabaseConnectionTester:
         self.log_test("2. Database Write Test - Grant Credits", True, f"✅ Database write successful - Credits granted: {data.get('amount', 5)}, New balance: {new_balance}")
         return True
 
-    def test_3_duplicate_grant_idempotency(self):
-        """Test 3: Test Idempotency - Duplicate Grant"""
-        # Note: Current implementation uses timestamp-based idempotency keys,
-        # so true idempotency won't work. This test verifies the endpoint works.
+    def test_3_database_read_fetch_credits(self):
+        """Test 3: Database Read Test - Fetch Credits"""
+        print("Testing GET /api/user/credits for database read operations...")
+        success, data, status = self.make_request('GET', '/api/user/credits')
+        
+        # Expected behavior: Should return 401/500 without authentication
+        if status == 401:
+            self.log_test("3. Database Read Test - Fetch Credits", True, "✅ 401 Unauthorized (no session) - Expected behavior, no database connection errors")
+            return True
+        elif status == 500:
+            error_msg = str(data.get('error', ''))
+            # Check if it's an auth error (expected) vs database error (problem)
+            if 'auth' in error_msg.lower() or 'session' in error_msg.lower() or 'not authenticated' in error_msg.lower():
+                self.log_test("3. Database Read Test - Fetch Credits", True, "✅ 500 Auth session missing - Expected behavior, no database connection errors")
+                return True
+            elif any(code in error_msg for code in ['P1001', 'P1017', 'P2002', 'P2025']):
+                self.log_test("3. Database Read Test - Fetch Credits", False, f"❌ Prisma database error: {error_msg}", data)
+                return False
+            else:
+                self.log_test("3. Database Read Test - Fetch Credits", False, f"❌ Unexpected 500 error: {error_msg}", data)
+                return False
+            
+        if not success:
+            self.log_test("3. Database Read Test - Fetch Credits", False, f"HTTP {status} - Expected 401 or 500 with auth error", data)
+            return False
+            
+        # If 200, check structure (shouldn't happen without auth, but validate if it does)
+        if 'balance' in data and 'stats' in data:
+            balance = data.get('balance', 0)
+            self.log_test("3. Database Read Test - Fetch Credits", True, f"✅ Unexpected success (no auth required?): Balance: {balance}")
+            return True
+        else:
+            self.log_test("3. Database Read Test - Fetch Credits", False, f"❌ Invalid response structure", data)
+            return False
+
+    def test_4_schema_validation_credit_ledger(self):
+        """Test 4: Schema Validation - Credit Ledger Table Accessible"""
+        print("Testing schema validation by checking if credit ledger operations work...")
+        
+        # This test verifies that the Prisma schema is working by attempting another credit grant
         payload = {
-            "amount": 5,  # Use different amount to avoid confusion
+            "amount": 1,  # Small amount for validation
             "key": DEBUG_KEY
         }
         
         success, data, status = self.make_request('POST', '/api/debug/grant-credits', payload)
         
         if not success:
-            self.log_test("3. Grant Additional Credits", False, f"HTTP {status} - Expected 200", data)
-            return False
+            # Check for schema-related errors
+            error_msg = str(data.get('error', ''))
+            if any(keyword in error_msg.lower() for keyword in ['table', 'column', 'schema', 'relation']):
+                self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Schema error detected: {error_msg}", data)
+                return False
+            elif any(code in error_msg for code in ['P1001', 'P1017']):
+                self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Database connection error: {error_msg}", data)
+                return False
+            else:
+                self.log_test("4. Schema Validation - Credit Ledger", False, f"HTTP {status} - Unexpected error", data)
+                return False
             
-        # Check basic response
+        # Verify the response indicates successful database operations
         if not data.get('ok'):
-            self.log_test("3. Grant Additional Credits", False, f"Response ok=false: {data}", data)
+            self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Credit ledger operation failed: {data}", data)
             return False
             
-        # Since idempotency uses timestamp, this will always be a new grant
-        if data.get('duplicate') != False:
-            self.log_test("3. Grant Additional Credits", False, f"Expected duplicate=false (timestamp-based keys), got {data.get('duplicate')}", data)
-            return False
-            
-        self.log_test("3. Grant Additional Credits", True, f"Additional credits granted: {data.get('amount')}, New balance: {data.get('newBalance')}")
-        return True
-
-    def test_4_fetch_user_credits(self):
-        """Test 4: Fetch User Credits"""
-        success, data, status = self.make_request('GET', '/api/user/credits')
+        # Check that we have the expected fields from the schema
+        expected_schema_fields = ['ledgerId', 'userId', 'newBalance', 'previousBalance']
+        missing_schema_fields = [field for field in expected_schema_fields if field not in data]
         
-        # This should return 401 or 500 with auth error if no session
-        if status == 401:
-            self.log_test("4. Fetch User Credits", True, "401 Unauthorized (no session) - Expected behavior")
-            return True
-        elif status == 500 and 'Auth session missing' in str(data.get('error', '')):
-            self.log_test("4. Fetch User Credits", True, "500 Auth session missing - Expected behavior")
-            return True
-            
-        if not success:
-            self.log_test("4. Fetch User Credits", False, f"HTTP {status} - Expected 401 or 500 with auth error", data)
+        if missing_schema_fields:
+            self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Missing schema fields: {missing_schema_fields}", data)
             return False
             
-        # If 200, check structure
-        if 'balance' in data and 'stats' in data:
-            balance = data.get('balance', 0)
-            self.log_test("4. Fetch User Credits", True, f"Balance: {balance}, Stats available")
-            return True
-        else:
-            self.log_test("4. Fetch User Credits", False, f"Missing balance or stats fields", data)
-            return False
+        self.log_test("4. Schema Validation - Credit Ledger", True, f"✅ Credit ledger table accessible - Schema validation passed")
+        return True
 
     def test_5_optimize_insufficient_credits(self):
         """Test 5: Optimize Listing - Insufficient Credits (Edge Case)"""
