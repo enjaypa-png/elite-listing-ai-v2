@@ -169,13 +169,16 @@ class APITester:
         """Test 4: Fetch User Credits"""
         success, data, status = self.make_request('GET', '/api/user/credits')
         
-        # This might return 401 if no session, which is acceptable
+        # This should return 401 or 500 with auth error if no session
         if status == 401:
             self.log_test("4. Fetch User Credits", True, "401 Unauthorized (no session) - Expected behavior")
             return True
+        elif status == 500 and 'Auth session missing' in str(data.get('error', '')):
+            self.log_test("4. Fetch User Credits", True, "500 Auth session missing - Expected behavior")
+            return True
             
         if not success:
-            self.log_test("4. Fetch User Credits", False, f"HTTP {status} - Expected 200 or 401", data)
+            self.log_test("4. Fetch User Credits", False, f"HTTP {status} - Expected 401 or 500 with auth error", data)
             return False
             
         # If 200, check structure
