@@ -141,6 +141,18 @@ backend:
         agent: "main"
         comment: "Created singleton OpenAI client using OPENAI_API_KEY from environment."
 
+  - task: "Debug Grant Credits Endpoint"
+    implemented: true
+    working: "NA"
+    file: "app/api/debug/grant-credits/route.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Created dev-only debug endpoint /api/debug/grant-credits guarded by DEBUG_GRANT_CREDITS_KEY. POST {amount, userId?, key} writes purchase ledger with idempotency. GET shows if enabled. MUST BE REMOVED BEFORE PRODUCTION."
+
   - task: "Optimize API v1.0 - Full Integration"
     implemented: true
     working: "NA"
