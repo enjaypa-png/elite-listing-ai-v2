@@ -10,8 +10,8 @@ import time
 import sys
 from typing import Dict, Any, Optional
 
-# Configuration - Using the external URL from frontend/.env
-BASE_URL = "https://aishophelper.preview.emergentagent.com"
+# Configuration - Using localhost since external URL returns 404
+BASE_URL = "http://localhost:3000"
 DEBUG_KEY = "debug-key-12345"
 TEST_USER_EMAIL = "test@elitelistingai.com"
 
