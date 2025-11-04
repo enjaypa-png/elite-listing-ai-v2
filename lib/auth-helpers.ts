@@ -1,5 +1,6 @@
 // Supabase Auth Helper Functions
 import { supabase, supabaseAdmin } from './supabase'
+import { prisma } from './prisma'
 
 export interface SignUpData {
   email: string
@@ -24,7 +25,7 @@ export async function signUp({ email, password, name }: SignUpData) {
       data: {
         name, // Store name in auth metadata
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/auth/callback`,
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
     },
   })
 
@@ -36,52 +37,43 @@ export async function signUp({ email, password, name }: SignUpData) {
     throw new Error('Failed to create user')
   }
 
-  // Create user record in our database
+  // Create user record in our Prisma database
   try {
     // Check if user already exists in database
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('id', authData.user.id)
-      .single()
+    const existingUser = await prisma.user.findUnique({
+      where: { id: authData.user.id }
+    })
 
     if (!existingUser) {
       // Create new user record
-      const { error: dbError } = await supabaseAdmin
-        .from('users')
-        .insert({
+      await prisma.user.create({
+        data: {
           id: authData.user.id,
           email: authData.user.email!,
           name,
           emailVerified: null, // Will be set when user verifies email
-        })
-
-      if (dbError) {
-        console.error('Failed to create user record:', dbError)
-        // If duplicate email, try to sync with existing record
-        if (dbError.code === '23505') {
-          console.log('User email already exists in DB, attempting to sync...')
-          // This means email exists with different ID - data inconsistency issue
         }
-      }
-
-      // Give user 10 free credits (only for new users)
-      const { error: creditError } = await supabaseAdmin.from('credit_ledgers').insert({
-        userId: authData.user.id,
-        amount: 10,
-        balance: 10,
-        type: 'bonus',
-        description: 'Welcome bonus - 10 free credits',
       })
 
-      if (creditError) {
-        console.error('Failed to add welcome credits:', creditError)
-      }
+      // Give user 10 free credits (only for new users)
+      await prisma.creditLedger.create({
+        data: {
+          userId: authData.user.id,
+          amount: 10,
+          balance: 10,
+          type: 'bonus',
+          description: 'Welcome bonus - 10 free credits',
+        }
+      })
+      
+      console.log(`✅ Created new user ${authData.user.email} with 10 welcome credits`)
     } else {
       console.log('User already exists in database, skipping creation')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating user data:', error)
+    // Don't throw - allow signup to succeed even if DB creation fails
+    // User can still authenticate
   }
 
   return {
@@ -150,20 +142,13 @@ export async function getCurrentUser() {
  * Get user's credit balance
  */
 export async function getCreditBalance(userId: string): Promise<number> {
-  const { data, error } = await supabaseAdmin
-    .from('credit_ledgers')
-    .select('balance')
-    .eq('userId', userId)
-    .order('createdAt', { ascending: false })
-    .limit(1)
-    .single()
+  const ledger = await prisma.creditLedger.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    select: { balance: true }
+  })
 
-  if (error) {
-    console.error('Error fetching credit balance:', error)
-    return 0
-  }
-
-  return data?.balance || 0
+  return ledger?.balance || 0
 }
 
 /**
@@ -180,19 +165,17 @@ export async function deductCredits(userId: string, amount: number, description:
   // Deduct credits
   const newBalance = currentBalance - amount
 
-  const { error } = await supabaseAdmin.from('credit_ledgers').insert({
-    userId,
-    amount: -amount,
-    balance: newBalance,
-    type: 'usage',
-    description,
-    referenceId,
-    referenceType: 'optimization',
+  await prisma.creditLedger.create({
+    data: {
+      userId,
+      amount: -amount,
+      balance: newBalance,
+      type: 'usage',
+      description,
+      referenceId,
+      referenceType: 'optimization',
+    }
   })
-
-  if (error) {
-    throw new Error('Failed to deduct credits')
-  }
 
   return newBalance
 }
