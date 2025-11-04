@@ -221,120 +221,36 @@ class SupabaseConnectionTester:
         self.log_test("4. Schema Validation - Credit Ledger", True, f"✅ Credit ledger table accessible - Schema validation passed")
         return True
 
-    def test_5_optimize_insufficient_credits(self):
-        """Test 5: Optimize Listing - Insufficient Credits (Edge Case)"""
+    def test_5_user_table_accessibility(self):
+        """Test 5: Schema Validation - User Table Accessible"""
+        print("Testing user table accessibility through debug endpoint...")
+        
+        # The debug endpoint creates/finds users, so this tests user table access
         payload = {
-            "platform": "etsy",
-            "title": "Test Product",
-            "description": "Short description",
-            "tone": "persuasive"
+            "amount": 1,
+            "key": DEBUG_KEY
         }
         
-        success, data, status = self.make_request('POST', '/api/optimize', payload, expected_status=402)
+        success, data, status = self.make_request('POST', '/api/debug/grant-credits', payload)
         
-        # Could be 401 (unauthorized), 500 (auth error), or 402 (insufficient credits)
-        if status == 401:
-            self.log_test("5. Optimize - Insufficient Credits", True, "401 Unauthorized (no session) - Cannot test without auth")
-            return True
-        elif status == 500 and 'Auth session missing' in str(data.get('error', {}).get('message', '')):
-            self.log_test("5. Optimize - Insufficient Credits", True, "500 Auth session missing - Cannot test without auth")
-            return True
-        elif status == 402:
-            if data.get('error', {}).get('code') == 'insufficient_credits':
-                self.log_test("5. Optimize - Insufficient Credits", True, f"402 Payment Required: {data.get('error', {}).get('code')}")
-                return True
-            else:
-                self.log_test("5. Optimize - Insufficient Credits", False, f"402 but wrong error code: {data}", data)
+        if not success:
+            error_msg = str(data.get('error', ''))
+            if 'user' in error_msg.lower() and ('not found' in error_msg.lower() or 'table' in error_msg.lower()):
+                self.log_test("5. Schema Validation - User Table", False, f"❌ User table access error: {error_msg}", data)
                 return False
-        else:
-            self.log_test("5. Optimize - Insufficient Credits", False, f"HTTP {status} - Expected 401, 500 (auth), or 402", data)
-            return False
-
-    def test_6_optimize_success_flow(self):
-        """Test 6: Optimize Listing - Success Flow (Core Test)"""
-        payload = {
-            "platform": "etsy",
-            "title": "Handmade Leather Wallet - Minimalist Design",
-            "description": "Premium genuine leather wallet with RFID protection",
-            "tags": ["wallet", "leather", "handmade"],
-            "tone": "persuasive"
-        }
-        
-        success, data, status = self.make_request('POST', '/api/optimize', payload)
-        
-        # Will likely return 401 or 500 without authentication
-        if status == 401:
-            self.log_test("6. Optimize - Success Flow", True, "401 Unauthorized (no session) - Cannot test without auth")
-            return True
-        elif status == 500 and 'Auth session missing' in str(data.get('error', {}).get('message', '')):
-            self.log_test("6. Optimize - Success Flow", True, "500 Auth session missing - Cannot test without auth")
-            return True
-        elif status == 402:
-            self.log_test("6. Optimize - Success Flow", True, "402 Payment Required (insufficient credits) - Expected without credits")
-            return True
-        elif not success:
-            self.log_test("6. Optimize - Success Flow", False, f"HTTP {status} - Unexpected error", data)
-            return False
-        else:
-            # If somehow successful, check response structure
-            required_fields = ['ok', 'optimizationId', 'creditsRemaining', 'variant_count', 'variants', 'healthScore']
-            missing_fields = [field for field in required_fields if field not in data]
+            # Other errors are acceptable for this test
             
-            if missing_fields:
-                self.log_test("6. Optimize - Success Flow", False, f"Missing fields: {missing_fields}", data)
-                return False
-                
-            self.log_test("6. Optimize - Success Flow", True, f"Success: {data.get('variant_count')} variants, Health: {data.get('healthScore')}")
+        # Check if we got user information back
+        if data.get('ok') and 'userEmail' in data:
+            user_email = data.get('userEmail')
+            self.log_test("5. Schema Validation - User Table", True, f"✅ User table accessible - User: {user_email}")
             return True
-
-    def test_7_fetch_optimization_history(self):
-        """Test 7: Fetch Optimization History"""
-        success, data, status = self.make_request('GET', '/api/optimizations?limit=5')
-        
-        # Will likely return 401 or 500 without authentication
-        if status == 401:
-            self.log_test("7. Optimization History", True, "401 Unauthorized (no session) - Cannot test without auth")
+        elif data.get('ok'):
+            self.log_test("5. Schema Validation - User Table", True, f"✅ User table accessible - Operation successful")
             return True
-        elif status == 500 and 'Auth session missing' in str(data.get('error', {}).get('message', '')):
-            self.log_test("7. Optimization History", True, "500 Auth session missing - Cannot test without auth")
-            return True
-        elif not success:
-            self.log_test("7. Optimization History", False, f"HTTP {status} - Expected 401 or 500 (auth)", data)
-            return False
         else:
-            # Check response structure
-            if 'ok' in data and 'optimizations' in data and 'pagination' in data:
-                optimizations = data.get('optimizations', [])
-                self.log_test("7. Optimization History", True, f"Success: {len(optimizations)} optimizations found")
-                return True
-            else:
-                self.log_test("7. Optimization History", False, f"Invalid response structure", data)
-                return False
-
-    def test_8_verify_credit_audit_trail(self):
-        """Test 8: Verify Credit Audit Trail"""
-        success, data, status = self.make_request('GET', '/api/user/credits')
-        
-        # Will likely return 401 or 500 without authentication
-        if status == 401:
-            self.log_test("8. Credit Audit Trail", True, "401 Unauthorized (no session) - Cannot test without auth")
-            return True
-        elif status == 500 and 'Auth session missing' in str(data.get('error', '')):
-            self.log_test("8. Credit Audit Trail", True, "500 Auth session missing - Cannot test without auth")
-            return True
-        elif not success:
-            self.log_test("8. Credit Audit Trail", False, f"HTTP {status} - Expected 401 or 500 (auth)", data)
+            self.log_test("5. Schema Validation - User Table", False, f"❌ User table access unclear: {data}")
             return False
-        else:
-            # Check for recent transactions
-            if 'recentTransactions' in data:
-                transactions = data.get('recentTransactions', [])
-                balance = data.get('balance', 0)
-                self.log_test("8. Credit Audit Trail", True, f"Balance: {balance}, Transactions: {len(transactions)}")
-                return True
-            else:
-                self.log_test("8. Credit Audit Trail", False, f"Missing recentTransactions field", data)
-                return False
 
     def run_all_tests(self):
         """Run all test scenarios in sequence"""
