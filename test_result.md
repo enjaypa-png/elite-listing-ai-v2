@@ -378,10 +378,11 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Supabase PostgreSQL Connection"
+    - "Database Connectivity Resolution"
     - "Authentication System Integration"
-    - "Full E2E Optimize Flow with Auth"
-    - "Frontend Integration Testing"
-  stuck_tasks: []
+  stuck_tasks:
+    - "Supabase PostgreSQL Connection"
   test_all: false
   test_priority: "high_first"
 
