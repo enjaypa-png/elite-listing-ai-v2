@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 
-
-
+export const runtime = 'nodejs'
 // Input validation schema
 const AnalyzeImageRequestSchema = z.object({
   imageUrl: z.string().url('Image URL must be a valid URL'),

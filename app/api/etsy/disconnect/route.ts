@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+export const runtime = 'nodejs'
+
 const DisconnectRequestSchema = z.object({
   shopId: z.string().min(1, 'Shop ID is required'),
 });

@@ -156,11 +156,15 @@ export function HealthPanel() {
   }
 
   const envStatus = health?.environment || {}
+  const useRealStripe = envStatus.stripe?.useRealStripe
+  const stripeConfigured = useRealStripe 
+    ? (envStatus.stripe?.hasSecretKey && envStatus.stripe?.hasWebhookSecret)
+    : true // Mock mode is always "configured"
   const allGreen = 
-    envStatus.stripe?.hasSecretKey &&
-    envStatus.stripe?.hasWebhookSecret &&
+    stripeConfigured &&
     envStatus.openai?.hasApiKey &&
-    envStatus.supabase?.hasUrl
+    envStatus.supabase?.hasUrl &&
+    envStatus.general?.hasAppUrl
 
   return (
     <Card padding="6">
@@ -241,8 +245,16 @@ export function HealthPanel() {
       }}>
         <StatusBadge
           label="Stripe"
-          status={envStatus.stripe?.hasSecretKey && envStatus.stripe?.hasWebhookSecret ? 'green' : 'red'}
-          tooltip={!envStatus.stripe?.hasSecretKey ? 'Add STRIPE_SECRET_KEY to .env' : !envStatus.stripe?.hasWebhookSecret ? 'Add STRIPE_WEBHOOK_SECRET to .env' : 'Configured'}
+          status={useRealStripe ? (stripeConfigured ? 'green' : 'red') : 'yellow'}
+          tooltip={
+            !useRealStripe 
+              ? 'Mock mode - set USE_REAL_STRIPE=true to enable payments' 
+              : !envStatus.stripe?.hasSecretKey 
+                ? 'Add STRIPE_SECRET_KEY to .env' 
+                : !envStatus.stripe?.hasWebhookSecret 
+                  ? 'Add STRIPE_WEBHOOK_SECRET to .env' 
+                  : 'Configured and live'
+          }
         />
         <StatusBadge
           label="OpenAI"
@@ -253,6 +265,11 @@ export function HealthPanel() {
           label="Supabase"
           status={envStatus.supabase?.hasUrl ? 'green' : 'red'}
           tooltip={!envStatus.supabase?.hasUrl ? 'Add NEXT_PUBLIC_SUPABASE_URL to .env' : 'Configured'}
+        />
+        <StatusBadge
+          label="App URL"
+          status={envStatus.general?.hasAppUrl ? 'green' : 'red'}
+          tooltip={!envStatus.general?.hasAppUrl ? 'Add NEXT_PUBLIC_APP_URL to .env' : 'Configured'}
         />
         <StatusBadge
           label="Etsy"

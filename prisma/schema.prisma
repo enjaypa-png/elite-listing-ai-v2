@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -22,6 +23,7 @@ model User {
   
   shops         Shop[]
   creditLedgers CreditLedger[]
+  optimizations Optimization[]
   
   @@map("users")
 }
@@ -88,9 +90,11 @@ model Optimization {
   updatedAt         DateTime @updatedAt
   completedAt       DateTime?
   
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   listing           Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
   variants          OptimizationVariant[]
   
+  @@index([userId, createdAt])
   @@map("optimizations")
 }
 
@@ -150,3 +154,18 @@ model CreditLedger {
   @@map("credit_ledgers")
 }
 
+model WebhookEvent {
+  id              String   @id @default(cuid())
+  provider        String   // "stripe", "etsy", etc.
+  eventType       String   // e.g., "checkout.session.completed"
+  eventId         String   @unique // External event ID for idempotency
+  payload         Json     // Full webhook payload
+  processed       Boolean  @default(false)
+  processingError String?
+  createdAt       DateTime @default(now())
+  processedAt     DateTime?
+  
+  @@index([provider, eventType])
+  @@index([eventId])
+  @@map("webhook_events")
+}

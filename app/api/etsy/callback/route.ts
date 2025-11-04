@@ -4,6 +4,8 @@ import { exchangeCodeForToken } from "@/lib/etsy-oauth";
 import { EtsyAPI } from "@/lib/etsy-api";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = 'nodejs'
+
 export async function GET(request: NextRequest) {
   try {
     // Get current user

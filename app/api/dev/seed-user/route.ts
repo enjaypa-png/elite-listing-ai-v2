@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 /**
  * Dev-only endpoint to seed test user
  * Creates a user with known credentials for local testing

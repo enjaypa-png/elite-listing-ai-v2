@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 // Structured logging
 function logInfo(message: string, data?: any) {
   console.log(JSON.stringify({ level: 'info', message, ...data, timestamp: new Date().toISOString() }))

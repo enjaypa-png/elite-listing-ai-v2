@@ -13,8 +13,10 @@ export async function GET(request: NextRequest) {
     const user = await getCurrentUser().catch(() => null)
     
     // Check environment variables
+    const useRealStripe = process.env.USE_REAL_STRIPE === 'true'
     const envStatus = {
       stripe: {
+        useRealStripe,
         hasSecretKey: !!process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'sk_test_dummy_replace_with_real_test_key',
         hasWebhookSecret: !!process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_WEBHOOK_SECRET !== 'whsec_dummy_replace_with_real_webhook_secret',
         hasPublishableKey: !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
@@ -70,10 +72,12 @@ export async function GET(request: NextRequest) {
         etsy: etsyStatus,
       },
       warnings: [
-        ...(!envStatus.stripe.hasSecretKey ? ['Stripe Secret Key not configured - add STRIPE_SECRET_KEY to .env'] : []),
-        ...(!envStatus.stripe.hasWebhookSecret ? ['Stripe Webhook Secret not configured - add STRIPE_WEBHOOK_SECRET to .env'] : []),
+        ...(!useRealStripe ? ['Stripe in mock mode - set USE_REAL_STRIPE=true and add STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET to go live'] : []),
+        ...(useRealStripe && !envStatus.stripe.hasSecretKey ? ['Stripe Secret Key required - add STRIPE_SECRET_KEY to .env'] : []),
+        ...(useRealStripe && !envStatus.stripe.hasWebhookSecret ? ['Stripe Webhook Secret required - add STRIPE_WEBHOOK_SECRET to .env'] : []),
         ...(!envStatus.openai.hasApiKey ? ['OpenAI API Key not configured - add OPENAI_API_KEY to .env'] : []),
         ...(!envStatus.supabase.hasUrl ? ['Supabase URL not configured - add NEXT_PUBLIC_SUPABASE_URL to .env'] : []),
+        ...(!envStatus.general.hasAppUrl ? ['App URL not configured - add NEXT_PUBLIC_APP_URL to .env'] : []),
       ]
     })
   } catch (error: any) {

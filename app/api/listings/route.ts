@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+export const runtime = 'nodejs'
+
 const ListingsQuerySchema = z.object({
   page: z.string().optional().default('1'),
   limit: z.string().optional().default('25'),

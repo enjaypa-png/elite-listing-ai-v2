@@ -4,6 +4,8 @@ import { EtsyAPI } from '@/lib/etsy-api';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
+export const runtime = 'nodejs'
+
 const SyncRequestSchema = z.object({
   shopId: z.string().optional(),
   listingId: z.string().optional(),

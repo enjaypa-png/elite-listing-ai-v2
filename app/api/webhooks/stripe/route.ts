@@ -3,6 +3,8 @@ import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import Stripe from 'stripe'
 
+export const runtime = 'nodejs'
+
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
 
 // Structured logging helpers

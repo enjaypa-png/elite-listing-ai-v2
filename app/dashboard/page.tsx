@@ -15,6 +15,22 @@ interface CreditTransaction {
   createdAt: string
 }
 
+interface OptimizationHistory {
+  id: string
+  type: string
+  status: string
+  createdAt: string
+  completedAt: string | null
+  result: any
+  variants: Array<{
+    id: string
+    variantNumber: number
+    title: string | null
+    description: string | null
+    score: number | null
+  }>
+}
+
 function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -24,6 +40,8 @@ function DashboardContent() {
     stats: any
     recentTransactions: CreditTransaction[]
   } | null>(null)
+  const [optimizations, setOptimizations] = useState<OptimizationHistory[]>([])
+  const [loadingOptimizations, setLoadingOptimizations] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -59,10 +77,28 @@ function DashboardContent() {
       const creditsData = await creditsRes.json()
       if (!creditsRes.ok) throw new Error(creditsData.error)
       setCredits(creditsData)
+      
+      // Fetch optimization history
+      await fetchOptimizations()
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+  
+  const fetchOptimizations = async () => {
+    setLoadingOptimizations(true)
+    try {
+      const res = await fetch('/api/optimizations?limit=5')
+      const data = await res.json()
+      if (res.ok) {
+        setOptimizations(data.optimizations || [])
+      }
+    } catch (err) {
+      console.error('Failed to fetch optimizations:', err)
+    } finally {
+      setLoadingOptimizations(false)
     }
   }
 
@@ -479,6 +515,131 @@ function DashboardContent() {
               </div>
             </Card>
           )}
+
+          {/* Optimization History */}
+          <Card padding="8" style={{ marginBottom: tokens.spacing[6] }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: tokens.spacing[6] }}>
+              <h3 style={{
+                fontSize: tokens.typography.fontSize['2xl'],
+                fontWeight: tokens.typography.fontWeight.semibold,
+                color: tokens.colors.text
+              }}>
+                Recent Optimizations
+              </h3>
+              {loadingOptimizations && (
+                <span style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm }}>
+                  Loading...
+                </span>
+              )}
+            </div>
+            
+            {optimizations.length === 0 ? (
+              <div style={{
+                padding: `${tokens.spacing[8]} ${tokens.spacing[4]}`,
+                textAlign: 'center',
+                color: tokens.colors.textMuted
+              }}>
+                <p style={{ marginBottom: tokens.spacing[4] }}>
+                  No optimizations yet. Start by clicking "Optimize Listing" below!
+                </p>
+                <Button variant="primary" size="sm" href="/analyze">
+                  Create First Optimization
+                </Button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                {optimizations.map((opt) => (
+                  <Card key={opt.id} padding="5" style={{ borderLeft: `4px solid ${opt.status === 'completed' ? tokens.colors.success : opt.status === 'failed' ? tokens.colors.danger : tokens.colors.warning}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: tokens.spacing[3] }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], marginBottom: tokens.spacing[2] }}>
+                          <span style={{
+                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                            borderRadius: tokens.radius.md,
+                            fontSize: tokens.typography.fontSize.xs,
+                            fontWeight: tokens.typography.fontWeight.medium,
+                            backgroundColor: opt.status === 'completed' ? `${tokens.colors.success}20` : `${tokens.colors.warning}20`,
+                            color: opt.status === 'completed' ? tokens.colors.success : tokens.colors.warning
+                          }}>
+                            {opt.status}
+                          </span>
+                          <span style={{
+                            fontSize: tokens.typography.fontSize.xs,
+                            color: tokens.colors.textMuted
+                          }}>
+                            {new Date(opt.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        {opt.result?.healthScore && (
+                          <p style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[1]
+                          }}>
+                            Health Score: <strong style={{ color: tokens.colors.primary }}>{opt.result.healthScore}/100</strong>
+                          </p>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm" href={`/analyze?optimizationId=${opt.id}`}>
+                        View Details
+                      </Button>
+                    </div>
+                    
+                    {opt.variants && opt.variants.length > 0 && (
+                      <div style={{
+                        backgroundColor: tokens.colors.backgroundAlt,
+                        borderRadius: tokens.radius.md,
+                        padding: tokens.spacing[3]
+                      }}>
+                        <p style={{
+                          fontSize: tokens.typography.fontSize.xs,
+                          fontWeight: tokens.typography.fontWeight.medium,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[2]
+                        }}>
+                          Generated {opt.variants.length} variants
+                        </p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                          {opt.variants.slice(0, 2).map((variant) => (
+                            <div key={variant.id} style={{
+                              fontSize: tokens.typography.fontSize.sm,
+                              color: tokens.colors.text
+                            }}>
+                              <strong style={{ color: tokens.colors.primary }}>Variant {variant.variantNumber}:</strong> {variant.title?.substring(0, 80)}...
+                              {variant.score && (
+                                <span style={{
+                                  marginLeft: tokens.spacing[2],
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.textMuted
+                                }}>
+                                  (Score: {variant.score}/100)
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                          {opt.variants.length > 2 && (
+                            <p style={{
+                              fontSize: tokens.typography.fontSize.xs,
+                              color: tokens.colors.textMuted,
+                              fontStyle: 'italic'
+                            }}>
+                              +{opt.variants.length - 2} more variant{opt.variants.length - 2 > 1 ? 's' : ''}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                ))}
+                
+                {optimizations.length >= 5 && (
+                  <Button variant="ghost" size="sm" onClick={fetchOptimizations}>
+                    Load More
+                  </Button>
+                )}
+              </div>
+            )}
+          </Card>
 
           <Card padding="8" style={{ marginBottom: tokens.spacing[6] }}>
             <h3 style={{

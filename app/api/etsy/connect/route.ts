@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth-helpers";
 import { generatePKCE, generateState, buildAuthorizationUrl } from "@/lib/etsy-oauth";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = 'nodejs'
+
 export async function GET(request: NextRequest) {
   try {
     // Get current user
