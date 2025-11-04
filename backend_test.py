@@ -68,12 +68,13 @@ class SupabaseConnectionTester:
         except requests.exceptions.RequestException as e:
             return False, {'error': str(e)}, 0
 
-    def test_1_health_check(self):
-        """Test 1: Health Check (No Auth Required)"""
+    def test_1_health_check_database_connectivity(self):
+        """Test 1: Health Check - Database Connectivity"""
+        print("Testing GET /api/health for database connectivity...")
         success, data, status = self.make_request('GET', '/api/health')
         
         if not success:
-            self.log_test("1. Health Check", False, f"HTTP {status} - Expected 200", data)
+            self.log_test("1. Health Check - Database Connectivity", False, f"HTTP {status} - Expected 200", data)
             return False
             
         # Check required fields
@@ -81,18 +82,26 @@ class SupabaseConnectionTester:
         missing_fields = [field for field in required_fields if field not in data]
         
         if missing_fields:
-            self.log_test("1. Health Check", False, f"Missing fields: {missing_fields}", data)
+            self.log_test("1. Health Check - Database Connectivity", False, f"Missing fields: {missing_fields}", data)
             return False
             
-        # Check for Prisma errors in warnings
+        # Check for Prisma connection errors in warnings
         warnings = data.get('warnings', [])
-        prisma_errors = [w for w in warnings if 'prisma' in w.lower() or 'database' in w.lower()]
+        prisma_errors = []
+        for warning in warnings:
+            if any(keyword in warning.lower() for keyword in ['prisma', 'database', 'connection', 'p1001', 'p1017']):
+                prisma_errors.append(warning)
         
         if prisma_errors:
-            self.log_test("1. Health Check", False, f"Prisma errors found: {prisma_errors}", data)
+            self.log_test("1. Health Check - Database Connectivity", False, f"Prisma/Database errors found: {prisma_errors}", data)
             return False
             
-        self.log_test("1. Health Check", True, f"Success: {data.get('success')}, Warnings: {len(warnings)}")
+        # Check success status
+        if not data.get('success'):
+            self.log_test("1. Health Check - Database Connectivity", False, f"Health check returned success=false", data)
+            return False
+            
+        self.log_test("1. Health Check - Database Connectivity", True, f"✅ No Prisma connection errors, Success: {data.get('success')}, Warnings: {len(warnings)}")
         return True
 
     def test_2_grant_initial_credits(self):
