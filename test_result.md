@@ -251,16 +251,16 @@ frontend:
         comment: "Updated HealthPanel to display Stripe as yellow (⚠️) when USE_REAL_STRIPE=false with remediation text. Added App URL status badge. Shows correct warnings based on mock/real mode."
 
   - task: "Dashboard - Optimization History Section"
-    implemented: false
+    implemented: true
     working: "NA"
     file: "app/dashboard/page.tsx"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "TODO: Add 'View Optimization History' section to dashboard that fetches from /api/optimizations and displays past optimizations with variants."
+        comment: "Added 'Recent Optimizations' section to dashboard that fetches from /api/optimizations (limit 5). Shows optimization status, health score, generated variants preview, and 'View Details' button. Empty state included."
 
   - task: "Analyze Page - Etsy Mock Prefill"
     implemented: false
