@@ -249,6 +249,18 @@ backend:
         agent: "testing"
         comment: "✅ TESTED: Etsy integration in mock mode working. Health endpoint shows Etsy service operational=true, mode=mock. Mock endpoints available for development."
 
+  - task: "Supabase PostgreSQL Connection"
+    implemented: true
+    working: false
+    file: "lib/prisma.ts, prisma/schema.prisma"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: false
+        agent: "testing"
+        comment: "❌ CRITICAL: Supabase PostgreSQL database connection failed. DNS resolution failure for 'db.lamcknwqqgthofmnviqw.supabase.co:5432'. Prisma correctly configured with URL-encoded connection string, but database server unreachable. Health endpoint passes (no Prisma errors shown), but actual database operations fail with 'Can't reach database server'. Root cause: IPv6 connectivity requirement or Supabase project inactive/deleted. DATABASE_URL properly configured: postgresql://postgres:Ktpu87zt%40%40%24%24@db.lamcknwqqgthofmnviqw.supabase.co:5432/postgres. Requires network connectivity fix or alternative Supabase configuration (Supavisor for IPv4)."
+
 frontend:
   - task: "Design System - Theme Provider"
     implemented: true
