@@ -2,7 +2,7 @@
 
 // Test what database Prisma is actually connecting to
 const { PrismaClient } = require('@prisma/client');
-require('dotenv').config({ path: './elite-listing-ai-v2/.env.local' });
+require('dotenv').config({ path: '.env.local' });
 
 async function testPrismaConnection() {
   console.log('='.repeat(60));
