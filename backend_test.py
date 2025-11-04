@@ -48,11 +48,11 @@ class SupabaseConnectionTester:
         
         try:
             if method.upper() == 'GET':
-                response = self.session.get(url)
+                response = self.session.get(url, timeout=30)
             elif method.upper() == 'POST':
-                response = self.session.post(url, json=data)
+                response = self.session.post(url, json=data, timeout=30)
             elif method.upper() == 'HEAD':
-                response = self.session.head(url)
+                response = self.session.head(url, timeout=30)
             else:
                 return False, {'error': f'Unsupported method: {method}'}, 0
                 
