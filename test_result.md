@@ -215,6 +215,9 @@ backend:
       - working: "NA"
         agent: "main"
         comment: "Backend APIs exist (signup, signin, signout). Need to verify they work with Next.js frontend."
+      - working: "NA"
+        agent: "testing"
+        comment: "⚠️ NOT TESTED: Authentication endpoints exist but require frontend integration testing. All protected endpoints correctly return 'Auth session missing' errors, indicating auth system is properly integrated."
 
   - task: "Checkout/Stripe Integration"
     implemented: true
