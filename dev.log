@@ -1,7 +1,5 @@
-
-> elite-listing-ai@0.1.0 dev
-> next dev
-
+yarn run v1.22.22
+$ next dev
  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
  We detected multiple lockfiles and selected the directory of /app/yarn.lock as the root directory.
  To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
@@ -9,14 +7,93 @@
  Detected additional lockfiles: 
    * /app/elite-listing-ai-v2/package-lock.json
 
- ⚠ Port 3000 is in use by process 332, using available port 3001 instead.
+ ⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
    ▲ Next.js 15.5.6
    - Local:        http://localhost:3001
-   - Network:      http://10.64.135.57:3001
-   - Environments: .env.local
+   - Network:      http://10.64.138.80:3001
+   - Environments: .env.local, .env
 
  ✓ Starting...
- ✓ Ready in 1372ms
-   Reload env: .env.local
-   Reload env: .env.local
-   Reload env: .env.local
+ ✓ Ready in 1264ms
+ ✓ Compiled /middleware in 207ms (114 modules)
+ ○ Compiling /api/health ...
+ ✓ Compiled /api/health in 1442ms (375 modules)
+🔧 Using Mock Etsy Client
+🔧 Using Mock Etsy Client
+{"level":"info","message":"Health check completed","envStatus":{"stripe":{"useRealStripe":false,"hasSecretKey":true,"hasWebhookSecret":true,"hasPublishableKey":true},"etsy":{"useMock":true,"hasApiKey":false,"hasRedirectUri":false},"openai":{"hasApiKey":true},"supabase":{"hasUrl":true,"hasAnonKey":true},"general":{"hasAppUrl":true,"nodeEnv":"development"}},"etsyStatus":{"mode":"mock","operational":true,"error":null},"timestamp":"2025-11-04T09:05:07.390Z"}
+ GET /api/health 200 in 1619ms
+🔧 Using Mock Etsy Client
+{"level":"info","message":"Health check completed","envStatus":{"stripe":{"useRealStripe":false,"hasSecretKey":true,"hasWebhookSecret":true,"hasPublishableKey":true},"etsy":{"useMock":true,"hasApiKey":false,"hasRedirectUri":false},"openai":{"hasApiKey":true},"supabase":{"hasUrl":true,"hasAnonKey":true},"general":{"hasAppUrl":true,"nodeEnv":"development"}},"etsyStatus":{"mode":"mock","operational":true,"error":null},"timestamp":"2025-11-04T09:05:17.306Z"}
+ GET /api/health 200 in 16ms
+ ○ Compiling /api/debug/grant-credits ...
+ ✓ Compiled /api/debug/grant-credits in 527ms (450 modules)
+prisma:query BEGIN IMMEDIATE
+prisma:query SELECT `main`.`users`.`id` FROM `main`.`users` WHERE (`main`.`users`.`email` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`name`, `main`.`users`.`emailVerified`, `main`.`users`.`image`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE (`main`.`users`.`id` = ? AND (`main`.`users`.`email` = ? AND 1=1)) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`name`, `main`.`users`.`emailVerified`, `main`.`users`.`image`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` = ? LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`name`, `main`.`users`.`emailVerified`, `main`.`users`.`image`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE (`main`.`users`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`credit_ledgers`.`id`, `main`.`credit_ledgers`.`userId`, `main`.`credit_ledgers`.`amount`, `main`.`credit_ledgers`.`balance`, `main`.`credit_ledgers`.`type`, `main`.`credit_ledgers`.`description`, `main`.`credit_ledgers`.`referenceId`, `main`.`credit_ledgers`.`referenceType`, `main`.`credit_ledgers`.`stripePaymentId`, `main`.`credit_ledgers`.`metadata`, `main`.`credit_ledgers`.`createdAt` FROM `main`.`credit_ledgers` WHERE `main`.`credit_ledgers`.`userId` = ? ORDER BY `main`.`credit_ledgers`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`credit_ledgers`.`id`, `main`.`credit_ledgers`.`userId`, `main`.`credit_ledgers`.`amount`, `main`.`credit_ledgers`.`balance`, `main`.`credit_ledgers`.`type`, `main`.`credit_ledgers`.`description`, `main`.`credit_ledgers`.`referenceId`, `main`.`credit_ledgers`.`referenceType`, `main`.`credit_ledgers`.`stripePaymentId`, `main`.`credit_ledgers`.`metadata`, `main`.`credit_ledgers`.`createdAt` FROM `main`.`credit_ledgers` WHERE (`main`.`credit_ledgers`.`userId` = ? AND `main`.`credit_ledgers`.`referenceId` = ? AND `main`.`credit_ledgers`.`type` = ?) LIMIT ? OFFSET ?
+prisma:query INSERT INTO `main`.`credit_ledgers` (`id`, `userId`, `amount`, `balance`, `type`, `description`, `referenceId`, `referenceType`, `metadata`, `createdAt`) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `userId` AS `userId`, `amount` AS `amount`, `balance` AS `balance`, `type` AS `type`, `description` AS `description`, `referenceId` AS `referenceId`, `referenceType` AS `referenceType`, `stripePaymentId` AS `stripePaymentId`, `metadata` AS `metadata`, `createdAt` AS `createdAt`
+[DEBUG] Granted 10 credits to user cmhkccmnk0000ruyf9v1zjanz, new balance: 70
+ POST /api/debug/grant-credits 200 in 664ms
+prisma:query BEGIN IMMEDIATE
+prisma:query SELECT `main`.`users`.`id` FROM `main`.`users` WHERE (`main`.`users`.`email` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`name`, `main`.`users`.`emailVerified`, `main`.`users`.`image`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE (`main`.`users`.`id` = ? AND (`main`.`users`.`email` = ? AND 1=1)) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`name`, `main`.`users`.`emailVerified`, `main`.`users`.`image`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` = ? LIMIT ? OFFSET ?
+prisma:query COMMIT
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`name`, `main`.`users`.`emailVerified`, `main`.`users`.`image`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE (`main`.`users`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`credit_ledgers`.`id`, `main`.`credit_ledgers`.`userId`, `main`.`credit_ledgers`.`amount`, `main`.`credit_ledgers`.`balance`, `main`.`credit_ledgers`.`type`, `main`.`credit_ledgers`.`description`, `main`.`credit_ledgers`.`referenceId`, `main`.`credit_ledgers`.`referenceType`, `main`.`credit_ledgers`.`stripePaymentId`, `main`.`credit_ledgers`.`metadata`, `main`.`credit_ledgers`.`createdAt` FROM `main`.`credit_ledgers` WHERE `main`.`credit_ledgers`.`userId` = ? ORDER BY `main`.`credit_ledgers`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`credit_ledgers`.`id`, `main`.`credit_ledgers`.`userId`, `main`.`credit_ledgers`.`amount`, `main`.`credit_ledgers`.`balance`, `main`.`credit_ledgers`.`type`, `main`.`credit_ledgers`.`description`, `main`.`credit_ledgers`.`referenceId`, `main`.`credit_ledgers`.`referenceType`, `main`.`credit_ledgers`.`stripePaymentId`, `main`.`credit_ledgers`.`metadata`, `main`.`credit_ledgers`.`createdAt` FROM `main`.`credit_ledgers` WHERE (`main`.`credit_ledgers`.`userId` = ? AND `main`.`credit_ledgers`.`referenceId` = ? AND `main`.`credit_ledgers`.`type` = ?) LIMIT ? OFFSET ?
+prisma:query INSERT INTO `main`.`credit_ledgers` (`id`, `userId`, `amount`, `balance`, `type`, `description`, `referenceId`, `referenceType`, `metadata`, `createdAt`) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `userId` AS `userId`, `amount` AS `amount`, `balance` AS `balance`, `type` AS `type`, `description` AS `description`, `referenceId` AS `referenceId`, `referenceType` AS `referenceType`, `stripePaymentId` AS `stripePaymentId`, `metadata` AS `metadata`, `createdAt` AS `createdAt`
+[DEBUG] Granted 5 credits to user cmhkccmnk0000ruyf9v1zjanz, new balance: 75
+ POST /api/debug/grant-credits 200 in 30ms
+ ✓ Compiled /api/user/credits in 95ms (452 modules)
+{"level":"error","message":"Credits fetch error","error":"Auth session missing!","stack":"Error: Auth session missing!\n    at getCurrentUser (webpack-internal:///(rsc)/./lib/auth-helpers.ts:113:15)\n    at async GET (webpack-internal:///(rsc)/./app/api/user/credits/route.ts:34:22)\n    at async AppRouteRouteModule.do (/app/elite-listing-ai-v2/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:5:38696)\n    at async AppRouteRouteModule.handle (/app/elite-listing-ai-v2/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:5:45978)\n    at async responseGenerator (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fuser%2Fcredits%2Froute&page=%2Fapi%2Fuser%2Fcredits%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fuser%2Fcredits%2Froute.ts&appDir=%2Fapp%2Felite-listing-ai-v2%2Fapp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=%2Fapp%2Felite-listing-ai-v2&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:203:38)\n    at async AppRouteRouteModule.handleResponse (/app/elite-listing-ai-v2/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:1:187565)\n    at async handleResponse (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fuser%2Fcredits%2Froute&page=%2Fapi%2Fuser%2Fcredits%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fuser%2Fcredits%2Froute.ts&appDir=%2Fapp%2Felite-listing-ai-v2%2Fapp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=%2Fapp%2Felite-listing-ai-v2&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:265:32)\n    at async handler (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fuser%2Fcredits%2Froute&page=%2Fapi%2Fuser%2Fcredits%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fuser%2Fcredits%2Froute.ts&appDir=%2Fapp%2Felite-listing-ai-v2%2Fapp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=%2Fapp%2Felite-listing-ai-v2&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:317:13)\n    at async DevServer.renderToResponseWithComponentsImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1422:9)\n    at async DevServer.renderPageComponent (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1474:24)\n    at async DevServer.renderToResponseImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1514:32)\n    at async DevServer.pipeImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1025:25)\n    at async NextNodeServer.handleCatchallRenderRequest (/app/elite-listing-ai-v2/node_modules/next/dist/server/next-server.js:393:17)\n    at async DevServer.handleRequestImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:916:17)\n    at async /app/elite-listing-ai-v2/node_modules/next/dist/server/dev/next-dev-server.js:399:20\n    at async Span.traceAsyncFn (/app/elite-listing-ai-v2/node_modules/next/dist/trace/trace.js:157:20)\n    at async DevServer.handleRequest (/app/elite-listing-ai-v2/node_modules/next/dist/server/dev/next-dev-server.js:395:24)\n    at async invokeRender (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/router-server.js:240:21)\n    at async handleRequest (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/router-server.js:437:24)\n    at async requestHandlerImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/router-server.js:485:13)\n    at async Server.requestListener (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/start-server.js:226:13)","timestamp":"2025-11-04T09:05:18.188Z"}
+ GET /api/user/credits 500 in 163ms
+ ✓ Compiled /api/optimize in 170ms (564 modules)
+[dc11154b-fb2e-4c0f-8c90-1cf837effdc8] Starting optimization request...
+[dc11154b-fb2e-4c0f-8c90-1cf837effdc8] Error optimizing listing: Error: Auth session missing!
+    at getCurrentUser (lib/auth-helpers.ts:143:11)
+    at async POST (app/api/optimize/route.ts:216:18)
+  141 |   
+  142 |   if (error) {
+> 143 |     throw new Error(error.message)
+      |           ^
+  144 |   }
+  145 |   
+  146 |   return user
+ POST /api/optimize 500 in 377ms
+prisma:query BEGIN IMMEDIATE
+prisma:query UPDATE `main`.`optimizations` SET `status` = ?, `errorMessage` = ?, `updatedAt` = ? WHERE (`main`.`optimizations`.`id` LIKE ? AND `main`.`optimizations`.`status` = ?)
+prisma:query COMMIT
+[af8bb6ba-f955-4ac8-a37a-3ee7d55c4064] Starting optimization request...
+[af8bb6ba-f955-4ac8-a37a-3ee7d55c4064] Error optimizing listing: Error: Auth session missing!
+    at getCurrentUser (lib/auth-helpers.ts:143:11)
+    at async POST (app/api/optimize/route.ts:216:18)
+  141 |   
+  142 |   if (error) {
+> 143 |     throw new Error(error.message)
+      |           ^
+  144 |   }
+  145 |   
+  146 |   return user
+ POST /api/optimize 500 in 116ms
+prisma:query BEGIN IMMEDIATE
+prisma:query UPDATE `main`.`optimizations` SET `status` = ?, `errorMessage` = ?, `updatedAt` = ? WHERE (`main`.`optimizations`.`id` LIKE ? AND `main`.`optimizations`.`status` = ?)
+prisma:query COMMIT
+ ✓ Compiled /api/optimizations in 132ms (566 modules)
+Error fetching optimizations: Error: Auth session missing!
+    at getCurrentUser (lib/auth-helpers.ts:143:11)
+    at async GET (app/api/optimizations/route.ts:21:18)
+  141 |   
+  142 |   if (error) {
+> 143 |     throw new Error(error.message)
+      |           ^
+  144 |   }
+  145 |   
+  146 |   return user
+ GET /api/optimizations?limit=5 500 in 231ms
+{"level":"error","message":"Credits fetch error","error":"Auth session missing!","stack":"Error: Auth session missing!\n    at getCurrentUser (webpack-internal:///(rsc)/./lib/auth-helpers.ts:113:15)\n    at async GET (webpack-internal:///(rsc)/./app/api/user/credits/route.ts:34:22)\n    at async AppRouteRouteModule.do (/app/elite-listing-ai-v2/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:5:38696)\n    at async AppRouteRouteModule.handle (/app/elite-listing-ai-v2/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:5:45978)\n    at async responseGenerator (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fuser%2Fcredits%2Froute&page=%2Fapi%2Fuser%2Fcredits%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fuser%2Fcredits%2Froute.ts&appDir=%2Fapp%2Felite-listing-ai-v2%2Fapp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=%2Fapp%2Felite-listing-ai-v2&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:203:38)\n    at async AppRouteRouteModule.handleResponse (/app/elite-listing-ai-v2/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:1:187565)\n    at async handleResponse (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fuser%2Fcredits%2Froute&page=%2Fapi%2Fuser%2Fcredits%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fuser%2Fcredits%2Froute.ts&appDir=%2Fapp%2Felite-listing-ai-v2%2Fapp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=%2Fapp%2Felite-listing-ai-v2&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:265:32)\n    at async handler (webpack-internal:///(rsc)/./node_modules/next/dist/build/webpack/loaders/next-app-loader/index.js?name=app%2Fapi%2Fuser%2Fcredits%2Froute&page=%2Fapi%2Fuser%2Fcredits%2Froute&appPaths=&pagePath=private-next-app-dir%2Fapi%2Fuser%2Fcredits%2Froute.ts&appDir=%2Fapp%2Felite-listing-ai-v2%2Fapp&pageExtensions=tsx&pageExtensions=ts&pageExtensions=jsx&pageExtensions=js&rootDir=%2Fapp%2Felite-listing-ai-v2&isDev=true&tsconfigPath=tsconfig.json&basePath=&assetPrefix=&nextConfigOutput=&preferredRegion=&middlewareConfig=e30%3D&isGlobalNotFoundEnabled=!:317:13)\n    at async DevServer.renderToResponseWithComponentsImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1422:9)\n    at async DevServer.renderPageComponent (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1474:24)\n    at async DevServer.renderToResponseImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1514:32)\n    at async DevServer.pipeImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:1025:25)\n    at async NextNodeServer.handleCatchallRenderRequest (/app/elite-listing-ai-v2/node_modules/next/dist/server/next-server.js:393:17)\n    at async DevServer.handleRequestImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/base-server.js:916:17)\n    at async /app/elite-listing-ai-v2/node_modules/next/dist/server/dev/next-dev-server.js:399:20\n    at async Span.traceAsyncFn (/app/elite-listing-ai-v2/node_modules/next/dist/trace/trace.js:157:20)\n    at async DevServer.handleRequest (/app/elite-listing-ai-v2/node_modules/next/dist/server/dev/next-dev-server.js:395:24)\n    at async invokeRender (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/router-server.js:240:21)\n    at async handleRequest (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/router-server.js:437:24)\n    at async requestHandlerImpl (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/router-server.js:485:13)\n    at async Server.requestListener (/app/elite-listing-ai-v2/node_modules/next/dist/server/lib/start-server.js:226:13)","timestamp":"2025-11-04T09:05:18.982Z"}
+ GET /api/user/credits 500 in 13ms
