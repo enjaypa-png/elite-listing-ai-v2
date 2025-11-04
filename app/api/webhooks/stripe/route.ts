@@ -130,7 +130,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     if (isDuplicate) {
       logInfo('Payment already processed (idempotent)', { 
         referenceId: idempotencyKey,
-        existingBalance: existingLedger.balanceAfter 
+        existingBalance: existingLedger.balance 
       })
       
       // Store duplicate event
@@ -157,10 +157,10 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
     const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      select: { balanceAfter: true }
+      select: { balance: true }
     })
 
-    const currentBalance = latestLedger?.balanceAfter || 0
+    const currentBalance = latestLedger?.balance || 0
     const newBalance = currentBalance + credits
 
     // Add credits to ledger
@@ -168,7 +168,7 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       data: {
         userId,
         amount: credits,
-        balanceAfter: newBalance,
+        balance: newBalance,
         transactionType: 'purchase',
         description: `${packageType} package - ${credits} credits`,
         referenceId: idempotencyKey,
@@ -277,10 +277,10 @@ async function handleRefund(charge: Stripe.Charge) {
     const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      select: { balanceAfter: true }
+      select: { balance: true }
     })
 
-    const currentBalance = latestLedger?.balanceAfter || 0
+    const currentBalance = latestLedger?.balance || 0
     const newBalance = Math.max(0, currentBalance + creditsToDeduct) // Don't go below zero
 
     // Deduct credits
@@ -288,7 +288,7 @@ async function handleRefund(charge: Stripe.Charge) {
       data: {
         userId,
         amount: creditsToDeduct,
-        balanceAfter: newBalance,
+        balance: newBalance,
         transactionType: 'refund',
         description: `Refund - ${-creditsToDeduct} credits removed`,
         referenceId: `refund_${charge.id}`,

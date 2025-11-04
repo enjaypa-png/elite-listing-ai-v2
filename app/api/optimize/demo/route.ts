@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
     const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
-      select: { balanceAfter: true }
+      select: { balance: true }
     })
 
-    const currentBalance = latestLedger?.balanceAfter || 0
+    const currentBalance = latestLedger?.balance || 0
 
     if (currentBalance < 1) {
       logError('Insufficient credits for demo', { userId: user.id, balance: currentBalance })
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         amount: -1,
-        balanceAfter: newBalance,
+        balance: newBalance,
         transactionType: 'usage',
         description: 'Demo optimization - AI listing enhancement',
         referenceId: optimizationId,

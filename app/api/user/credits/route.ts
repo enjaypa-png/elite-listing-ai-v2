@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
     const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
-      select: { balanceAfter: true }
+      select: { balance: true }
     })
 
-    const balance = latestLedger?.balanceAfter || 0
+    const balance = latestLedger?.balance || 0
 
     // Get recent transactions (last 10 for UI audit table)
     const recentTransactions = await prisma.creditLedger.findMany({
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         amount: true,
-        balanceAfter: true,
+        balance: true,
         transactionType: true,
         description: true,
         referenceId: true,
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       recentTransactions: recentTransactions.map((txn) => ({
         id: txn.id,
         amount: txn.amount,
-        balanceAfter: txn.balanceAfter,
+        balanceAfter: txn.balance,
         type: txn.transactionType,
         description: txn.description,
         referenceId: txn.referenceId,

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       data: {
         userId: user.id,
         amount: 50,
-        balanceAfter: 50,
+        balance: 50,
         transactionType: 'bonus',
         description: 'Initial dev credits',
         referenceId: `dev_seed_${user.id}_${Date.now()}`,
@@ -139,14 +139,14 @@ export async function GET(request: NextRequest) {
     const latestLedger = await prisma.creditLedger.findFirst({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' },
-      select: { balanceAfter: true }
+      select: { balance: true }
     }).catch(() => null)
 
     return NextResponse.json({
       exists: true,
       user: {
         ...user,
-        credits: latestLedger?.balanceAfter || 0
+        credits: latestLedger?.balance || 0
       },
       credentials: {
         email: testEmail,
