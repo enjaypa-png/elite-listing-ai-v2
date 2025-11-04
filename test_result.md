@@ -366,11 +366,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Health API - All Green/⚠️ Check"
-    - "Debug Grant Credits - Idempotency Test"
-    - "Optimize API v1.0 - Full E2E Flow"
-    - "Optimizations History API"
-    - "Credit Ledger Audit Trail"
+    - "Authentication System Integration"
+    - "Full E2E Optimize Flow with Auth"
+    - "Frontend Integration Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
