@@ -135,11 +135,14 @@ backend:
     file: "lib/openai.ts"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Created singleton OpenAI client using OPENAI_API_KEY from environment."
+      - working: true
+        agent: "testing"
+        comment: "✅ TESTED: OpenAI API key detected in health endpoint. Client library ready for use."
 
   - task: "Debug Grant Credits Endpoint"
     implemented: true
