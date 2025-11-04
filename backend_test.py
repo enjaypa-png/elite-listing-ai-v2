@@ -21,7 +21,7 @@ class SupabaseConnectionTester:
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
-            'User-Agent': 'Elite-Listing-AI-Test/1.0'
+            'User-Agent': 'Elite-Listing-AI-Supabase-Test/1.0'
         })
         self.test_results = []
         
