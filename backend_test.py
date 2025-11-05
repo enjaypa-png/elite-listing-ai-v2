@@ -10,8 +10,8 @@ import time
 import sys
 from typing import Dict, Any, Optional
 
-# Configuration - Using localhost since Next.js app runs locally
-BASE_URL = "http://localhost:3000"
+# Configuration - Using production URL from environment
+BASE_URL = "https://etsy-optimizer-2.preview.emergentagent.com"
 DEBUG_KEY = "debug-key-12345"
 TEST_USER_EMAIL = "test@elitelistingai.com"
 
