@@ -222,8 +222,8 @@ backend:
   - task: "Checkout/Stripe Integration"
     implemented: true
     working: "NA"
-    file: "app/api/checkout/route.ts, app/api/webhooks/stripe/route.ts"
-    stuck_count: 0
+    file: "app/api/checkout/route.ts, app/api/webhooks/stripe/route.ts, app/checkout/page.tsx, app/dashboard/page.tsx"
+    stuck_count: 1
     priority: "high"
     needs_retesting: true
     status_history:
@@ -233,6 +233,12 @@ backend:
       - working: "NA"
         agent: "testing"
         comment: "⚠️ NOT TESTED: Stripe integration in mock mode (USE_REAL_STRIPE=false). Health endpoint shows Stripe keys are configured. Cannot test payment flow without authentication and real Stripe setup."
+      - working: false
+        agent: "user"
+        comment: "User reported ZodError: Invalid option: expected one of 'starter'|'pro'|'business' at path: ['package']. Package names need to be updated to 'Launch', 'Scale', 'Elite Listing'."
+      - working: "NA"
+        agent: "main"
+        comment: "FIXED: Updated package names from 'starter/pro/business' to 'launch/scale/elite-listing'. Changes: 1) Backend checkout route - Updated CREDIT_PACKAGES keys and Zod schema 2) Frontend dashboard - Updated handleBuyCredits type and onClick handlers 3) Checkout page - Updated packages object and default value, fixed body to send 'package' key instead of 'packageType'. Display names: Launch (10 credits, $9), Scale (50 credits, $39), Elite Listing (200 credits, $129). Ready for testing."
 
   - task: "Etsy OAuth Integration"
     implemented: true
