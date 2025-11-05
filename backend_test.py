@@ -315,6 +315,79 @@ class CheckoutAPITester:
             self.log_test("6. Verify Zod Schema", False, f"❌ Error reading source code: {str(e)}")
             return False
 
+    def test_7_demo_optimization_endpoint(self):
+        """Test 7: POST /api/optimize/demo - Check for Prisma relatedResourceId error fix"""
+        print("Testing POST /api/optimize/demo for Prisma error fix...")
+        
+        payload = {}  # Demo endpoint doesn't require specific payload
+        
+        success, data, status = self.make_request('POST', '/api/optimize/demo', payload, expected_status=401)
+        
+        if status == 401:
+            error_msg = str(data.get('error', ''))
+            if 'not authenticated' in error_msg.lower() or 'auth' in error_msg.lower():
+                self.log_test("7. Demo Optimization - Authentication", True, 
+                            f"✅ Demo endpoint requires authentication as expected: {error_msg}")
+                return True
+            else:
+                self.log_test("7. Demo Optimization - Authentication", False, 
+                            f"❌ Unexpected 401 error message: {error_msg}", data)
+                return False
+        elif status == 500:
+            error_msg = str(data.get('error', ''))
+            
+            # Check for the specific Prisma error that was reported
+            if 'relatedresourceid' in error_msg.lower() or 'unknown argument' in error_msg.lower():
+                self.log_test("7. Demo Optimization - Prisma Error", False, 
+                            f"❌ Still has Prisma relatedResourceId error: {error_msg}", data)
+                return False
+            elif 'auth' in error_msg.lower() or 'session' in error_msg.lower():
+                self.log_test("7. Demo Optimization - Authentication", True, 
+                            f"✅ Authentication error (not Prisma error): {error_msg}")
+                return True
+            else:
+                self.log_test("7. Demo Optimization - Server Error", False, 
+                            f"❌ Unexpected server error: {error_msg}", data)
+                return False
+        elif status == 200:
+            # If it somehow works without auth, that's also fine (means the Prisma error is fixed)
+            self.log_test("7. Demo Optimization - Success", True, 
+                        f"✅ Demo optimization worked: {data.get('message', 'Success')}")
+            return True
+        else:
+            self.log_test("7. Demo Optimization - Unexpected Status", False, 
+                        f"❌ Unexpected status {status}: {data}", data)
+            return False
+
+    def test_8_verify_demo_code_fix(self):
+        """Test 8: Verify demo optimization code has relatedResourceId fix"""
+        print("Verifying demo optimization source code for Prisma fix...")
+        
+        try:
+            # Read the demo optimization route file
+            with open('/app/elite-listing-ai-v2/app/api/optimize/demo/route.ts', 'r') as f:
+                content = f.read()
+            
+            # Check that relatedResourceId is NOT in the credit ledger creation
+            if 'relatedResourceId' in content:
+                self.log_test("8. Verify Demo Code Fix", False, 
+                            "❌ 'relatedResourceId' still present in demo optimization code")
+                return False
+            
+            # Check that referenceType is present (the correct field)
+            if 'referenceType:' in content and "'optimization'" in content:
+                self.log_test("8. Verify Demo Code Fix", True, 
+                            "✅ Demo code correctly uses 'referenceType: optimization' instead of 'relatedResourceId'")
+                return True
+            else:
+                self.log_test("8. Verify Demo Code Fix", False, 
+                            "❌ Demo code missing 'referenceType: optimization' field")
+                return False
+                
+        except Exception as e:
+            self.log_test("8. Verify Demo Code Fix", False, f"❌ Error reading demo source code: {str(e)}")
+            return False
+
     def run_all_tests(self):
         """Run all Checkout API tests with new package names"""
         print("=" * 80)
