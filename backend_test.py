@@ -114,46 +114,45 @@ class CheckoutAPITester:
                      f"✅ All packages found with correct details: {list(packages.keys())}")
         return True
 
-    def test_2_database_write_grant_credits(self):
-        """Test 2: Database Write Test - Grant Credits"""
-        print("Testing POST /api/debug/grant-credits for database write operations...")
-        payload = {
-            "amount": 5,
-            "key": DEBUG_KEY
-        }
+    def test_2_post_checkout_valid_packages(self):
+        """Test 2: POST /api/checkout - Test all three valid packages"""
+        print("Testing POST /api/checkout with valid package names...")
         
-        success, data, status = self.make_request('POST', '/api/debug/grant-credits', payload)
+        valid_packages = ['launch', 'scale', 'elite-listing']
+        all_passed = True
         
-        if not success:
-            # Check for specific Prisma error codes
-            error_msg = str(data.get('error', ''))
-            if any(code in error_msg for code in ['P1001', 'P1017', 'P2002', 'P2025']):
-                self.log_test("2. Database Write Test - Grant Credits", False, f"Prisma error detected: {error_msg}", data)
-                return False
-            self.log_test("2. Database Write Test - Grant Credits", False, f"HTTP {status} - Expected 200", data)
-            return False
+        for package in valid_packages:
+            print(f"  Testing package: {package}")
+            payload = {"package": package}
             
-        # Check response structure
-        expected_fields = ['ok', 'newBalance']
-        missing_fields = [field for field in expected_fields if field not in data]
+            success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=401)
+            
+            # We expect 401 (Not authenticated) since we don't have auth
+            if status == 401:
+                if 'error' in data and 'authenticated' in data['error'].lower():
+                    self.log_test(f"2.{package.upper()} POST Checkout Valid Package", True, 
+                                f"✅ Package '{package}' accepted (401 auth required as expected)")
+                else:
+                    self.log_test(f"2.{package.upper()} POST Checkout Valid Package", False, 
+                                f"❌ Unexpected 401 error: {data.get('error', 'Unknown')}", data)
+                    all_passed = False
+            else:
+                # Check if it's a Zod validation error (which would be bad)
+                if status == 400 and 'error' in data:
+                    error_msg = str(data.get('error', ''))
+                    if 'zod' in error_msg.lower() or 'validation' in error_msg.lower():
+                        self.log_test(f"2.{package.upper()} POST Checkout Valid Package", False, 
+                                    f"❌ Zod validation error for valid package '{package}': {error_msg}", data)
+                        all_passed = False
+                    else:
+                        self.log_test(f"2.{package.upper()} POST Checkout Valid Package", True, 
+                                    f"✅ Package '{package}' accepted (non-auth error: {error_msg})")
+                else:
+                    self.log_test(f"2.{package.upper()} POST Checkout Valid Package", False, 
+                                f"❌ Unexpected status {status} for package '{package}'", data)
+                    all_passed = False
         
-        if missing_fields:
-            self.log_test("2. Database Write Test - Grant Credits", False, f"Missing fields: {missing_fields}", data)
-            return False
-            
-        # Verify values
-        if not data.get('ok'):
-            self.log_test("2. Database Write Test - Grant Credits", False, f"Response ok=false: {data}", data)
-            return False
-            
-        # Check that credits were granted
-        new_balance = data.get('newBalance', 0)
-        if new_balance < 5:
-            self.log_test("2. Database Write Test - Grant Credits", False, f"Expected balance >= 5, got {new_balance}", data)
-            return False
-            
-        self.log_test("2. Database Write Test - Grant Credits", True, f"✅ Database write successful - Credits granted: {data.get('amount', 5)}, New balance: {new_balance}")
-        return True
+        return all_passed
 
     def test_3_database_read_fetch_credits(self):
         """Test 3: Database Read Test - Fetch Credits"""
