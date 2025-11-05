@@ -277,6 +277,38 @@ class CheckoutAPITester:
             self.log_test("5. POST Checkout Authentication Check", False, 
                         f"❌ Expected 401/500 auth error, got {status}", data)
             return False
+    def test_6_verify_zod_schema_in_code(self):
+        """Test 6: Verify Zod schema contains correct package names in source code"""
+        print("Verifying Zod schema in checkout route source code...")
+        
+        try:
+            # Read the checkout route file
+            with open('/app/elite-listing-ai-v2/app/api/checkout/route.ts', 'r') as f:
+                content = f.read()
+            
+            # Check if the new package names are in the Zod enum
+            if "z.enum(['launch', 'scale', 'elite-listing'])" in content:
+                self.log_test("6. Verify Zod Schema", True, 
+                            "✅ Zod schema correctly defines new package names: launch, scale, elite-listing")
+                
+                # Also check that old names are not present
+                old_names_present = any(name in content for name in ['starter', 'pro', 'business'])
+                if old_names_present:
+                    self.log_test("6. Verify Zod Schema - Old Names Check", False, 
+                                "❌ Old package names still present in code")
+                    return False
+                else:
+                    self.log_test("6. Verify Zod Schema - Old Names Check", True, 
+                                "✅ Old package names removed from code")
+                    return True
+            else:
+                self.log_test("6. Verify Zod Schema", False, 
+                            "❌ Zod schema does not contain expected new package names")
+                return False
+                
+        except Exception as e:
+            self.log_test("6. Verify Zod Schema", False, f"❌ Error reading source code: {str(e)}")
+            return False
 
     def run_all_tests(self):
         """Run all Checkout API tests with new package names"""
