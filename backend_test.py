@@ -244,23 +244,23 @@ class CheckoutAPITester:
             return False
 
     def run_all_tests(self):
-        """Run all Supabase PostgreSQL connection tests"""
+        """Run all Checkout API tests with new package names"""
         print("=" * 80)
-        print("Elite Listing AI - Supabase PostgreSQL Connection Test")
+        print("Elite Listing AI - Checkout API Test with New Package Names")
         print("=" * 80)
         print(f"Base URL: {self.base_url}")
-        print(f"Debug Key: {DEBUG_KEY}")
-        print(f"Database URL: postgresql://postgres:Ktpu87zt%40%40%24%24@db.lamcknwqqgthofmnviqw.supabase.co:5432/postgres")
+        print(f"Testing package names: launch, scale, elite-listing")
+        print(f"Expected pricing: Launch ($9/10 credits), Scale ($39/50 credits), Elite Listing ($129/200 credits)")
         print("=" * 80)
         print()
         
         # Run tests in sequence
         tests = [
-            self.test_1_health_check_database_connectivity,
-            self.test_2_database_write_grant_credits,
-            self.test_3_database_read_fetch_credits,
-            self.test_4_schema_validation_credit_ledger,
-            self.test_5_user_table_accessibility,
+            self.test_1_get_checkout_package_info,
+            self.test_2_post_checkout_valid_packages,
+            self.test_3_post_checkout_old_package_names,
+            self.test_4_post_checkout_invalid_package,
+            self.test_5_post_checkout_authentication_check,
         ]
         
         passed = 0
@@ -274,7 +274,7 @@ class CheckoutAPITester:
                 self.log_test(test_func.__name__, False, f"Exception: {str(e)}")
         
         print("=" * 80)
-        print(f"SUPABASE CONNECTION TEST SUMMARY: {passed}/{total} tests passed")
+        print(f"CHECKOUT API TEST SUMMARY: {passed}/{total} tests passed")
         print("=" * 80)
         
         # Print detailed results
@@ -287,15 +287,17 @@ class CheckoutAPITester:
         # Summary of critical checks
         print("\nCRITICAL CHECKS:")
         print("-" * 40)
-        health_passed = any(r['test'].startswith('1.') and r['success'] for r in self.test_results)
-        write_passed = any(r['test'].startswith('2.') and r['success'] for r in self.test_results)
-        read_passed = any(r['test'].startswith('3.') and r['success'] for r in self.test_results)
-        schema_passed = any(r['test'].startswith('4.') and r['success'] for r in self.test_results)
+        get_packages_passed = any(r['test'].startswith('1.') and r['success'] for r in self.test_results)
+        valid_packages_passed = any(r['test'].startswith('2.') and r['success'] for r in self.test_results)
+        old_packages_rejected = any(r['test'].startswith('3.') and r['success'] for r in self.test_results)
+        invalid_packages_rejected = any(r['test'].startswith('4.') and r['success'] for r in self.test_results)
+        auth_required = any(r['test'].startswith('5.') and r['success'] for r in self.test_results)
         
-        print(f"✅ No Prisma connection errors: {'PASS' if health_passed else 'FAIL'}")
-        print(f"✅ Database writes succeed: {'PASS' if write_passed else 'FAIL'}")
-        print(f"✅ Database reads succeed: {'PASS' if read_passed else 'FAIL'}")
-        print(f"✅ Schema accessible: {'PASS' if schema_passed else 'FAIL'}")
+        print(f"✅ GET /api/checkout returns new packages: {'PASS' if get_packages_passed else 'FAIL'}")
+        print(f"✅ New package names accepted: {'PASS' if valid_packages_passed else 'FAIL'}")
+        print(f"✅ Old package names rejected: {'PASS' if old_packages_rejected else 'FAIL'}")
+        print(f"✅ Invalid packages rejected: {'PASS' if invalid_packages_rejected else 'FAIL'}")
+        print(f"✅ Authentication required: {'PASS' if auth_required else 'FAIL'}")
         
         return passed == total
 
