@@ -441,12 +441,18 @@ class CheckoutAPITester:
         old_packages_rejected = any(r['test'].startswith('3.') and r['success'] for r in self.test_results)
         invalid_packages_rejected = any(r['test'].startswith('4.') and r['success'] for r in self.test_results)
         auth_required = any(r['test'].startswith('5.') and r['success'] for r in self.test_results)
+        demo_endpoint_working = any(r['test'].startswith('7.') and r['success'] for r in self.test_results)
+        demo_code_fixed = any(r['test'].startswith('8.') and r['success'] for r in self.test_results)
         
+        print("CHECKOUT API:")
         print(f"✅ GET /api/checkout returns new packages: {'PASS' if get_packages_passed else 'FAIL'}")
         print(f"✅ New package names accepted: {'PASS' if valid_packages_passed else 'FAIL'}")
         print(f"✅ Old package names rejected: {'PASS' if old_packages_rejected else 'FAIL'}")
         print(f"✅ Invalid packages rejected: {'PASS' if invalid_packages_rejected else 'FAIL'}")
         print(f"✅ Authentication required: {'PASS' if auth_required else 'FAIL'}")
+        print("\nDEMO OPTIMIZATION:")
+        print(f"✅ Demo endpoint accessible: {'PASS' if demo_endpoint_working else 'FAIL'}")
+        print(f"✅ Prisma relatedResourceId error fixed: {'PASS' if demo_code_fixed else 'FAIL'}")
         
         return passed == total
 
