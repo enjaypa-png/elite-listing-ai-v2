@@ -462,16 +462,17 @@ def main():
     success = tester.run_all_tests()
     
     if success:
-        print("\n🎉 All Checkout API tests passed!")
-        print("✅ New package names working correctly")
-        print("✅ Old package names properly rejected")
-        print("✅ Zod validation working as expected")
-        print("✅ Authentication properly enforced")
-        print("✅ Stripe integration ready (mock mode)")
+        print("\n🎉 All API tests passed!")
+        print("✅ Checkout API: New package names working correctly")
+        print("✅ Checkout API: Old package names properly rejected")
+        print("✅ Checkout API: Zod validation working as expected")
+        print("✅ Checkout API: Authentication properly enforced")
+        print("✅ Demo Optimization: Prisma relatedResourceId error fixed")
+        print("✅ Demo Optimization: Endpoint accessible with proper auth")
         sys.exit(0)
     else:
         print("\n⚠️  Some tests failed. Check the details above.")
-        print("❌ Checkout API issues detected")
+        print("❌ API issues detected")
         sys.exit(1)
 
 if __name__ == "__main__":
