@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Elite Listing AI - Supabase PostgreSQL Connection Test
-Tests database connectivity through API endpoints as specified in the review request.
+Elite Listing AI - Checkout API Test with New Package Names
+Tests the updated checkout API with new package names: launch, scale, elite-listing
 """
 
 import requests
@@ -10,8 +10,8 @@ import time
 import sys
 from typing import Dict, Any, Optional
 
-# Configuration - Using localhost since external URL returns 404
-BASE_URL = "http://localhost:3000"
+# Configuration - Using external URL from frontend .env
+BASE_URL = "https://etsy-optimizer-2.preview.emergentagent.com"
 DEBUG_KEY = "debug-key-12345"
 TEST_USER_EMAIL = "test@elitelistingai.com"
 
