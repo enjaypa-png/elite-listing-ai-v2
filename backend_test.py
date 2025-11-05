@@ -15,7 +15,7 @@ BASE_URL = "https://etsy-optimizer-2.preview.emergentagent.com"
 DEBUG_KEY = "debug-key-12345"
 TEST_USER_EMAIL = "test@elitelistingai.com"
 
-class SupabaseConnectionTester:
+class CheckoutAPITester:
     def __init__(self, base_url: str):
         self.base_url = base_url
         self.session = requests.Session()
