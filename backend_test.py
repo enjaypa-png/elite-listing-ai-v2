@@ -422,7 +422,8 @@ class CheckoutAPITester:
                 self.log_test(test_func.__name__, False, f"Exception: {str(e)}")
         
         print("=" * 80)
-        print(f"CHECKOUT API TEST SUMMARY: {passed}/{total} tests passed")
+        print(f"API TEST SUMMARY: {passed}/{total} tests passed")
+        print("Tests: Checkout API + Demo Optimization Endpoint")
         print("=" * 80)
         
         # Print detailed results
