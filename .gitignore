@@ -96,3 +96,7 @@ elite-listing-ai-v2/node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-
 # Environment files
 *.env
 *.env.*
+-e 
+# Environment files
+*.env
+*.env.*
