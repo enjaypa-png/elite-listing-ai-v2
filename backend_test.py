@@ -68,40 +68,50 @@ class CheckoutAPITester:
         except requests.exceptions.RequestException as e:
             return False, {'error': str(e)}, 0
 
-    def test_1_health_check_database_connectivity(self):
-        """Test 1: Health Check - Database Connectivity"""
-        print("Testing GET /api/health for database connectivity...")
-        success, data, status = self.make_request('GET', '/api/health')
+    def test_1_get_checkout_package_info(self):
+        """Test 1: GET /api/checkout - Verify package info"""
+        print("Testing GET /api/checkout for package information...")
+        success, data, status = self.make_request('GET', '/api/checkout')
         
         if not success:
-            self.log_test("1. Health Check - Database Connectivity", False, f"HTTP {status} - Expected 200", data)
+            self.log_test("1. GET Checkout Package Info", False, f"HTTP {status} - Expected 200", data)
             return False
             
         # Check required fields
-        required_fields = ['success', 'environment', 'warnings']
-        missing_fields = [field for field in required_fields if field not in data]
+        if 'packages' not in data:
+            self.log_test("1. GET Checkout Package Info", False, "Missing 'packages' field in response", data)
+            return False
+            
+        packages = data['packages']
         
-        if missing_fields:
-            self.log_test("1. Health Check - Database Connectivity", False, f"Missing fields: {missing_fields}", data)
-            return False
-            
-        # Check for Prisma connection errors in warnings
-        warnings = data.get('warnings', [])
-        prisma_errors = []
-        for warning in warnings:
-            if any(keyword in warning.lower() for keyword in ['prisma', 'database', 'connection', 'p1001', 'p1017']):
-                prisma_errors.append(warning)
+        # Verify all three new package names exist
+        expected_packages = ['launch', 'scale', 'elite-listing']
+        missing_packages = [pkg for pkg in expected_packages if pkg not in packages]
         
-        if prisma_errors:
-            self.log_test("1. Health Check - Database Connectivity", False, f"Prisma/Database errors found: {prisma_errors}", data)
+        if missing_packages:
+            self.log_test("1. GET Checkout Package Info", False, f"Missing packages: {missing_packages}", data)
             return False
             
-        # Check success status
-        if not data.get('success'):
-            self.log_test("1. Health Check - Database Connectivity", False, f"Health check returned success=false", data)
-            return False
-            
-        self.log_test("1. Health Check - Database Connectivity", True, f"✅ No Prisma connection errors, Success: {data.get('success')}, Warnings: {len(warnings)}")
+        # Verify package details
+        expected_details = {
+            'launch': {'credits': 10, 'price': 900, 'name': 'Launch'},
+            'scale': {'credits': 50, 'price': 3900, 'name': 'Scale'},
+            'elite-listing': {'credits': 200, 'price': 12900, 'name': 'Elite Listing'}
+        }
+        
+        for pkg_key, expected in expected_details.items():
+            if pkg_key not in packages:
+                continue
+                
+            pkg_data = packages[pkg_key]
+            for field, expected_value in expected.items():
+                if pkg_data.get(field) != expected_value:
+                    self.log_test("1. GET Checkout Package Info", False, 
+                                f"Package {pkg_key}.{field}: expected {expected_value}, got {pkg_data.get(field)}", data)
+                    return False
+        
+        self.log_test("1. GET Checkout Package Info", True, 
+                     f"✅ All packages found with correct details: {list(packages.keys())}")
         return True
 
     def test_2_database_write_grant_credits(self):
