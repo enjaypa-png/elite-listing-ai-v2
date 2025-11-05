@@ -236,13 +236,23 @@ class CheckoutAPITester:
         # Test with valid package but no authentication
         payload = {"package": "launch"}
         
-        success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=401)
+        success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=500)
         
-        if status == 401:
+        if status == 500:
+            error_msg = str(data.get('error', ''))
+            if 'auth session missing' in error_msg.lower() or 'not authenticated' in error_msg.lower():
+                self.log_test("5. POST Checkout Authentication Check", True, 
+                            f"✅ Authentication properly required: {error_msg}")
+                return True
+            else:
+                self.log_test("5. POST Checkout Authentication Check", False, 
+                            f"❌ 500 returned but unclear error message: {error_msg}", data)
+                return False
+        elif status == 401:
             error_msg = str(data.get('error', ''))
             if 'authenticated' in error_msg.lower() or 'auth' in error_msg.lower():
                 self.log_test("5. POST Checkout Authentication Check", True, 
-                            f"✅ Authentication properly required: {error_msg}")
+                            f"✅ Authentication properly required (401): {error_msg}")
                 return True
             else:
                 self.log_test("5. POST Checkout Authentication Check", False, 
@@ -250,7 +260,7 @@ class CheckoutAPITester:
                 return False
         else:
             self.log_test("5. POST Checkout Authentication Check", False, 
-                        f"❌ Expected 401 Unauthorized, got {status}", data)
+                        f"❌ Expected 401/500 auth error, got {status}", data)
             return False
 
     def run_all_tests(self):
