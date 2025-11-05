@@ -190,46 +190,34 @@ class CheckoutAPITester:
         
         return all_passed
 
-    def test_4_schema_validation_credit_ledger(self):
-        """Test 4: Schema Validation - Credit Ledger Table Accessible"""
-        print("Testing schema validation by checking if credit ledger operations work...")
+    def test_4_post_checkout_invalid_package(self):
+        """Test 4: POST /api/checkout - Test invalid package names"""
+        print("Testing POST /api/checkout with invalid package names...")
         
-        # This test verifies that the Prisma schema is working by attempting another credit grant
-        payload = {
-            "amount": 1,  # Small amount for validation
-            "key": DEBUG_KEY
-        }
+        invalid_packages = ['invalid', 'test', 'premium', '']
+        all_passed = True
         
-        success, data, status = self.make_request('POST', '/api/debug/grant-credits', payload)
-        
-        if not success:
-            # Check for schema-related errors
-            error_msg = str(data.get('error', ''))
-            if any(keyword in error_msg.lower() for keyword in ['table', 'column', 'schema', 'relation']):
-                self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Schema error detected: {error_msg}", data)
-                return False
-            elif any(code in error_msg for code in ['P1001', 'P1017']):
-                self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Database connection error: {error_msg}", data)
-                return False
+        for package in invalid_packages:
+            print(f"  Testing invalid package: '{package}'")
+            payload = {"package": package}
+            
+            success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=400)
+            
+            # We expect 400 (Bad Request) with Zod validation error
+            if status == 400:
+                error_msg = str(data.get('error', ''))
+                if 'validation' in error_msg.lower() or 'invalid' in error_msg.lower():
+                    self.log_test(f"4.INVALID-{package or 'EMPTY'} POST Checkout Invalid Package", True, 
+                                f"✅ Invalid package '{package}' correctly rejected with validation error")
+                else:
+                    self.log_test(f"4.INVALID-{package or 'EMPTY'} POST Checkout Invalid Package", True, 
+                                f"✅ Invalid package '{package}' rejected: {error_msg}")
             else:
-                self.log_test("4. Schema Validation - Credit Ledger", False, f"HTTP {status} - Unexpected error", data)
-                return False
-            
-        # Verify the response indicates successful database operations
-        if not data.get('ok'):
-            self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Credit ledger operation failed: {data}", data)
-            return False
-            
-        # Check that we have the expected fields from the schema
-        expected_schema_fields = ['ledgerId', 'userId', 'newBalance', 'previousBalance']
-        missing_schema_fields = [field for field in expected_schema_fields if field not in data]
+                self.log_test(f"4.INVALID-{package or 'EMPTY'} POST Checkout Invalid Package", False, 
+                            f"❌ Expected 400 validation error for invalid package '{package}', got {status}", data)
+                all_passed = False
         
-        if missing_schema_fields:
-            self.log_test("4. Schema Validation - Credit Ledger", False, f"❌ Missing schema fields: {missing_schema_fields}", data)
-            return False
-            
-        self.log_test("4. Schema Validation - Credit Ledger", True, f"✅ Credit ledger table accessible - Schema validation passed")
-        return True
+        return all_passed
 
     def test_5_user_table_accessibility(self):
         """Test 5: Schema Validation - User Table Accessible"""
