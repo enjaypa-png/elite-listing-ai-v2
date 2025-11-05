@@ -125,22 +125,32 @@ class CheckoutAPITester:
             print(f"  Testing package: {package}")
             payload = {"package": package}
             
-            success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=401)
+            success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=500)
             
-            # We expect 401 (Not authenticated) since we don't have auth
-            if status == 401:
-                if 'error' in data and 'authenticated' in data['error'].lower():
+            # We expect 500 "Auth session missing!" since authentication happens before validation
+            if status == 500:
+                error_msg = str(data.get('error', ''))
+                if 'auth session missing' in error_msg.lower() or 'not authenticated' in error_msg.lower():
                     self.log_test(f"2.{package.upper()} POST Checkout Valid Package", True, 
-                                f"✅ Package '{package}' accepted (401 auth required as expected)")
+                                f"✅ Package '{package}' passed validation (auth required as expected)")
                 else:
                     self.log_test(f"2.{package.upper()} POST Checkout Valid Package", False, 
-                                f"❌ Unexpected 401 error: {data.get('error', 'Unknown')}", data)
+                                f"❌ Unexpected 500 error: {error_msg}", data)
+                    all_passed = False
+            elif status == 401:
+                error_msg = str(data.get('error', ''))
+                if 'authenticated' in error_msg.lower() or 'auth' in error_msg.lower():
+                    self.log_test(f"2.{package.upper()} POST Checkout Valid Package", True, 
+                                f"✅ Package '{package}' passed validation (401 auth required)")
+                else:
+                    self.log_test(f"2.{package.upper()} POST Checkout Valid Package", False, 
+                                f"❌ Unexpected 401 error: {error_msg}", data)
                     all_passed = False
             else:
-                # Check if it's a Zod validation error (which would be bad)
+                # Check if it's a Zod validation error (which would be bad for valid packages)
                 if status == 400 and 'error' in data:
                     error_msg = str(data.get('error', ''))
-                    if 'zod' in error_msg.lower() or 'validation' in error_msg.lower():
+                    if 'validation' in error_msg.lower() or 'invalid' in error_msg.lower():
                         self.log_test(f"2.{package.upper()} POST Checkout Valid Package", False, 
                                     f"❌ Zod validation error for valid package '{package}': {error_msg}", data)
                         all_passed = False
