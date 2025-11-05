@@ -407,6 +407,8 @@ class CheckoutAPITester:
             self.test_4_post_checkout_invalid_package,
             self.test_5_post_checkout_authentication_check,
             self.test_6_verify_zod_schema_in_code,
+            self.test_7_demo_optimization_endpoint,
+            self.test_8_verify_demo_code_fix,
         ]
         
         passed = 0
