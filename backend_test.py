@@ -219,35 +219,28 @@ class CheckoutAPITester:
         
         return all_passed
 
-    def test_5_user_table_accessibility(self):
-        """Test 5: Schema Validation - User Table Accessible"""
-        print("Testing user table accessibility through debug endpoint...")
+    def test_5_post_checkout_authentication_check(self):
+        """Test 5: POST /api/checkout - Authentication check"""
+        print("Testing POST /api/checkout authentication requirement...")
         
-        # The debug endpoint creates/finds users, so this tests user table access
-        payload = {
-            "amount": 1,
-            "key": DEBUG_KEY
-        }
+        # Test with valid package but no authentication
+        payload = {"package": "launch"}
         
-        success, data, status = self.make_request('POST', '/api/debug/grant-credits', payload)
+        success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=401)
         
-        if not success:
+        if status == 401:
             error_msg = str(data.get('error', ''))
-            if 'user' in error_msg.lower() and ('not found' in error_msg.lower() or 'table' in error_msg.lower()):
-                self.log_test("5. Schema Validation - User Table", False, f"❌ User table access error: {error_msg}", data)
+            if 'authenticated' in error_msg.lower() or 'auth' in error_msg.lower():
+                self.log_test("5. POST Checkout Authentication Check", True, 
+                            f"✅ Authentication properly required: {error_msg}")
+                return True
+            else:
+                self.log_test("5. POST Checkout Authentication Check", False, 
+                            f"❌ 401 returned but unclear error message: {error_msg}", data)
                 return False
-            # Other errors are acceptable for this test
-            
-        # Check if we got user information back
-        if data.get('ok') and 'userEmail' in data:
-            user_email = data.get('userEmail')
-            self.log_test("5. Schema Validation - User Table", True, f"✅ User table accessible - User: {user_email}")
-            return True
-        elif data.get('ok'):
-            self.log_test("5. Schema Validation - User Table", True, f"✅ User table accessible - Operation successful")
-            return True
         else:
-            self.log_test("5. Schema Validation - User Table", False, f"❌ User table access unclear: {data}")
+            self.log_test("5. POST Checkout Authentication Check", False, 
+                        f"❌ Expected 401 Unauthorized, got {status}", data)
             return False
 
     def run_all_tests(self):
