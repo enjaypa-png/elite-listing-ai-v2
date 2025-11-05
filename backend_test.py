@@ -296,6 +296,7 @@ class CheckoutAPITester:
             self.test_3_post_checkout_old_package_names,
             self.test_4_post_checkout_invalid_package,
             self.test_5_post_checkout_authentication_check,
+            self.test_6_verify_zod_schema_in_code,
         ]
         
         passed = 0
