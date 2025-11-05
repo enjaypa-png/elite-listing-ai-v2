@@ -159,6 +159,21 @@ backend:
         agent: "testing"
         comment: "✅ TESTED: Debug endpoint working. Creates test user (test@elitelistingai.com), writes credit ledger entries with type 'bonus'. GET endpoint shows enabled status. ⚠️ Minor: Idempotency uses timestamp-based keys, not true idempotency."
 
+  - task: "Demo Optimization Endpoint"
+    implemented: true
+    working: "NA"
+    file: "app/api/optimize/demo/route.ts"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported Prisma error: Unknown argument 'relatedResourceId' in CreditLedger.create(). Field doesn't exist in schema."
+      - working: "NA"
+        agent: "main"
+        comment: "FIXED: Removed 'relatedResourceId' field from credit ledger creation (line 66). Replaced with proper 'referenceType: optimization' field that exists in schema. CreditLedger schema has: id, userId, amount, balance, type, description, referenceId, referenceType, stripePaymentId, metadata, createdAt. Ready for testing."
+
   - task: "Optimize API v1.0 - Full Integration"
     implemented: true
     working: true
