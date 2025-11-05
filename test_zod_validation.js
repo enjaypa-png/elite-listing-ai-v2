@@ -3,6 +3,8 @@
  * Test Zod validation directly by importing the schema
  */
 
+// Change to the Next.js directory first
+process.chdir('/app/elite-listing-ai-v2');
 const { z } = require('zod');
 
 // Recreate the same Zod schema from the checkout route
