@@ -260,6 +260,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ TESTED: Checkout API with new package names working perfectly. GET /api/checkout returns all three packages (launch, scale, elite-listing) with correct pricing. POST /api/checkout properly validates new package names and rejects old ones through Zod schema. Authentication properly enforced (returns 'Auth session missing!' for unauthenticated requests). Stripe integration ready in mock mode. All 6 test cases passed: package info retrieval, valid package acceptance, old package rejection, invalid package rejection, authentication requirement, and Zod schema verification."
+      - working: true
+        agent: "testing"
+        comment: "✅ RE-TESTED AFTER FIXES: Both reported issues completely resolved. 1) Checkout ZodError fixed - Zod schema now correctly validates 'launch'|'scale'|'elite-listing' and rejects old names 'starter'|'pro'|'business' with proper error messages. Frontend restart resolved build cache issue. 2) Demo optimization Prisma error fixed - 'relatedResourceId' field removed, replaced with correct 'referenceType: optimization'. All 8 comprehensive tests passed including direct Zod validation testing. Both endpoints working correctly with proper authentication and validation."
 
   - task: "Etsy OAuth Integration"
     implemented: true
