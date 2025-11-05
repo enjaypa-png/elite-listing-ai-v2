@@ -154,40 +154,41 @@ class CheckoutAPITester:
         
         return all_passed
 
-    def test_3_database_read_fetch_credits(self):
-        """Test 3: Database Read Test - Fetch Credits"""
-        print("Testing GET /api/user/credits for database read operations...")
-        success, data, status = self.make_request('GET', '/api/user/credits')
+    def test_3_post_checkout_old_package_names(self):
+        """Test 3: POST /api/checkout - Test old package names should fail"""
+        print("Testing POST /api/checkout with old package names (should fail)...")
         
-        # Expected behavior: Should return 401/500 without authentication
-        if status == 401:
-            self.log_test("3. Database Read Test - Fetch Credits", True, "✅ 401 Unauthorized (no session) - Expected behavior, no database connection errors")
-            return True
-        elif status == 500:
-            error_msg = str(data.get('error', ''))
-            # Check if it's an auth error (expected) vs database error (problem)
-            if 'auth' in error_msg.lower() or 'session' in error_msg.lower() or 'not authenticated' in error_msg.lower():
-                self.log_test("3. Database Read Test - Fetch Credits", True, "✅ 500 Auth session missing - Expected behavior, no database connection errors")
-                return True
-            elif any(code in error_msg for code in ['P1001', 'P1017', 'P2002', 'P2025']):
-                self.log_test("3. Database Read Test - Fetch Credits", False, f"❌ Prisma database error: {error_msg}", data)
-                return False
+        old_packages = ['starter', 'pro', 'business']
+        all_passed = True
+        
+        for package in old_packages:
+            print(f"  Testing old package: {package}")
+            payload = {"package": package}
+            
+            success, data, status = self.make_request('POST', '/api/checkout', payload, expected_status=400)
+            
+            # We expect 400 (Bad Request) with Zod validation error
+            if status == 400:
+                error_msg = str(data.get('error', ''))
+                if 'validation' in error_msg.lower() or 'invalid' in error_msg.lower():
+                    # Check if it mentions the expected enum values
+                    details = data.get('details', [])
+                    if details and any('enum' in str(detail).lower() for detail in details):
+                        self.log_test(f"3.{package.upper()} POST Checkout Old Package", True, 
+                                    f"✅ Old package '{package}' correctly rejected with Zod validation error")
+                    else:
+                        self.log_test(f"3.{package.upper()} POST Checkout Old Package", True, 
+                                    f"✅ Old package '{package}' rejected: {error_msg}")
+                else:
+                    self.log_test(f"3.{package.upper()} POST Checkout Old Package", False, 
+                                f"❌ Expected validation error for '{package}', got: {error_msg}", data)
+                    all_passed = False
             else:
-                self.log_test("3. Database Read Test - Fetch Credits", False, f"❌ Unexpected 500 error: {error_msg}", data)
-                return False
-            
-        if not success:
-            self.log_test("3. Database Read Test - Fetch Credits", False, f"HTTP {status} - Expected 401 or 500 with auth error", data)
-            return False
-            
-        # If 200, check structure (shouldn't happen without auth, but validate if it does)
-        if 'balance' in data and 'stats' in data:
-            balance = data.get('balance', 0)
-            self.log_test("3. Database Read Test - Fetch Credits", True, f"✅ Unexpected success (no auth required?): Balance: {balance}")
-            return True
-        else:
-            self.log_test("3. Database Read Test - Fetch Credits", False, f"❌ Invalid response structure", data)
-            return False
+                self.log_test(f"3.{package.upper()} POST Checkout Old Package", False, 
+                            f"❌ Expected 400 validation error for old package '{package}', got {status}", data)
+                all_passed = False
+        
+        return all_passed
 
     def test_4_schema_validation_credit_ledger(self):
         """Test 4: Schema Validation - Credit Ledger Table Accessible"""
