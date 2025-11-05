@@ -291,15 +291,20 @@ class CheckoutAPITester:
                 self.log_test("6. Verify Zod Schema", True, 
                             "✅ Zod schema correctly defines new package names: launch, scale, elite-listing")
                 
-                # Also check that old names are not present
-                old_names_present = any(name in content for name in ['starter', 'pro', 'business'])
-                if old_names_present:
+                # Check that old names are not in the CREDIT_PACKAGES or Zod enum
+                credit_packages_section = content[content.find('const CREDIT_PACKAGES'):content.find('const CheckoutRequestSchema')]
+                zod_schema_section = content[content.find('z.enum'):content.find('}', content.find('z.enum'))]
+                
+                old_names_in_packages = any(f"'{name}'" in credit_packages_section for name in ['starter', 'pro', 'business'])
+                old_names_in_schema = any(f"'{name}'" in zod_schema_section for name in ['starter', 'pro', 'business'])
+                
+                if old_names_in_packages or old_names_in_schema:
                     self.log_test("6. Verify Zod Schema - Old Names Check", False, 
-                                "❌ Old package names still present in code")
+                                "❌ Old package names still present in CREDIT_PACKAGES or Zod schema")
                     return False
                 else:
                     self.log_test("6. Verify Zod Schema - Old Names Check", True, 
-                                "✅ Old package names removed from code")
+                                "✅ Old package names removed from CREDIT_PACKAGES and Zod schema")
                     return True
             else:
                 self.log_test("6. Verify Zod Schema", False, 
