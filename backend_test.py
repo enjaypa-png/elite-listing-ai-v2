@@ -303,18 +303,20 @@ class CheckoutAPITester:
 
 def main():
     """Main test runner"""
-    tester = SupabaseConnectionTester(BASE_URL)
+    tester = CheckoutAPITester(BASE_URL)
     success = tester.run_all_tests()
     
     if success:
-        print("\n🎉 All Supabase PostgreSQL connection tests passed!")
-        print("✅ Database connectivity confirmed")
-        print("✅ URL encoding preserved")
-        print("✅ Prisma schema accessible")
+        print("\n🎉 All Checkout API tests passed!")
+        print("✅ New package names working correctly")
+        print("✅ Old package names properly rejected")
+        print("✅ Zod validation working as expected")
+        print("✅ Authentication properly enforced")
+        print("✅ Stripe integration ready (mock mode)")
         sys.exit(0)
     else:
         print("\n⚠️  Some tests failed. Check the details above.")
-        print("❌ Database connection issues detected")
+        print("❌ Checkout API issues detected")
         sys.exit(1)
 
 if __name__ == "__main__":
