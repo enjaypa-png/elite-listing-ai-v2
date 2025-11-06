@@ -240,7 +240,7 @@ function DashboardContent() {
             </Alert>
           )}
 
-          {/* Quick Actions - Moved to Top */}
+          {/* Your AI Tools - Moved to Top */}
           <Card padding="8" style={{ marginBottom: tokens.spacing[8] }}>
             <h3 style={{
               fontSize: tokens.typography.fontSize['2xl'],
@@ -248,7 +248,7 @@ function DashboardContent() {
               color: tokens.colors.text,
               marginBottom: tokens.spacing[6]
             }}>
-              Quick Actions
+              Your AI Tools
             </h3>
             <div style={{
               display: 'grid',
