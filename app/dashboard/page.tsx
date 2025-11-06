@@ -258,7 +258,7 @@ function DashboardContent() {
               <Button 
                 variant="primary" 
                 size="lg" 
-                href="/analyze"
+                href="/optimize?tool=listing"
                 disabled={hasNoCredits}
               >
                 Optimize Listing
@@ -266,7 +266,7 @@ function DashboardContent() {
               <Button 
                 variant="secondary" 
                 size="lg"
-                href="/analyze"
+                href="/optimize?tool=images"
                 disabled={hasNoCredits}
               >
                 Analyze Images
@@ -274,7 +274,7 @@ function DashboardContent() {
               <Button 
                 variant="secondary" 
                 size="lg"
-                href="/analyze"
+                href="/optimize?tool=keywords"
                 disabled={hasNoCredits}
               >
                 Generate Keywords
@@ -282,7 +282,7 @@ function DashboardContent() {
               <Button 
                 variant="secondary" 
                 size="lg"
-                href="/analyze"
+                href="/optimize?tool=seo"
                 disabled={hasNoCredits}
               >
                 SEO Audit
