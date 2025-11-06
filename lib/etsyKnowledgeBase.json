@@ -1,0 +1,262 @@
+{
+  "EtsyAlgorithmKnowledgeBase_2025": {
+    "version": "2.0",
+    "last_updated": "2025-11-05",
+    "data_sources": "Etsy official documentation, eRank, Marmalead, industry analysis 2024-2025",
+    "categories": [
+      {
+        "category": "Search Ranking Core Factors",
+        "impact": "Critical - Primary algorithm inputs",
+        "insights": [
+          "Query matching: Exact keyword matches in titles, tags, attributes, and descriptions rank higher than partial matches",
+          "Listing Quality Score combines CTR, conversion rate, favorites, and sales velocity as primary ranking signal",
+          "Customer & Marketplace Experience Score includes review ratings, message response rate (<24hrs critical), on-time shipping, and case/defect rates from past 3 months",
+          "Shipping price now ranking factor: US domestic listings under $6 receive visibility boost (October 2024 update)",
+          "Star Seller metrics (on-time shipping, message response, order completion) influence ranking indirectly through quality signals"
+        ]
+      },
+      {
+        "category": "AI Personalization & Behavioral Signals (2025)",
+        "impact": "Critical - 44.5% of sales via app, algorithm is behavior-driven",
+        "insights": [
+          "Etsy app accounts for 44%+ of GMS; mobile-first, feed-style discovery now primary shopping method",
+          "AI analyzes clicks, favorites, add-to-cart actions, dwell time, and hover behavior to personalize search results per user",
+          "Machine learning ranks listings based on individual buyer's past browsing history, purchases, and real-time session behavior",
+          "Algorithm uses computer vision and NLP to classify products by style/aesthetic even without explicit description terms",
+          "Personalized feeds prioritize listings with high engagement from similar buyer profiles",
+          "Curated collections powered by ML expand visibility beyond traditional keyword search"
+        ]
+      },
+      {
+        "category": "Image Quality & Visual Requirements",
+        "impact": "Critical - First ranking factor in mobile/app experience",
+        "insights": [
+          "Minimum 2000 pixels width required; listings under this flagged and deprioritized",
+          "5+ high-quality photos strongly recommended; CEO suggested fewer images may be deprioritized",
+          "First thumbnail image is critical for CTR; must stand out in feed and communicate product instantly",
+          "NO collages or text overlays in images - actively discouraged, algorithm deprioritizes these",
+          "Lifestyle context photos increase buyer confidence and dwell time more than plain white backgrounds",
+          "Multiple angles and detail close-ups improve engagement and conversion rates",
+          "Use 4:3 aspect ratio, 72 PPI resolution, clean backgrounds with good lighting",
+          "Videos showing movement or texture lift CTR and conversions"
+        ]
+      },
+      {
+        "category": "Keyword Strategy & Title Optimization",
+        "impact": "High - Affects query matching and relevance score",
+        "insights": [
+          "Front-load titles with primary keyword while maintaining readability - first words have most weight",
+          "Use buyer intent phrases (e.g., 'gift for mom', 'personalized wedding') not just product descriptors",
+          "Tags should reinforce title keywords and include long-tail variations",
+          "Complete ALL attribute fields (material, size, color, occasion, style) - unlocks filter-based discovery",
+          "Categories and attributes auto-populate as tags - don't waste tag slots repeating these",
+          "Vary keyword usage across listings; identical terms across all listings dilutes effectiveness",
+          "Multi-word keyword phrases perform better than single words ('modern nursery print' vs 'print')",
+          "First 160 characters of description appear in search snippets - optimize for relevance"
+        ]
+      },
+      {
+        "category": "Conversion Rate Optimization",
+        "impact": "Critical - Directly affects ranking and visibility",
+        "insights": [
+          "Good conversion rate: 1-5% (Etsy benchmark); above 3% is competitive, 4%+ is excellent",
+          "Higher conversion signals listing quality to algorithm, improving search placement over time",
+          "Each sale from a search term signals relevance, boosting future rankings for that keyword",
+          "Conversion Rate = (Orders ÷ Visits) × 100 - track per listing, not just shop-wide",
+          "Competitive/rounded pricing increases CTR; value-to-price ratio must be clear",
+          "Free shipping or clear low shipping costs improve both ranking and conversion",
+          "Complete product descriptions that answer buyer questions reduce abandonment",
+          "Clear return policy required for ALL listings (even if no returns accepted) - improves trust and ranking"
+        ]
+      },
+      {
+        "category": "Click-Through Rate (CTR)",
+        "impact": "High - Primary engagement metric for algorithm",
+        "insights": [
+          "Good CTR on Etsy: ~2% (2 clicks per 100 impressions)",
+          "High CTR signals listing relevance and visual appeal to algorithm",
+          "Primary thumbnail must differentiate from competitors in crowded search results",
+          "Professional photos with clear product focus outperform busy/dark images",
+          "Lifestyle imagery showing product in use increases CTR over product-only shots",
+          "Competitive pricing visible in thumbnail affects click decisions",
+          "High CTR alone doesn't guarantee sales - must also optimize for conversion"
+        ]
+      },
+      {
+        "category": "Customer Service & Shop Health",
+        "impact": "Critical - Shop-level ranking factor (2024-2025 update)",
+        "insights": [
+          "Message response time: <24 hours critical for ranking; measured over past 3 months",
+          "Average review rating directly affects shop credibility and listing visibility",
+          "On-time shipping performance tracked; late shipments harm rankings significantly",
+          "Order defect rate and case history monitored; high rates trigger ranking penalties",
+          "Processing time accuracy matters - set realistic timelines and meet them consistently",
+          "Shop age and sales history contribute to authority signals",
+          "Consistent shop activity (regular new listings, engagement) signals active seller",
+          "Algorithm now evaluates overall shop health, not just individual listing quality"
+        ]
+      },
+      {
+        "category": "Reviews & Social Proof",
+        "impact": "High - Affects both conversion and ranking",
+        "insights": [
+          "Reviews are powerful ranking and conversion signal - Etsy prioritizes shops with strong review history",
+          "Positive review ratings increase visibility across all shop listings",
+          "Photo reviews improve CTR on repeat impressions more than text-only reviews",
+          "Recent reviews matter more than older ones for algorithm evaluation",
+          "Reviews influence buyer trust metrics which feed into Listing Quality Score",
+          "New listings benefit from overall shop review credibility even without own reviews"
+        ]
+      },
+      {
+        "category": "Listing Recency & Refresh Strategy",
+        "impact": "Medium - Temporary boost, not sustainable strategy",
+        "insights": [
+          "New listings get small temporary boost (few hours to few days) for algorithm to learn engagement patterns",
+          "Renewed listings get smaller boost than new listings",
+          "Boost duration depends on search volume for item category",
+          "Frequent renewal/editing NOT effective strategy - focus on quality and conversion instead",
+          "Publishing new related listings creates cross-listing engagement signals",
+          "Algorithm reset can hurt if previous data was positive - only renew when performance drops"
+        ]
+      },
+      {
+        "category": "Pricing & Shipping Strategy",
+        "impact": "Critical - Affects ranking, CTR, and conversion",
+        "insights": [
+          "US domestic shipping under $6 receives ranking boost (October 2024 update)",
+          "Free shipping preferred over low-cost shipping by algorithm",
+          "High shipping costs (>$6) actively harm search rankings and buyer conversion",
+          "Use bulk pricing tool to shift shipping costs into item price if needed",
+          "Rounded/competitive pricing improves CTR vs odd pricing",
+          "Price must signal value - too low suggests poor quality, too high reduces conversions",
+          "Clearly displayed shipping cost prevents cart abandonment"
+        ]
+      },
+      {
+        "category": "Seasonal & Event Optimization",
+        "impact": "Medium-High - Time-sensitive visibility boost",
+        "insights": [
+          "Update tags for holidays and seasonal moments 2-4 weeks early for early shopper exposure",
+          "Event-relevant listings prioritized in algorithm during seasonal peaks",
+          "Use occasion-specific keywords ('Halloween decor', 'Mother's Day gift') in tags and attributes",
+          "Algorithm recognizes seasonal patterns and boosts relevant listings proactively",
+          "Trending landing page keywords from Etsy homepage drive temporary high-value traffic"
+        ]
+      },
+      {
+        "category": "Engagement & Session Metrics",
+        "impact": "High - Real-time algorithm learning signals",
+        "insights": [
+          "Favorites signal interest even without purchase - positive algorithm indicator for future recommendations",
+          "Time on listing (dwell time) indicates relevance; longer time signals quality content",
+          "Add-to-cart actions strong conversion predictor; algorithm tracks these separately from purchases",
+          "Session depth (pages visited, items clicked) affects shop-level quality score",
+          "Bounce rate (quick exits) signals poor listing quality or mismatched expectations",
+          "Returning customers and repeat shop visits signal strong shop quality to algorithm"
+        ]
+      },
+      {
+        "category": "Description & Content Quality",
+        "impact": "Medium-High - Affects conversion and trust",
+        "insights": [
+          "First 160 characters appear in search snippets - must be compelling and keyword-rich",
+          "Answer buyer questions preemptively to reduce message volume and increase conversion",
+          "Highlight benefits and use cases, not just features or materials",
+          "Natural keyword integration in descriptions improves query matching without stuffing",
+          "Clear size/dimension information reduces returns and negative reviews",
+          "Avoid keyword stuffing - algorithm actively deprioritizes repetitive/unnatural phrases (2025 update)",
+          "AI-generated descriptions flagged if generic/low-effort - must add originality and clarity"
+        ]
+      },
+      {
+        "category": "External Traffic & Marketing",
+        "impact": "Medium - Indirect ranking boost through engagement",
+        "insights": [
+          "External traffic from social media, blogs, Pinterest signals quality and drives engagement metrics",
+          "Off-site ads participation (if opted in) can increase visibility through Etsy's paid placement",
+          "External backlinks to shop/listings contribute to authority signals",
+          "Social proof from external platforms (Instagram following, Pinterest saves) correlates with conversion",
+          "Direct traffic from email lists/repeat customers improves overall shop health metrics"
+        ]
+      },
+      {
+        "category": "Inventory & Variation Management",
+        "impact": "Medium - Affects conversion and bounce rate",
+        "insights": [
+          "Out-of-stock variations harm conversion and increase bounce rate - hide unavailable options",
+          "Multiple in-stock variations signal robust inventory and increase conversion opportunities",
+          "Variation listings can rank for multiple attribute combinations (color, size) from single listing",
+          "Keep popular variations stocked - algorithm learns which sell best and prioritizes in-stock items",
+          "Clear variation presentation (photos per variant) reduces confusion and cart abandonment"
+        ]
+      },
+      {
+        "category": "Promotional Tools & Etsy Features",
+        "impact": "Medium - Etsy rewards tool usage with better metrics",
+        "insights": [
+          "Sales & Targeted Offers tool triggers buyer engagement via notifications and emails",
+          "Using Etsy's promotional tools signals active seller, improving algorithm perception",
+          "Etsy Ads (if profitable) generate engagement data that improves organic ranking indirectly",
+          "Consistent use of platform features correlates with better overall shop performance",
+          "Algorithm favors shops using Etsy-provided tools (shipping labels, messaging system, etc.)"
+        ]
+      },
+      {
+        "category": "Mobile & App Optimization",
+        "impact": "Critical - Primary shopping experience in 2025",
+        "insights": [
+          "44%+ of Etsy GMS comes from mobile app - optimize for mobile-first experience",
+          "Thumbnails must work at small sizes; complex images fail to convert on mobile",
+          "Feed-style browsing means first image is often only chance to capture attention",
+          "Mobile shoppers scroll fast - visual impact more important than desktop considerations",
+          "App users see personalized feeds more than search results - engagement metrics critical"
+        ]
+      },
+      {
+        "category": "Algorithm Ranking Summary",
+        "impact": "Critical - Core understanding for optimization",
+        "insights": [
+          "Two-phase system: Query Matching (keywords, tags, attributes) then Ranking (quality, engagement, service)",
+          "Relevancy score based on exact keyword matches in title, tags, description, attributes, categories",
+          "Listing engagement (CTR, favorites, purchases) tracked in real-time to adjust rankings",
+          "Shop-level metrics now weighted more heavily - can't optimize listings in isolation",
+          "Algorithm continuously learns from buyer behavior - rankings adjust within hours to days",
+          "Personalization means same search query shows different results to different buyers",
+          "Quality over volume - one high-converting listing outperforms ten mediocre ones"
+        ]
+      }
+    ],
+    "critical_dos": [
+      "Maintain shipping costs under $6 for US domestic orders",
+      "Upload 5+ professional photos, minimum 2000px width, no text/collages",
+      "Respond to messages within 24 hours consistently",
+      "Front-load titles with primary keywords while keeping readable",
+      "Complete ALL attribute fields for every listing",
+      "Add clear return policy to every listing",
+      "Optimize first thumbnail for mobile feed display",
+      "Track and improve conversion rate to 3%+ minimum",
+      "Build consistent positive reviews through excellent service",
+      "Use lifestyle photos showing product in context"
+    ],
+    "critical_donts": [
+      "Don't use text overlays or collages in listing images",
+      "Don't keyword stuff titles/descriptions - algorithm penalizes this",
+      "Don't ignore message response time - under 24hrs is critical",
+      "Don't renew listings frequently just for boost - hurts more than helps",
+      "Don't use identical keywords across all listings",
+      "Don't charge over $6 shipping for US domestic (if US seller)",
+      "Don't leave attribute fields incomplete",
+      "Don't upload images under 2000px width",
+      "Don't ship late or miss processing time estimates",
+      "Don't rely on old SEO tactics - 2025 is behavior-driven"
+    ],
+    "2025_priority_focus": [
+      "Mobile-first visual optimization - thumbnails must work at small sizes",
+      "Behavioral engagement - CTR and dwell time more important than keyword density",
+      "AI personalization - individual buyer history determines visibility",
+      "Shop health metrics - overall performance affects all listings",
+      "Customer service excellence - response time and reviews weighted heavily"
+    ]
+  }
+}
