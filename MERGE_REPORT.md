@@ -9,15 +9,37 @@
 
 ## Executive Summary
 
-Successfully created `unified-mvp` branch by merging three divergent branches while preserving all code. The merge introduces a **dual-architecture codebase** that requires strategic decision-making.
+Successfully created `unified-mvp` branch by merging three divergent branches while preserving all code. After team review, **standardized on Next.js architecture** by removing experimental FastAPI/React implementation.
 
 ### Key Statistics
 - **Total branches merged**: 3 (main, dashboard-fix-nov3, knowledge-base-update)
-- **Files added**: 72 new files
-- **Files modified**: 2 (`.gitignore`, `README.md`)
-- **Files deleted**: 0 (all deletions from dashboard-fix-nov3 were negated by keeping original files)
-- **Conflicts resolved**: 2 manual resolutions
-- **Build status**: Requires environment variables (expected for Next.js app)
+- **Files added**: 72 new files (during merge)
+- **Files removed**: 64 experimental files (cleanup phase)
+- **Final architecture**: Next.js 15 + TypeScript + Prisma + Supabase
+- **Net result**: 8 new files (Knowledge Base feature)
+- **Files modified**: 3 (`.gitignore`, `README.md`, `MERGE_REPORT.md`)
+- **Build status**: ✅ Validated with npm build
+
+---
+
+## Architecture Decision (2025-11-06)
+
+**Decision**: Keep Next.js architecture, remove FastAPI/React experimental implementation
+
+**Rationale**:
+- ✅ Next.js already in production (https://elite-listing-ai-v2.vercel.app)
+- ✅ Feature-complete (~40% MVP with auth, payments, Etsy integration, knowledge base)
+- ✅ Optimized for Vercel deployment
+- ✅ Lower risk, faster time-to-market
+- ✅ No need to rebuild existing features
+
+**Implementation**:
+```bash
+git rm -r backend frontend tests/ backend_test.py elite-listing-ai-v2 test_result.md
+git commit -m "chore: remove FastAPI/React experimental architecture; standardize on Next.js"
+```
+
+**Result**: Clean, production-ready codebase with single architecture
 
 ---
 

@@ -4,33 +4,41 @@
 
 Elite Listing AI is an AI-powered Etsy listing optimization platform that helps sellers improve their product listings using GPT-4 for text generation and OpenAI Vision for image analysis.
 
-## Architecture Notes
+**Production URL**: https://elite-listing-ai-v2.vercel.app
 
-**⚠️ IMPORTANT: Dual Architecture in Unified Branch**
+## Architecture
 
-This unified-mvp branch contains TWO architectures for evaluation:
+This project uses a modern Next.js architecture with the following stack:
 
-### 1. Next.js Architecture (v1.0-stable + main)
-- **Location**: Root directory with `app/`, `components/`, `lib/`, `prisma/`
-- **Tech Stack**: Next.js 15, TypeScript, Prisma, Supabase, Stripe
-- **Features**: Full production app with authentication, payments, Etsy integration
-- **Status**: Production-ready at https://elite-listing-ai-v2.vercel.app
+- **Frontend Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL (Supabase) with Prisma ORM
+- **Authentication**: Supabase Auth with NextAuth v5
+- **Payments**: Stripe with credit ledger system
+- **AI Services**: OpenAI GPT-4 & Vision API
+- **Styling**: Custom design tokens (no Tailwind utility classes)
+- **Deployment**: Vercel
 
-### 2. FastAPI + React Architecture (dashboard-fix-nov3)
-- **Location**: `backend/` and `frontend/` directories  
-- **Tech Stack**: FastAPI (Python), React, shadcn/ui
-- **Features**: Alternative implementation exploring different stack
-- **Status**: Development/experimental
+### Recent Updates (v1.1.0)
 
-**TODO**: Team decision needed on which architecture to use going forward or how to integrate features from both.
+✨ **New Features**:
+- **Etsy Algorithm Knowledge Base**: 18 categories, 114 algorithm insights (2024-2025 data)
+- **Knowledge Base API**: `/api/knowledge-base` with search, filtering, validation
+
+📦 **Branch Consolidation**:
+- Unified codebase from multiple branches (main, knowledge-base-update)
+- Removed experimental architectures, standardized on production Next.js
+- Zero data loss during consolidation
 
 ---
 
-## Next.js Setup (Original Architecture)
+## Getting Started
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-### Getting Started
+### Development
+
+First, run the development server:
 
 ```bash
 npm run dev
@@ -63,43 +71,101 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ---
 
-## FastAPI + React Setup (Alternative Architecture)
+## Core Features
 
-See `backend/` and `frontend/` directories for the alternative implementation.
+### ✅ Completed
+- **Listing Text Optimizer**: Generates 3 AI-powered title/description variants
+- **Image Analysis**: 10+ quality metrics with optimization recommendations
+- **Keyword Generation**: Automated SEO keyword discovery
+- **SEO Audit**: Comprehensive listing optimization scoring
+- **Knowledge Base**: Etsy algorithm insights (18 categories, 114 insights)
+- **Etsy Integration**: OAuth 2.0 + PKCE for shop connection
+- **Stripe Payments**: Credit system with double-entry ledger
+- **Authentication**: Secure user accounts with Supabase Auth
 
-### Backend Setup
-```bash
-cd backend
-pip install -r requirements.txt
-python server.py
-```
-
-### Frontend Setup
-```bash
-cd frontend
-npm install
-npm start
-```
+### 🚧 In Progress
+- Competitor Gap Analysis
+- Keyword Volume Tracking
+- Smart Recommendations Engine
+- Bulk Listing Optimizer
 
 ---
 
 ## Documentation
 
-For comprehensive project documentation, see:
+Comprehensive project documentation:
 - `PROJECT_ARCHITECTURE.md` - Technical architecture details
 - `PROJECT_STATUS.md` - Current development status
 - `MASTER_SPECIFICATION.md` - Feature specifications
-- `KNOWLEDGE_BASE_ANALYSIS.md` - Knowledge base integration details
+- `KNOWLEDGE_BASE_ANALYSIS.md` - Knowledge base integration
 - `ROADMAP.md` - Development roadmap
+- `MERGE_REPORT.md` - Branch consolidation details
+
+---
+
+## Environment Variables
+
+Required environment variables (create `.env` file):
+
+```bash
+# Database (Supabase)
+DATABASE_URL=
+DIRECT_URL=
+
+# AI Services
+OPENAI_API_KEY=
+
+# Payments (Stripe)
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+
+# Authentication (Supabase)
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+
+# Etsy Integration
+ETSY_CLIENT_ID=
+ETSY_CLIENT_SECRET=
+
+# NextAuth
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+```
+
+---
+
+## API Endpoints
+
+### Core Features
+- `POST /api/optimize` - Text optimization (GPT-4)
+- `POST /api/optimize/image/analyze` - Image analysis (Vision API)
+- `POST /api/keywords/generate` - Keyword generation
+- `POST /api/seo/audit` - SEO audit
+
+### Knowledge Base (✨ NEW)
+- `GET /api/knowledge-base` - Access Etsy algorithm insights
+- Query params: `action` (metadata, categories, search, etc.), `q` (search term), `name` (category)
+
+### Etsy Integration
+- `GET /api/etsy/connect` - Initiate OAuth
+- `POST /api/etsy/import` - Import listings
+- `POST /api/etsy/sync` - Sync listings
+
+### Payments & Auth
+- `POST /api/checkout` - Stripe checkout
+- `POST /api/auth/signup` - Create account
+- `POST /api/auth/signin` - Sign in
 
 ---
 
 ## Branch Consolidation Notes
 
-This `unified-mvp` branch was created by merging:
-- `v1.0-stable` (base)
-- `main` (knowledge base features)
-- `dashboard-fix-nov3` (alternative architecture)
-- `knowledge-base-update` (additional knowledge base updates)
+This `unified-mvp` branch represents the consolidation of multiple development branches:
+- **Base**: `v1.0-stable` tag
+- **Merged**: `main` (knowledge base), `knowledge-base-update`
+- **Removed**: Experimental FastAPI/React architecture (standardized on Next.js)
 
-See `MERGE_REPORT.md` for detailed merge analysis and conflict resolutions.
+See `MERGE_REPORT.md` for complete consolidation details.
+
+---
