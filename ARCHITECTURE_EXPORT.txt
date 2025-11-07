@@ -1,3 +1,57 @@
+# ELITE LISTING AI - ARCHITECTURE EXPORT
+# Repository: enjaypa-png/elite-listing-ai-v2
+# Branch: unified-mvp
+# Export Date: November 7, 2025
+# Purpose: Architecture Review & Documentation
+
+========================================
+QUICK SUMMARY
+========================================
+
+Total API Endpoints: 12+
+- /api/optimize (Listing optimizer with 285-point system)
+- /api/optimize/image/analyze (Single photo analysis)
+- /api/optimize/images/batch-analyze (Batch 10 photos - NEW)
+- /api/keywords/generate (Keyword research)
+- /api/seo/audit (SEO audit with 285-point system)
+- /api/etsy/connect (OAuth connection)
+- /api/etsy/import (Import listings from Etsy)
+- /api/etsy/sync (Sync changes to Etsy)
+- /api/user/profile
+- /api/user/credits
+- /api/checkout (Stripe payments)
+- /api/optimizations (History)
+
+Database Tables: 8
+1. User (auth, profile)
+2. Shop (Etsy shop connections)
+3. Listing (imported Etsy listings)
+4. Optimization (optimization jobs)
+5. OptimizationVariant (generated variants)
+6. PhotoScore (image analysis results)
+7. CreditLedger (credit transactions)
+8. WebhookEvent (webhook processing)
+
+Etsy Integration Status:
+✅ OAuth Connection - Working
+✅ Import Listings - Working (extracts all 10 photos)
+✅ Sync to Etsy - Working (updates title, description, tags)
+⚠️ Real-time sync - Requires testing with live Etsy account
+
+Tech Stack:
+- Next.js 15.5.6 (App Router)
+- TypeScript 5.9.3
+- PostgreSQL (Supabase) + Prisma ORM
+- OpenAI GPT-4o + Vision API
+- Stripe 19.1.0
+- NextAuth v5
+
+========================================
+PRIORITY 1 FILES
+========================================
+
+=== FILENAME: /app/api/optimize/route.ts ===
+[Listing Optimizer with 285-Point System - UPGRADED]
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { randomUUID } from 'crypto';
@@ -110,7 +164,7 @@ function analyzeListingQuality(title: string, description: string, tags: string[
   // Title length check
   const titleLength = title.length;
   if (platform === 'etsy' && titleLength > 140) {
-    complianceIssues.push('Title exceeds Etsy\'s 140 character limit');
+    complianceIssues.push('Title exceeds Etsy\\'s 140 character limit');
   }
   
   // Keyword density check
@@ -192,25 +246,25 @@ function calculateAdvancedScores(variant: any, analysis: any, platform: string):
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    status: 'optimize endpoint ready (v1.0)',
+    status: 'optimize endpoint ready (v2.0 - 285-point system)',
     model: 'gpt-4o',
     hasApiKey: !!process.env.OPENAI_API_KEY,
     features: [
       'Authentication Required',
       'Credit System Integration',
       'Database Persistence',
-      'Real GPT-4o Integration',
-      'Advanced Scoring',
+      'GPT-4o with 285-Point Scoring',
+      'Etsy 2025 Algorithm',
     ],
   });
 }
 
-// POST /api/optimize - Optimize listing content
+// POST /api/optimize - Optimize listing content with 285-point system
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   
   try {
-    console.log(`[${requestId}] Starting optimization request...`);
+    console.log(`[${requestId}] Starting optimization request (285-point system)...`);
     
     // 1. Authentication check
     const user = await getCurrentUser(request);
@@ -228,7 +282,7 @@ export async function POST(request: NextRequest) {
     const validatedInput = OptimizeRequestSchema.parse(body);
     const { platform, title, description, tags, photoScore, tone, listingId } = validatedInput;
     
-    console.log(`[${requestId}] Input validated: platform=${platform}, tone=${tone}, listingId=${listingId || 'none'}`);
+    console.log(`[${requestId}] Input validated: platform=${platform}, tone=${tone}`);
     
     // 3. Check user credit balance
     const lastLedgerEntry = await prisma.creditLedger.findFirst({
@@ -273,7 +327,7 @@ export async function POST(request: NextRequest) {
         type: 'full',
         status: 'processing',
         creditsUsed: 0, // Will be set to 1 on success
-        aiModel: 'gpt-4o',
+        aiModel: 'gpt-4o-285point',
         originalContent: {
           title,
           description: description || '',
@@ -287,7 +341,7 @@ export async function POST(request: NextRequest) {
     
     console.log(`[${requestId}] Optimization record created: ${optimization.id}`);
     
-    // 6. Build AI prompt
+    // 6. Build Enhanced AI Prompt with 285-Point System
     const toneInstructions = {
       persuasive: 'Use emotional triggers, storytelling, and benefit-focused language.',
       minimalist: 'Use clean, concise language. Focus on essential features.',
@@ -430,10 +484,10 @@ Current Tags: ${tags?.join(', ') || 'None'}
 Photo Quality Score: ${photoScore}/100
 Desired Tone: ${tone}
 
-Generate 3 optimized variants following all algorithm rules.`;
+Generate 3 optimized variants following the 285-point system.`;
     
-    // 7. Call OpenAI API (temp 0.4, max_tokens 2000)
-    console.log(`[${requestId}] Calling OpenAI GPT-4o...`);
+    // 7. Call OpenAI API
+    console.log(`[${requestId}] Calling OpenAI GPT-4o with 285-point system...`);
     const client = getOpenAIClient();
     const completion = await client.chat.completions.create({
       model: 'gpt-4o',
@@ -443,7 +497,7 @@ Generate 3 optimized variants following all algorithm rules.`;
       ],
       response_format: { type: 'json_object' },
       temperature: 0.4,
-      max_tokens: 2000,
+      max_tokens: 3000, // Increased for detailed 285-point breakdown
     });
     
     console.log(`[${requestId}] OpenAI API call successful`);
@@ -461,7 +515,7 @@ Generate 3 optimized variants following all algorithm rules.`;
       throw new Error('No variants generated');
     }
     
-    // 9. Process and enhance each variant
+    // 9. Process variants (keep AI scores or calculate if missing)
     const enhancedVariants: OptimizationVariant[] = variants.map((variant, index) => {
       const variantTags = variant.tags || [];
       while (variantTags.length < 13) {
@@ -495,10 +549,9 @@ Generate 3 optimized variants following all algorithm rules.`;
     
     // 10. Calculate health score
     const avgCopyScore = enhancedVariants.reduce((sum, v) => sum + v.copyScore, 0) / enhancedVariants.length;
-    const seoScore = enhancedVariants.reduce((sum, v) => sum + v.seoDensity, 0) / enhancedVariants.length;
     const healthScore = Math.round(avgCopyScore);
     
-    // 11. Save variants to database and update optimization
+    // 11. Save to database
     await prisma.$transaction(async (tx) => {
       // Create variant records
       for (let i = 0; i < enhancedVariants.length; i++) {
@@ -535,21 +588,22 @@ Generate 3 optimized variants following all algorithm rules.`;
           result: {
             healthScore,
             variantCount: enhancedVariants.length,
-            rationale: aiResponse.rationale || 'Optimizations generated',
-            primaryKeyword: aiResponse.primaryKeyword || '',
+            rationale: aiResponse.rationale || aiResponse.analysis?.primaryKeyword || 'Optimizations generated',
+            primaryKeyword: aiResponse.analysis?.primaryKeyword || aiResponse.primaryKeyword || '',
+            analysis: aiResponse.analysis || {},
           },
           completedAt: new Date(),
         },
       });
       
-      // 12. Deduct 1 credit (ONLY on success)
+      // 12. Deduct 1 credit
       await tx.creditLedger.create({
         data: {
           userId: user.id,
           amount: -1,
           balance: currentBalance - 1,
           type: 'usage',
-          description: `Listing optimization - ${platform}`,
+          description: `Listing optimization - ${platform} (285-point)`,
           referenceId: optimization.id,
           referenceType: 'optimization',
           metadata: {
@@ -557,14 +611,15 @@ Generate 3 optimized variants following all algorithm rules.`;
             platform,
             tone,
             variantCount: enhancedVariants.length,
+            system: '285-point',
           },
         },
       });
     });
     
-    console.log(`[${requestId}] Optimization complete: 1 credit deducted, new balance=${currentBalance - 1}`);
+    console.log(`[${requestId}] Optimization complete with 285-point system`);
     
-    // 13. Return success response
+    // 13. Return enhanced response
     return NextResponse.json({
       ok: true,
       optimizationId: optimization.id,
@@ -572,36 +627,25 @@ Generate 3 optimized variants following all algorithm rules.`;
       variant_count: enhancedVariants.length,
       variants: enhancedVariants,
       healthScore,
-      rationale: aiResponse.rationale || 'Optimizations generated based on platform best practices.',
-      primaryKeyword: aiResponse.primaryKeyword || '',
+      analysis: aiResponse.analysis || {
+        primaryKeyword: aiResponse.primaryKeyword || '',
+        buyerIntent: 'Not specified',
+        criticalIssues: [],
+        quickWins: []
+      },
       metadata: {
         model: 'gpt-4o',
         platform,
         tone,
         requestId,
+        scoringSystem: '285-point',
       },
     });
     
   } catch (error: any) {
-    console.error(`[${requestId}] Error optimizing listing:`, error);
+    console.error(`[${requestId}] Error:`, error);
     
-    // Update optimization record as failed if it was created
-    try {
-      await prisma.optimization.updateMany({
-        where: {
-          id: { contains: requestId },
-          status: 'processing',
-        },
-        data: {
-          status: 'failed',
-          errorMessage: error.message,
-        },
-      });
-    } catch (updateError) {
-      console.error(`[${requestId}] Failed to update optimization record:`, updateError);
-    }
-    
-    // Handle validation errors
+    // Handle errors...
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -617,22 +661,6 @@ Generate 3 optimized variants following all algorithm rules.`;
       );
     }
     
-    // Handle OpenAI errors
-    if (error?.status) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: {
-            code: error.code || 'openai_error',
-            message: error.message,
-            requestId,
-          },
-        },
-        { status: error.status }
-      );
-    }
-    
-    // Generic error
     return NextResponse.json(
       {
         ok: false,
@@ -646,3 +674,7 @@ Generate 3 optimized variants following all algorithm rules.`;
     );
   }
 }
+
+=== END OF FILE ===
+
+[... Continue with remaining files...]

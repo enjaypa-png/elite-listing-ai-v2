@@ -52,27 +52,49 @@ async function analyzeSinglePhoto(
 ): Promise<any> {
   const requirements = PLATFORM_REQUIREMENTS[platform as keyof typeof PLATFORM_REQUIREMENTS] || PLATFORM_REQUIREMENTS.etsy;
 
-  const systemPrompt = `You are an expert e-commerce product photography analyst specializing in ${platform} listings.
-Analyze product images with strict technical compliance and platform optimization rules.
+  const systemPrompt = `You are an expert e-commerce product photography analyst specializing in ${platform} listings, powered by Etsy's 2025 algorithm knowledge.
 
-CRITICAL REQUIREMENTS:
-1. Resolution: Minimum ${requirements.minResolution}px (${platform} standard)
-2. Aspect Ratio: Prefer ${requirements.preferredAspectRatio} (square) for uniform grid
-3. Product Dominance: Product must occupy 60-80% of image area
-4. Background: Clean, neutral, non-cluttered
-5. Lighting: Bright, even, no harsh shadows
-6. Focus: Sharp, high-resolution focus on product
+═══════════════════════════════════════════════════════════════
+CRITICAL CHECKS (NON-NEGOTIABLE):
+═══════════════════════════════════════════════════════════════
+1. Resolution: MUST be 2000px+ width (REQUIRED - instant penalty if under)
+2. Text overlays or collages? (PROHIBITED - instant algorithm penalty)
+3. Mobile thumbnail effectiveness: Would this catch attention at small size in feed?
+4. Lighting and clarity quality (professional standard)
+5. Product focus: 60-80% of frame (product dominance)
+6. Background: Clean, neutral, non-distracting
+7. Lifestyle context vs plain product shot
 
-Provide detailed scores and specific actionable improvements.`;
+ETSY 2025 ALGORITHM PRIORITIES:
+• 44%+ of traffic from mobile app - thumbnails MUST work at small sizes
+• First image is often only chance to capture attention in feed
+• Computer vision classifies products - professional images improve AI classification
+• NO text overlays (harder to read on mobile, actively penalized)
+• 5+ photos strongly recommended by algorithm
 
-  const userPrompt = `Analyze this ${platform} product photo (#${photoNumber}). Rate 0-100 on:
-1. Product dominance (60-80% of frame)
-2. Background quality (clean, not distracting)
-3. Lighting (bright, even, no harsh shadows)
-4. Focus/clarity (sharp, in-focus)
-5. Color accuracy (true-to-life)
-6. Estimated resolution (width x height in pixels)
-7. Aspect ratio (is it square 1:1?)
+SCORING CRITERIA (1-10 scale):
+1. Visual Appeal: Eye-catching in mobile feed
+2. Mobile Optimization: Effective at thumbnail size
+3. Professional Quality: Lighting, clarity, composition
+4. Engagement Potential: Would buyer click and dwell?
+
+Provide detailed, actionable feedback for Etsy sellers to rank higher.`;
+
+  const userPrompt = `Analyze this ${platform} product photo (#${photoNumber}).
+
+CRITICAL CHECKS (Non-Negotiable):
+1. Resolution: Is it 2000px+ width? (REQUIRED)
+2. Text overlays or collages present? (PROHIBITED - instant penalty)
+3. Mobile thumbnail effectiveness: Would this catch attention at small size in feed?
+4. Lighting and clarity quality
+5. Product focus: 60-80% of frame
+6. Lifestyle context vs plain product shot
+
+SCORING (1-10 scale):
+• Visual appeal: Eye-catching in mobile feed
+• Mobile optimization: Effective at thumbnail size
+• Professional quality: Lighting, clarity, composition
+• Engagement potential: Would buyer click?
 
 Provide JSON:
 {
@@ -85,8 +107,12 @@ Provide JSON:
   "estimatedWidth": 2000,
   "estimatedHeight": 2000,
   "isSquare": true,
-  "feedback": "brief assessment",
-  "suggestions": ["specific improvement 1", "specific improvement 2"]
+  "hasTextOverlay": false,
+  "hasCollage": false,
+  "mobileEffectiveness": 0-10,
+  "feedback": "Specific assessment with algorithm reasoning",
+  "suggestions": ["actionable improvement 1", "actionable improvement 2"],
+  "criticalViolations": ["text overlay detected", "resolution under 2000px"]
 }`;
 
   try {
@@ -126,10 +152,14 @@ Provide JSON:
       estimatedWidth: aiResponse.estimatedWidth || 0,
       estimatedHeight: aiResponse.estimatedHeight || 0,
       isSquare: aiResponse.isSquare || false,
+      hasTextOverlay: aiResponse.hasTextOverlay || false,
+      hasCollage: aiResponse.hasCollage || false,
+      mobileEffectiveness: aiResponse.mobileEffectiveness || 0,
       meetsMinimum: (aiResponse.estimatedWidth || 0) >= requirements.minResolution && 
                     (aiResponse.estimatedHeight || 0) >= requirements.minResolution,
       feedback: aiResponse.feedback || '',
       suggestions: Array.isArray(aiResponse.suggestions) ? aiResponse.suggestions : [],
+      criticalViolations: Array.isArray(aiResponse.criticalViolations) ? aiResponse.criticalViolations : [],
     };
   } catch (error: any) {
     console.error(`Failed to analyze photo #${photoNumber}:`, error.message);
@@ -146,9 +176,13 @@ Provide JSON:
       estimatedWidth: 0,
       estimatedHeight: 0,
       isSquare: false,
+      hasTextOverlay: false,
+      hasCollage: false,
+      mobileEffectiveness: 0,
       meetsMinimum: false,
       feedback: `Analysis failed: ${error.message}`,
       suggestions: ['Re-check photo URL and try again'],
+      criticalViolations: [],
     };
   }
 }
