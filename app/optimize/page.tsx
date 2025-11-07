@@ -3,7 +3,19 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Input, Button, Card, Alert, Navbar, Footer } from '@/components/ui'
+import { PhotoAnalysisPanel } from '@/components/optimization/PhotoAnalysisPanel'
+import { ListingImporter } from '@/components/optimization/ListingImporter'
 import tokens from '@/design-system/tokens.json'
+
+interface ImportedListing {
+  id: string
+  title: string
+  description: string
+  imageUrls: string[]
+  tags: string[]
+  price: number
+  currency: string
+}
 
 function OptimizeContent() {
   const router = useRouter()
@@ -16,7 +28,10 @@ function OptimizeContent() {
   const [listingDescription, setListingDescription] = useState('')
   const [isOptimizing, setIsOptimizing] = useState(false)
   
-  // Image Analyzer State
+  // Imported Listing State (for photo analysis)
+  const [importedListing, setImportedListing] = useState<ImportedListing | null>(null)
+  
+  // Image Analyzer State (legacy single image)
   const [imageUrl, setImageUrl] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   
@@ -31,6 +46,13 @@ function OptimizeContent() {
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
 
+  // Handle listing import
+  const handleListingImported = (listing: ImportedListing) => {
+    setImportedListing(listing)
+    setListingTitle(listing.title)
+    setListingDescription(listing.description)
+  }
+
   const tools = {
     listing: {
       title: 'Optimize Listing',
@@ -39,9 +61,9 @@ function OptimizeContent() {
       action: 'Optimize'
     },
     images: {
-      title: 'Analyze Images',
+      title: 'Analyze Photos',
       icon: '📸',
-      description: 'Get detailed image quality analysis with 10+ metrics including lighting, composition, and compliance checks to ensure your photos meet platform standards.',
+      description: 'Import an Etsy listing and analyze all 10 photos at once with AI-powered quality scoring, compliance checks, and actionable recommendations.',
       action: 'Analyze'
     },
     keywords: {
@@ -306,32 +328,55 @@ function OptimizeContent() {
 
             {activeTool === 'images' && (
               <div>
-                <div style={{ marginBottom: tokens.spacing[6] }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: tokens.typography.fontSize.sm,
-                    fontWeight: tokens.typography.fontWeight.medium,
-                    color: tokens.colors.text,
-                    marginBottom: tokens.spacing[2]
-                  }}>
-                    Image URL
-                  </label>
-                  <Input
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                    disabled={isProcessing}
-                  />
-                </div>
+                {!importedListing ? (
+                  <ListingImporter onListingImported={handleListingImported} />
+                ) : (
+                  <div>
+                    {/* Listing Info */}
+                    <Card padding="4" style={{ 
+                      marginBottom: tokens.spacing[6],
+                      backgroundColor: tokens.colors.backgroundAlt,
+                      border: `1px solid ${tokens.colors.border}`
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: tokens.spacing[3] }}>
+                        <div>
+                          <p style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            fontWeight: tokens.typography.fontWeight.medium,
+                            color: tokens.colors.textMuted,
+                            marginBottom: tokens.spacing[1]
+                          }}>
+                            Analyzing Listing
+                          </p>
+                          <h4 style={{
+                            fontSize: tokens.typography.fontSize.lg,
+                            fontWeight: tokens.typography.fontWeight.semibold,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[1]
+                          }}>
+                            {importedListing.title}
+                          </h4>
+                          <p style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.textMuted }}>
+                            {importedListing.imageUrls.length} photos • {importedListing.tags.length} tags • ${importedListing.price}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setImportedListing(null)}
+                        >
+                          ← Import Different Listing
+                        </Button>
+                      </div>
+                    </Card>
 
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleAnalyze}
-                  disabled={isProcessing || !imageUrl.trim()}
-                >
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze Image'}
-                </Button>
+                    {/* Photo Analysis Panel */}
+                    <PhotoAnalysisPanel 
+                      photoUrls={importedListing.imageUrls}
+                      autoAnalyze={true}
+                    />
+                  </div>
+                )}
               </div>
             )}
 
