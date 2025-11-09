@@ -1,0 +1,377 @@
+{
+  "Etsy285PointSystem": {
+    "version": "1.0",
+    "last_updated": "2025-11-07",
+    "description": "Complete 285-point Etsy listing optimization scoring system based on Etsy's 2025 algorithm",
+    
+    "algorithmRankingFactors": [
+      {
+        "factor": "Listing Quality Score",
+        "weight": "30%",
+        "components": ["CTR", "conversion rate", "favorites", "sales velocity", "image quality"]
+      },
+      {
+        "factor": "Conversion Rate",
+        "weight": "25%",
+        "target": "3%+ competitive, 4%+ excellent",
+        "formula": "Orders ÷ Visits × 100"
+      },
+      {
+        "factor": "Customer & Market Experience",
+        "weight": "15%",
+        "components": ["Reviews", "response time <24hrs", "on-time shipping"]
+      },
+      {
+        "factor": "Recency",
+        "weight": "10%",
+        "note": "New listings get temporary boost"
+      },
+      {
+        "factor": "Shipping Price",
+        "weight": "8%",
+        "boost": "US domestic under $6 gets ranking boost"
+      },
+      {
+        "factor": "Click-Through Rate",
+        "weight": "7%",
+        "target": "~2% (2 clicks per 100 impressions)"
+      },
+      {
+        "factor": "Shop Performance",
+        "weight": "3%",
+        "components": ["Overall shop health", "sales history"]
+      },
+      {
+        "factor": "Personalization",
+        "weight": "2%",
+        "note": "AI matches listings to individual buyer behavior"
+      }
+    ],
+    
+    "scoringBreakdown": {
+      "title": {
+        "maxPoints": 50,
+        "rules": [
+          {"rule": "Primary keyword in first 5 words", "points": 15},
+          {"rule": "Buyer intent phrases (e.g., 'gift for mom', 'personalized wedding')", "points": 10},
+          {"rule": "Readability maintained (not keyword-stuffed)", "points": 10},
+          {"rule": "Character count 60-140", "points": 5},
+          {"rule": "Multi-word keyword phrases vs single words", "points": 5},
+          {"rule": "Unique from seller's other listings", "points": 5}
+        ],
+        "criticalRules": [
+          "Front-load with primary keyword while staying readable",
+          "Use buyer intent language, not just product descriptors",
+          "No keyword stuffing (algorithm penalizes in 2025)",
+          "Multi-word phrases perform better than single words"
+        ],
+        "examples": {
+          "bad": "Print Art Wall Decor Poster Modern Minimalist Design Digital Download",
+          "good": "Modern Minimalist Wall Art Print | Scandinavian Bedroom Decor | Instant Download Printable Poster"
+        }
+      },
+      
+      "tags": {
+        "maxPoints": 35,
+        "rules": [
+          {"rule": "13 tags used (maximum)", "points": 10},
+          {"rule": "Tags reinforce title keywords", "points": 8},
+          {"rule": "Long-tail variations included", "points": 7},
+          {"rule": "No duplicate category/attribute terms", "points": 5},
+          {"rule": "Mix of broad + specific terms", "points": 5}
+        ],
+        "strategy": [
+          "Primary keyword variations (3-4 tags)",
+          "Buyer intent phrases (2-3 tags)",
+          "Style/aesthetic descriptors (2-3 tags)",
+          "Occasion/gift tags (2-3 tags)",
+          "Material/feature tags (2-3 tags)"
+        ],
+        "criticalRules": [
+          "Categories/attributes auto-populate as tags - don't waste slots repeating",
+          "Use long-tail variations (e.g., 'boho nursery wall art' not just 'wall art')",
+          "Vary keywords across listings - identical terms dilute effectiveness"
+        ]
+      },
+      
+      "description": {
+        "maxPoints": 30,
+        "rules": [
+          {"rule": "First 160 characters compelling + keyword-rich", "points": 10},
+          {"rule": "Benefits highlighted over features", "points": 6},
+          {"rule": "Answers common buyer questions", "points": 6},
+          {"rule": "Natural keyword integration (not stuffed)", "points": 5},
+          {"rule": "Clear size/dimension info", "points": 3}
+        ],
+        "structure": [
+          "Opening hook (first 160 chars - search snippet)",
+          "Product benefits and use cases",
+          "Detailed specifications (size, material, dimensions)",
+          "Care instructions / usage info",
+          "Shipping and processing details"
+        ],
+        "criticalRules": [
+          "First 160 characters appear in search snippets",
+          "Answer buyer questions preemptively",
+          "Natural keyword integration - avoid stuffing",
+          "Highlight benefits and use cases, not just materials"
+        ]
+      },
+      
+      "images": {
+        "maxPoints": 70,
+        "rules": [
+          {"rule": "5+ high-quality photos uploaded", "points": 20},
+          {"rule": "All images minimum 2000px width", "points": 15},
+          {"rule": "First thumbnail optimized for mobile feed", "points": 15},
+          {"rule": "NO text overlays or collages", "points": 10, "critical": true},
+          {"rule": "Lifestyle context photos included", "points": 5},
+          {"rule": "Multiple angles + detail close-ups", "points": 5}
+        ],
+        "criticalRules": [
+          "Minimum 2000 pixels width REQUIRED",
+          "5+ photos strongly recommended",
+          "NO collages or text overlays - algorithm deprioritizes",
+          "First thumbnail CRITICAL for CTR in mobile feed (44%+ mobile traffic)"
+        ],
+        "imageStrategy": [
+          "First image: Eye-catching thumbnail for mobile feed",
+          "Images 2-4: Multiple angles and detail close-ups",
+          "Images 5-7: Lifestyle context showing product in use",
+          "Images 8-10: Size comparisons, packaging, details"
+        ]
+      },
+      
+      "attributes": {
+        "maxPoints": 25,
+        "rules": [
+          {"rule": "All attribute fields completed", "points": 15},
+          {"rule": "Correct primary category", "points": 5},
+          {"rule": "Accurate material/size/color tags", "points": 5}
+        ],
+        "criticalRules": [
+          "Complete ALL attribute fields - unlocks filter-based discovery",
+          "Attributes auto-generate as tags - expands keyword reach"
+        ]
+      },
+      
+      "pricing": {
+        "maxPoints": 30,
+        "rules": [
+          {"rule": "Competitive pricing (within niche standards)", "points": 10},
+          {"rule": "US domestic shipping under $6", "points": 10, "boost": true},
+          {"rule": "Free shipping offered", "points": 5, "boost": true},
+          {"rule": "Clear return policy stated", "points": 5, "required": true}
+        ],
+        "criticalRules": [
+          "US domestic shipping under $6 = ranking boost (October 2024 update)",
+          "Free shipping preferred over low-cost by algorithm",
+          "Return policy REQUIRED on all listings"
+        ]
+      },
+      
+      "conversion": {
+        "maxPoints": 35,
+        "rules": [
+          {"rule": "Clear product benefits emphasized", "points": 10},
+          {"rule": "Size/dimension information complete", "points": 8},
+          {"rule": "Questions answered preemptively", "points": 7},
+          {"rule": "Professional presentation", "points": 5},
+          {"rule": "Variation management (in-stock options)", "points": 5}
+        ],
+        "targets": {
+          "conversionRate": "3%+ competitive, 4%+ excellent",
+          "note": "Each sale signals relevance, boosting future rankings"
+        }
+      },
+      
+      "shopHealth": {
+        "maxPoints": 30,
+        "rules": [
+          {"rule": "Message response <24 hours", "points": 10, "critical": true},
+          {"rule": "Processing time realistic", "points": 8},
+          {"rule": "On-time shipping track record", "points": 7},
+          {"rule": "Review quality", "points": 5}
+        ],
+        "criticalRules": [
+          "Response time <24 hours CRITICAL (measured over 3 months)",
+          "On-time shipping tracked - late shipments harm rankings",
+          "Shop-level metrics affect ALL listings"
+        ]
+      }
+    },
+    
+    "totalMaxScore": 285,
+    
+    "ratingScale": [
+      {"rating": "Excellent", "percentageRange": "85-100%", "pointRange": "242-285", "description": "Highly optimized"},
+      {"rating": "Good", "percentageRange": "70-84%", "pointRange": "199-241", "description": "Minor improvements needed"},
+      {"rating": "Fair", "percentageRange": "50-69%", "pointRange": "142-198", "description": "Significant optimization required"},
+      {"rating": "Poor", "percentageRange": "Below 50%", "pointRange": "<142", "description": "Critical issues to fix"}
+    ],
+    
+    "criticalDos": [
+      "Maintain shipping costs under $6 for US domestic orders",
+      "Upload 5+ professional photos, minimum 2000px width, NO text/collages",
+      "Respond to messages within 24 hours consistently",
+      "Front-load titles with primary keywords while keeping readable",
+      "Complete ALL attribute fields for every listing",
+      "Add clear return policy to every listing",
+      "Optimize first thumbnail for mobile feed display",
+      "Track and improve conversion rate to 3%+ minimum",
+      "Build consistent positive reviews through excellent service",
+      "Use lifestyle photos showing product in context"
+    ],
+    
+    "criticalDonts": [
+      "Don't use text overlays or collages in listing images",
+      "Don't keyword stuff titles/descriptions - algorithm penalizes this",
+      "Don't ignore message response time - under 24hrs is critical",
+      "Don't renew listings frequently just for boost - hurts more than helps",
+      "Don't use identical keywords across all listings",
+      "Don't charge over $6 shipping for US domestic (if US seller)",
+      "Don't leave attribute fields incomplete",
+      "Don't upload images under 2000px width",
+      "Don't ship late or miss processing time estimates",
+      "Don't rely on old SEO tactics - 2025 is behavior-driven"
+    ],
+    
+    "2025AlgorithmPriorities": [
+      {
+        "priority": "Mobile-First (44%+ traffic from app)",
+        "details": [
+          "Thumbnails must work at small sizes in feed",
+          "First image often only chance to capture attention",
+          "Visual impact > desktop considerations"
+        ]
+      },
+      {
+        "priority": "Behavioral Signals",
+        "details": [
+          "Algorithm tracks clicks, favorites, add-to-cart, dwell time",
+          "Machine learning ranks based on individual buyer history",
+          "Engagement metrics critical"
+        ]
+      },
+      {
+        "priority": "Shop Health Metrics",
+        "details": [
+          "Response time <24 hours critical",
+          "On-time shipping tracked over 3 months",
+          "Overall shop performance affects all listings"
+        ]
+      },
+      {
+        "priority": "Visual Quality > Keyword Density",
+        "details": [
+          "Computer vision classifies products automatically",
+          "Professional images improve AI classification",
+          "No text overlays (harder to read on mobile, penalized)"
+        ]
+      },
+      {
+        "priority": "Conversion Rate Optimization",
+        "details": [
+          "Higher conversion improves search placement",
+          "Each sale signals relevance for that keyword",
+          "Quality over volume"
+        ]
+      }
+    ],
+    
+    "contentGenerationFormulas": {
+      "titleGeneration": {
+        "steps": [
+          "Identify primary keyword",
+          "Place primary keyword in first 5 words",
+          "Add buyer intent phrase (gift for, personalized, custom)",
+          "Include 2-3 descriptive modifiers (style, material, use case)",
+          "Keep total length 60-140 characters",
+          "Ensure readability (not keyword-stuffed)"
+        ],
+        "format": "[Primary Keyword] | [Buyer Intent/Descriptor] | [Additional Keywords]"
+      },
+      
+      "tagsGeneration": {
+        "strategy": [
+          "Primary keyword variations (3-4 tags)",
+          "Buyer intent phrases (2-3 tags)",
+          "Style/aesthetic tags (2-3 tags)",
+          "Occasion/gift tags (2-3 tags)",
+          "Material/feature tags (2-3 tags)",
+          "Verify no duplicates of category/attributes",
+          "Use multi-word phrases"
+        ],
+        "example": [
+          "boho nursery wall art",
+          "neutral baby room decor",
+          "printable nursery poster",
+          "minimalist baby shower gift",
+          "scandinavian nursery print",
+          "instant download wall art",
+          "gender neutral nursery",
+          "boho baby room decor",
+          "modern nursery printable",
+          "baby gift for mom to be",
+          "nursery wall decor set",
+          "downloadable nursery art",
+          "earth tone baby decor"
+        ]
+      },
+      
+      "descriptionGeneration": {
+        "structure": [
+          "HOOK (First 160 chars): Include primary keyword, state benefit, create desire",
+          "BENEFITS: What problem solved, how it improves life, what makes it special",
+          "SPECIFICATIONS: Dimensions, materials, what's included, format",
+          "USAGE/CARE: How to use/display, care instructions",
+          "SHIPPING/POLICIES: Processing time, shipping details, return policy"
+        ],
+        "tone": "Friendly, helpful, benefit-focused (not salesy)",
+        "length": "1000-2000 characters optimal"
+      }
+    },
+    
+    "imageAnalysisCriteria": {
+      "criticalChecks": [
+        "Resolution: Is it 2000px+ width? (REQUIRED)",
+        "Text overlays or collages? (PROHIBITED - instant penalty)",
+        "Mobile thumbnail effectiveness: Would this catch attention at small size?",
+        "Lighting and clarity quality",
+        "Product focus and background",
+        "Lifestyle context vs plain product shot"
+      ],
+      "scoringCriteria": [
+        "Visual appeal (1-10)",
+        "Mobile optimization (1-10)",
+        "Professional quality (1-10)",
+        "Engagement potential (1-10)"
+      ]
+    },
+    
+    "communicationStyle": {
+      "beSpecific": {
+        "bad": "Your title needs work",
+        "good": "Your title should move 'personalized' to the first 5 words to capture gift shoppers. Try: 'Personalized Leather Journal | Custom...' instead of 'Leather Journal Personalized Custom...'"
+      },
+      "beEncouraging": [
+        "Acknowledge what's working well",
+        "Frame problems as opportunities",
+        "Explain WHY changes matter (algorithm impact)",
+        "Show expected improvement from fixes"
+      ],
+      "provideContext": [
+        "Explain algorithm reasoning behind recommendations",
+        "Compare to competitor averages when relevant",
+        "Show how changes affect ranking factors",
+        "Link improvements to business outcomes"
+      ],
+      "prioritizeClearly": [
+        "Mark critical issues (🔴 CRITICAL)",
+        "Separate high-impact vs low-impact changes",
+        "Give quick wins vs long-term improvements",
+        "Show expected ROI for each recommendation"
+      ]
+    }
+  }
+}

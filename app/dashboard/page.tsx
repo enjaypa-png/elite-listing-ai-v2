@@ -240,6 +240,56 @@ function DashboardContent() {
             </Alert>
           )}
 
+          {/* Your AI Tools - Moved to Top */}
+          <Card padding="8" style={{ marginBottom: tokens.spacing[8] }}>
+            <h3 style={{
+              fontSize: tokens.typography.fontSize['2xl'],
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text,
+              marginBottom: tokens.spacing[6]
+            }}>
+              Your AI Tools
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: tokens.spacing[4]
+            }}>
+              <Button 
+                variant="primary" 
+                size="lg" 
+                href="/optimize?tool=listing"
+                disabled={hasNoCredits}
+              >
+                Optimize Listing
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="lg"
+                href="/optimize?tool=images"
+                disabled={hasNoCredits}
+              >
+                Analyze Images
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="lg"
+                href="/optimize?tool=keywords"
+                disabled={hasNoCredits}
+              >
+                Generate Keywords
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="lg"
+                href="/optimize?tool=seo"
+                disabled={hasNoCredits}
+              >
+                SEO Audit
+              </Button>
+            </div>
+          </Card>
+
           {/* Health Panel */}
           <HealthPanel />
 
@@ -657,40 +707,6 @@ function DashboardContent() {
             }}>
               <Button variant="primary" size="lg" href="/etsy">
                 🛍️ Connect Etsy Shop
-              </Button>
-            </div>
-          </Card>
-
-          <Card padding="8">
-            <h3 style={{
-              fontSize: tokens.typography.fontSize['2xl'],
-              fontWeight: tokens.typography.fontWeight.semibold,
-              color: tokens.colors.text,
-              marginBottom: tokens.spacing[6]
-            }}>
-              Quick Actions
-            </h3>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-              gap: tokens.spacing[4]
-            }}>
-              <Button 
-                variant="primary" 
-                size="lg" 
-                href="/analyze"
-                disabled={hasNoCredits}
-              >
-                Optimize Listing
-              </Button>
-              <Button variant="secondary" size="lg" disabled>
-                Analyze Images
-              </Button>
-              <Button variant="secondary" size="lg" disabled>
-                Generate Keywords
-              </Button>
-              <Button variant="secondary" size="lg" disabled>
-                SEO Audit
               </Button>
             </div>
           </Card>
