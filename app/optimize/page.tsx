@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Container, Input, Button, Card, Alert, Navbar, Footer } from '@/components/ui'
 import { PhotoAnalysisPanel } from '@/components/optimization/PhotoAnalysisPanel'
 import { ListingImporter } from '@/components/optimization/ListingImporter'
+import { KeywordResults } from '@/components/keywords/KeywordResults'
 import tokens from '@/design-system/tokens.json'
 
 interface ImportedListing {
@@ -459,24 +460,31 @@ function OptimizeContent() {
           {/* Results Section */}
           {result && (
             <Card padding="8" style={{ marginTop: tokens.spacing[6] }}>
-              <h3 style={{
-                fontSize: tokens.typography.fontSize.xl,
-                fontWeight: tokens.typography.fontWeight.semibold,
-                color: tokens.colors.text,
-                marginBottom: tokens.spacing[4]
-              }}>
-                Results
-              </h3>
-              <pre style={{
-                backgroundColor: tokens.colors.backgroundAlt,
-                padding: tokens.spacing[4],
-                borderRadius: tokens.radius.lg,
-                overflow: 'auto',
-                fontSize: tokens.typography.fontSize.sm,
-                color: tokens.colors.text
-              }}>
-                {JSON.stringify(result, null, 2)}
-              </pre>
+              {/* Show KeywordResults component for keyword generation */}
+              {activeTool === 'keywords' && result.primaryKeywords ? (
+                <KeywordResults data={result} />
+              ) : (
+                <>
+                  <h3 style={{
+                    fontSize: tokens.typography.fontSize.xl,
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[4]
+                  }}>
+                    Results
+                  </h3>
+                  <pre style={{
+                    backgroundColor: tokens.colors.backgroundAlt,
+                    padding: tokens.spacing[4],
+                    borderRadius: tokens.radius.lg,
+                    overflow: 'auto',
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.text
+                  }}>
+                    {JSON.stringify(result, null, 2)}
+                  </pre>
+                </>
+              )}
             </Card>
           )}
         </Container>
