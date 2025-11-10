@@ -39,6 +39,7 @@ function OptimizeContent() {
   // Keyword Generator State
   const [productDescription, setProductDescription] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [generatingProgress, setGeneratingProgress] = useState('')
   
   // SEO Audit State
   const [seoUrl, setSeoUrl] = useState('')
@@ -143,8 +144,15 @@ function OptimizeContent() {
     setIsGenerating(true)
     setError('')
     setResult(null)
+    setGeneratingProgress('⏳ Analyzing product...')
 
     try {
+      // Simulate progress messages
+      setTimeout(() => setGeneratingProgress('⏳ Finding primary keywords...'), 3000)
+      setTimeout(() => setGeneratingProgress('⏳ Calculating search volumes...'), 8000)
+      setTimeout(() => setGeneratingProgress('⏳ Generating recommendations...'), 15000)
+      setTimeout(() => setGeneratingProgress('⏳ Finalizing results...'), 23000)
+
       const response = await fetch('/api/keywords/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,11 +170,18 @@ function OptimizeContent() {
       }
 
       setResult(data)
+      setGeneratingProgress('')
     } catch (err: any) {
       setError(err.message || 'Failed to generate keywords')
+      setGeneratingProgress('')
     } finally {
       setIsGenerating(false)
     }
+  }
+
+  const loadDemoKeywords = () => {
+    setProductDescription('Handmade ceramic coffee mug with blue glaze finish. Perfect for morning coffee or tea. Artisan pottery made with love.')
+    setTimeout(() => handleGenerateKeywords(), 100)
   }
 
   const handleSeoAudit = async () => {
@@ -414,14 +429,67 @@ function OptimizeContent() {
                   />
                 </div>
 
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleGenerateKeywords}
-                  disabled={isProcessing || !productDescription.trim()}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Keywords'}
-                </Button>
+                <div style={{ display: 'flex', gap: tokens.spacing[3], flexWrap: 'wrap' }}>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    onClick={handleGenerateKeywords}
+                    disabled={isProcessing || !productDescription.trim()}
+                  >
+                    {isGenerating ? generatingProgress || 'Generating...' : 'Generate Keywords'}
+                  </Button>
+                  
+                  <button
+                    onClick={loadDemoKeywords}
+                    disabled={isProcessing}
+                    style={{
+                      padding: `${tokens.spacing[3]} ${tokens.spacing[5]}`,
+                      backgroundColor: `${tokens.colors.primary}15`,
+                      color: tokens.colors.primary,
+                      border: `2px dashed ${tokens.colors.primary}`,
+                      borderRadius: tokens.radius.lg,
+                      fontSize: tokens.typography.fontSize.sm,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      cursor: isProcessing ? 'not-allowed' : 'pointer',
+                      opacity: isProcessing ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[2]
+                    }}
+                  >
+                    🎭 Try Demo
+                  </button>
+                </div>
+
+                {/* Progress Indicator */}
+                {isGenerating && generatingProgress && (
+                  <div style={{
+                    marginTop: tokens.spacing[4],
+                    padding: tokens.spacing[4],
+                    backgroundColor: `${tokens.colors.primary}10`,
+                    border: `2px solid ${tokens.colors.primary}`,
+                    borderRadius: tokens.radius.lg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[3]
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      border: `3px solid ${tokens.colors.primary}40`,
+                      borderTopColor: tokens.colors.primary,
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    <p style={{
+                      fontSize: tokens.typography.fontSize.base,
+                      fontWeight: tokens.typography.fontWeight.medium,
+                      color: tokens.colors.primary
+                    }}>
+                      {generatingProgress}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -501,6 +569,22 @@ export default function OptimizePage() {
       <div style={{
         minHeight: '100vh',
         display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <p>Loading...</p>
+      </div>
+    }>
+      <OptimizeContent />
+      <style jsx global>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </Suspense>
+  )
+}
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#0B0F14'

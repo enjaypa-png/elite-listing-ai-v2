@@ -61,6 +61,27 @@ export function KeywordResults({ data }: KeywordResultsProps) {
     alert(`Copied: ${text}`);
   };
 
+  const exportAsCSV = () => {
+    const csvRows = [
+      ['Keyword', 'Search Volume', 'Competition', 'Intent', 'Keyword Score', 'CTR Potential', 'Conversion Potential', 'Type'],
+      ...data.primaryKeywords.map(k => [
+        k.keyword, k.searchVolume, k.competition, k.intent, k.keywordScore, k.ctrPotential, k.conversionPotential, 'Primary'
+      ]),
+      ...data.secondaryKeywords.map(k => [
+        k.keyword, k.searchVolume, k.competition, k.intent, k.keywordScore, k.ctrPotential, k.conversionPotential, 'Secondary'
+      ])
+    ];
+    
+    const csvContent = csvRows.map(row => row.join(',')).join('\\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `etsy-keywords-${Date.now()}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   const KeywordCard = ({ keyword, isPrimary = true }: { keyword: Keyword; isPrimary?: boolean }) => {
     const compColors = getCompetitionColor(keyword.competition);
     
@@ -593,7 +614,7 @@ export function KeywordResults({ data }: KeywordResultsProps) {
         </div>
       )}
 
-      {/* Quick Copy All */}
+      {/* Quick Copy All & Export */}
       <div style={{
         marginTop: tokens.spacing[6],
         backgroundColor: tokens.colors.surface,
@@ -619,34 +640,71 @@ export function KeywordResults({ data }: KeywordResultsProps) {
             fontSize: tokens.typography.fontSize.sm,
             color: tokens.colors.textMuted
           }}>
-            Copy all keywords or add directly to your listing tags
+            Copy all keywords, export as CSV, or save to your account
           </p>
         </div>
-        <button
-          onClick={() => {
-            const allKeywords = [
-              ...data.primaryKeywords.map(k => k.keyword),
-              ...data.secondaryKeywords.map(k => k.keyword)
-            ].join(', ');
-            copyToClipboard(allKeywords);
-          }}
-          style={{
-            padding: `${tokens.spacing[3]} ${tokens.spacing[6]}`,
-            background: `linear-gradient(135deg, ${tokens.colors.primary}, ${tokens.colors.success})`,
-            color: 'white',
-            border: 'none',
-            borderRadius: tokens.radius.lg,
-            fontSize: tokens.typography.fontSize.base,
-            fontWeight: tokens.typography.fontWeight.semibold,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: tokens.spacing[2],
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-          }}
-        >
-          📋 Copy All {data.totalKeywords} Keywords
-        </button>
+        <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+          <button
+            onClick={() => {
+              const allKeywords = [
+                ...data.primaryKeywords.map(k => k.keyword),
+                ...data.secondaryKeywords.map(k => k.keyword)
+              ].join(', ');
+              copyToClipboard(allKeywords);
+            }}
+            style={{
+              padding: `${tokens.spacing[3]} ${tokens.spacing[5]}`,
+              backgroundColor: tokens.colors.surface,
+              color: tokens.colors.text,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: tokens.radius.lg,
+              fontSize: tokens.typography.fontSize.sm,
+              fontWeight: tokens.typography.fontWeight.semibold,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: tokens.spacing[2]
+            }}
+          >
+            📋 Copy All
+          </button>
+          <button
+            onClick={exportAsCSV}
+            style={{
+              padding: `${tokens.spacing[3]} ${tokens.spacing[5]}`,
+              backgroundColor: tokens.colors.surface,
+              color: tokens.colors.text,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: tokens.radius.lg,
+              fontSize: tokens.typography.fontSize.sm,
+              fontWeight: tokens.typography.fontWeight.semibold,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: tokens.spacing[2]
+            }}
+          >
+            📄 Export CSV
+          </button>
+          <button
+            style={{
+              padding: `${tokens.spacing[3]} ${tokens.spacing[6]}`,
+              background: `linear-gradient(135deg, ${tokens.colors.primary}, ${tokens.colors.success})`,
+              color: 'white',
+              border: 'none',
+              borderRadius: tokens.radius.lg,
+              fontSize: tokens.typography.fontSize.base,
+              fontWeight: tokens.typography.fontWeight.semibold,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: tokens.spacing[2],
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+            }}
+          >
+            💾 Save to Account
+          </button>
+        </div>
       </div>
     </div>
   );
