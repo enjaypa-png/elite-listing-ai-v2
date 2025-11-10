@@ -148,7 +148,8 @@ function OptimizeContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productDescription: productDescription,
+          title: productDescription, // Use as title for keyword extraction
+          description: productDescription, // Use same for both since it's a product description
           platform: 'etsy'
         }),
       })
@@ -156,7 +157,7 @@ function OptimizeContent() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Keyword generation failed')
+        throw new Error(data.error || 'Keyword generation failed')
       }
 
       setResult(data)
