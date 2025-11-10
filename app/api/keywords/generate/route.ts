@@ -86,11 +86,29 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
+    
+    // Log received body for debugging
+    console.log('Received keyword generation request:', {
+      hasTitle: !!body.title,
+      hasDescription: !!body.description,
+      titleLength: body.title?.length || 0,
+      descriptionLength: body.description?.length || 0,
+      platform: body.platform,
+      receivedFields: Object.keys(body)
+    });
+    
     const { title, description, category, platform = 'Etsy' } = body;
 
     if (!title || !description) {
+      console.error('Validation failed:', { title: !!title, description: !!description, body });
       return NextResponse.json(
-        { ok: false, error: 'Title and description are required' },
+        { 
+          ok: false, 
+          error: 'Title and description are required',
+          receivedFields: Object.keys(body),
+          hasTitle: !!title,
+          hasDescription: !!description
+        },
         { status: 400 }
       );
     }
