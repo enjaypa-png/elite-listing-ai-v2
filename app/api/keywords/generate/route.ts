@@ -67,6 +67,19 @@ function getCompetitionDensity(competition: 'low' | 'medium' | 'high'): number {
 }
 
 export async function POST(request: NextRequest) {
+  // Check for API key first
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY is not set');
+    return NextResponse.json(
+      { 
+        ok: false, 
+        error: 'OpenAI API key not configured',
+        details: 'OPENAI_API_KEY environment variable is missing'
+      },
+      { status: 500 }
+    );
+  }
+
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
@@ -317,12 +330,43 @@ Include algorithmInsights explaining Etsy 2025 algorithm fit.`,
     return NextResponse.json(response);
   } catch (error: any) {
     console.error('Keyword generation error:', error);
+    
+    // Enhanced error logging
+    const errorDetails = {
+      message: error.message || 'Unknown error',
+      stack: error.stack,
+      name: error.name,
+      apiKeyConfigured: !!process.env.OPENAI_API_KEY
+    };
+    
+    console.error('Full error details:', JSON.stringify(errorDetails, null, 2));
+    
     return NextResponse.json(
       {
         ok: false,
         error: error.message || 'Failed to generate keywords',
+        details: error.name === 'OpenAIError' ? 'OpenAI API error - check API key and quota' : error.message,
+        hasApiKey: !!process.env.OPENAI_API_KEY
       },
       { status: 500 }
     );
   }
+}
+
+// GET endpoint for health check
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    endpoint: '/api/keywords/generate',
+    status: 'ready',
+    hasApiKey: !!process.env.OPENAI_API_KEY,
+    model: 'gpt-4o',
+    features: [
+      '285-point algorithm integration',
+      'Buyer intent prioritization',
+      'Gift angle optimization',
+      'Mobile CTR focus',
+      'Conversion-weighted scoring'
+    ]
+  });
 }

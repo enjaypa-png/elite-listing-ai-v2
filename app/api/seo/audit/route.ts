@@ -299,6 +299,18 @@ function analyzeImageOptimization(photoCount: number = 0): { score: number; max:
 }
 
 export async function POST(request: NextRequest) {
+  // Check for API key first
+  if (!process.env.OPENAI_API_KEY) {
+    console.error('OPENAI_API_KEY is not set');
+    return NextResponse.json(
+      { 
+        error: 'OpenAI API key not configured',
+        details: 'OPENAI_API_KEY environment variable is missing'
+      },
+      { status: 500 }
+    );
+  }
+
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
@@ -464,9 +476,44 @@ Format as JSON:
     
   } catch (error: any) {
     console.error('SEO Audit Error:', error);
+    
+    // Enhanced error logging
+    const errorDetails = {
+      message: error.message || 'Unknown error',
+      stack: error.stack,
+      name: error.name,
+      apiKeyConfigured: !!process.env.OPENAI_API_KEY
+    };
+    
+    console.error('Full SEO audit error details:', JSON.stringify(errorDetails, null, 2));
+    
     return NextResponse.json(
-      { error: 'Failed to perform SEO audit', details: error.message },
+      { 
+        error: 'Failed to perform SEO audit', 
+        details: error.name === 'OpenAIError' ? 'OpenAI API error - check API key and quota' : error.message,
+        hasApiKey: !!process.env.OPENAI_API_KEY
+      },
       { status: 500 }
     );
   }
+}
+
+// GET endpoint for health check
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    endpoint: '/api/seo/audit',
+    status: 'ready',
+    hasApiKey: !!process.env.OPENAI_API_KEY,
+    model: 'gpt-4o',
+    scoringSystem: '285-point Etsy 2025 algorithm',
+    categories: {
+      title: '50 points',
+      tags: '35 points',
+      description: '30 points',
+      images: '70 points',
+      pricing: '23 points',
+      metadata: '28 points'
+    }
+  });
 }
