@@ -151,19 +151,11 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
         borderBottom: `1px solid ${tokens.colors.border}`,
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
       }}>
-        <div style={{
-          maxWidth: '1400px',
-          margin: '0 auto',
-          padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: tokens.spacing[4]
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
+        <div className="studio-header-container">
+          <div className="studio-header-left">
             <button
               onClick={() => window.history.back()}
+              className="back-button"
               style={{
                 padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
                 backgroundColor: 'transparent',
@@ -174,7 +166,9 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: tokens.spacing[2]
+                gap: tokens.spacing[2],
+                minHeight: '44px',
+                minWidth: '44px'
               }}
             >
               ← Back to Listings
@@ -207,41 +201,45 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
               </p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+          <div className="studio-header-actions">
             <button
               onClick={handleCopyOptimizedContent}
+              className="header-button"
               style={{
                 padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
                 backgroundColor: tokens.colors.surface,
                 color: tokens.colors.text,
                 border: `1px solid ${tokens.colors.border}`,
                 borderRadius: tokens.radius.md,
-                fontSize: tokens.typography.fontSize.sm,
+                fontSize: '16px',
                 fontWeight: tokens.typography.fontWeight.medium,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: tokens.spacing[2]
+                gap: tokens.spacing[2],
+                minHeight: '44px'
               }}
             >
-              📋 Copy Optimized Content
+              📋 <span className="button-text">Copy Optimized Content</span>
             </button>
             <button
               onClick={handleSaveChanges}
               disabled={isSaving}
+              className="header-button"
               style={{
                 padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
                 backgroundColor: tokens.colors.primary,
                 color: 'white',
                 border: 'none',
                 borderRadius: tokens.radius.md,
-                fontSize: tokens.typography.fontSize.sm,
+                fontSize: '16px',
                 fontWeight: tokens.typography.fontWeight.medium,
                 cursor: isSaving ? 'not-allowed' : 'pointer',
                 opacity: isSaving ? 0.6 : 1,
                 display: 'flex',
                 alignItems: 'center',
-                gap: tokens.spacing[2]
+                gap: tokens.spacing[2],
+                minHeight: '44px'
               }}
             >
               💾 {isSaving ? 'Saving...' : 'Save Changes'}
