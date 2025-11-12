@@ -64,6 +64,40 @@ export function KeywordResults({ data }: KeywordResultsProps) {
     alert(`Copied: ${text}`);
   };
 
+  const addToTags = (keyword: string) => {
+    if (!selectedTags.includes(keyword)) {
+      setSelectedTags([...selectedTags, keyword]);
+      setRecentlyAdded(keyword);
+      setShowToast(true);
+      
+      // Auto-hide toast after 2 seconds
+      setTimeout(() => {
+        setShowToast(false);
+        setRecentlyAdded(null);
+      }, 2000);
+    }
+  };
+
+  const removeTag = (keyword: string) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== keyword));
+  };
+
+  const copyAllSelectedTags = () => {
+    if (selectedTags.length === 0) {
+      alert('No tags selected yet!');
+      return;
+    }
+    const tagsText = selectedTags.join(', ');
+    navigator.clipboard.writeText(tagsText);
+    alert(`Copied ${selectedTags.length} tags to clipboard!`);
+  };
+
+  const clearAllTags = () => {
+    if (selectedTags.length > 0 && window.confirm(`Remove all ${selectedTags.length} selected tags?`)) {
+      setSelectedTags([]);
+    }
+  };
+
   const exportAsCSV = () => {
     const csvRows = [
       ['Keyword', 'Search Volume', 'Competition', 'Intent', 'Keyword Score', 'CTR Potential', 'Conversion Potential', 'Type'],
