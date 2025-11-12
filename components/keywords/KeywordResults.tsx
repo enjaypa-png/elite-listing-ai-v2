@@ -286,12 +286,14 @@ export function KeywordResults({ data }: KeywordResultsProps) {
             onClick={() => copyToClipboard(keyword.keyword)}
             style={{
               flex: 1,
+              minHeight: '44px',
+              minWidth: '44px',
               padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
               backgroundColor: '#1E293B',
               color: '#E2E8F0',
               border: '2px solid #334155',
               borderRadius: tokens.radius.md,
-              fontSize: tokens.typography.fontSize.sm,
+              fontSize: '16px',
               fontWeight: tokens.typography.fontWeight.medium,
               cursor: 'pointer',
               display: 'flex',
@@ -317,12 +319,14 @@ export function KeywordResults({ data }: KeywordResultsProps) {
           <button
             style={{
               flex: 1,
+              minHeight: '44px',
+              minWidth: '44px',
               padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
               background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
               color: 'white',
               border: 'none',
               borderRadius: tokens.radius.md,
-              fontSize: tokens.typography.fontSize.sm,
+              fontSize: '16px',
               fontWeight: tokens.typography.fontWeight.medium,
               cursor: 'pointer',
               display: 'flex',
