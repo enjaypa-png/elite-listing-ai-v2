@@ -406,7 +406,183 @@ export function KeywordResults({ data }: KeywordResultsProps) {
   };
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', position: 'relative' }}>
+      {/* Toast Notification */}
+      {showToast && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: 'linear-gradient(135deg, #10B981, #059669)',
+          color: 'white',
+          padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+          borderRadius: tokens.radius.lg,
+          boxShadow: '0 8px 24px rgba(16, 185, 129, 0.4)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          gap: tokens.spacing[3],
+          fontSize: tokens.typography.fontSize.base,
+          fontWeight: tokens.typography.fontWeight.semibold,
+          animation: 'slideIn 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '24px' }}>✓</span>
+          <span>Keyword added to tags!</span>
+        </div>
+      )}
+
+      {/* Selected Tags Bar - Fixed at bottom */}
+      {selectedTags.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+          borderTop: '2px solid #3B82F6',
+          padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+          boxShadow: '0 -4px 12px rgba(0, 0, 0, 0.5)',
+          zIndex: 1000,
+          backdropFilter: 'blur(10px)'
+        }}>
+          <div style={{
+            maxWidth: '1400px',
+            margin: '0 auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: tokens.spacing[4],
+            flexWrap: 'wrap'
+          }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+              <span style={{
+                fontSize: tokens.typography.fontSize.lg,
+                fontWeight: tokens.typography.fontWeight.bold,
+                color: '#F1F5F9'
+              }}>
+                🏷️ Selected Tags
+              </span>
+              <span style={{
+                padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                backgroundColor: '#3B82F6',
+                color: 'white',
+                borderRadius: tokens.radius.full,
+                fontSize: tokens.typography.fontSize.xs,
+                fontWeight: tokens.typography.fontWeight.bold
+              }}>
+                {selectedTags.length}
+              </span>
+            </div>
+
+            {/* Tags List */}
+            <div style={{
+              flex: 1,
+              display: 'flex',
+              gap: tokens.spacing[2],
+              flexWrap: 'wrap',
+              maxHeight: '120px',
+              overflowY: 'auto',
+              padding: `${tokens.spacing[2]} 0`
+            }}>
+              {selectedTags.map((tag, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[2],
+                    padding: `${tokens.spacing[1]} ${tokens.spacing[3]}`,
+                    background: 'rgba(59, 130, 246, 0.2)',
+                    border: '1px solid #3B82F6',
+                    borderRadius: tokens.radius.md,
+                    color: '#60A5FA',
+                    fontSize: tokens.typography.fontSize.sm,
+                    fontWeight: tokens.typography.fontWeight.medium
+                  }}
+                >
+                  <span>{tag}</span>
+                  <button
+                    onClick={() => removeTag(tag)}
+                    title="Remove tag"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#EF4444',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '16px',
+                      lineHeight: 1
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: tokens.spacing[2] }}>
+              <button
+                onClick={copyAllSelectedTags}
+                style={{
+                  padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: tokens.radius.md,
+                  fontSize: tokens.typography.fontSize.sm,
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: tokens.spacing[2],
+                  minHeight: '44px',
+                  whiteSpace: 'nowrap',
+                  boxShadow: '0 4px 6px rgba(16, 185, 129, 0.3)',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.boxShadow = '0 6px 12px rgba(16, 185, 129, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px rgba(16, 185, 129, 0.3)';
+                }}
+              >
+                📋 Copy All ({selectedTags.length})
+              </button>
+              <button
+                onClick={clearAllTags}
+                style={{
+                  padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  color: '#EF4444',
+                  border: '1px solid #EF4444',
+                  borderRadius: tokens.radius.md,
+                  fontSize: tokens.typography.fontSize.sm,
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  cursor: 'pointer',
+                  minHeight: '44px',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                }}
+              >
+                🗑️ Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Summary Header */}
       <div style={{
         background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15))',
