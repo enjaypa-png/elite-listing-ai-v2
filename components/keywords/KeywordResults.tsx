@@ -349,6 +349,7 @@ export function KeywordResults({ data }: KeywordResultsProps) {
           </button>
         </div>
       </div>
+      </div>
     );
   };
 
