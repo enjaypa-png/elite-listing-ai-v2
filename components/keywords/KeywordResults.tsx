@@ -121,6 +121,8 @@ export function KeywordResults({ data }: KeywordResultsProps) {
 
   const KeywordCard = ({ keyword, isPrimary = true }: { keyword: Keyword; isPrimary?: boolean }) => {
     const compColors = getCompetitionColor(keyword.competition);
+    const isAdded = selectedTags.includes(keyword.keyword);
+    const isRecentlyAdded = recentlyAdded === keyword.keyword;
     
     return (
       <div style={{
