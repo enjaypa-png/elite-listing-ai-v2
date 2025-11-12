@@ -1002,6 +1002,37 @@ export function KeywordResults({ data }: KeywordResultsProps) {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
         }
+        
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        /* Mobile responsive adjustments for selected tags bar */
+        @media (max-width: 768px) {
+          .selected-tags-bar {
+            padding: ${tokens.spacing[3]} ${tokens.spacing[4]};
+          }
+          
+          .tags-list {
+            max-height: 80px;
+          }
+          
+          .action-buttons {
+            width: 100%;
+            flex-direction: column;
+          }
+          
+          .action-buttons button {
+            width: 100%;
+          }
+        }
       `}</style>
     </div>
   );
