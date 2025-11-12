@@ -269,18 +269,9 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
             potentialScore={listing.potentialScore}
           />
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(12, 1fr)',
-            gap: tokens.spacing[8]
-          }}>
-            {/* Main Column - 2/3 width */}
-            <div style={{
-              gridColumn: 'span 8',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: tokens.spacing[8]
-            }}>
+          <div className="studio-layout">
+            {/* Main Column - 2/3 width on desktop, full width on mobile */}
+            <div className="studio-main-column">
               {/* Photo Gallery */}
               <PhotoAnalysisGrid
                 images={listing.images}
@@ -310,12 +301,7 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
               />
 
               {/* Pricing Info */}
-              <div style={{
-                backgroundColor: tokens.colors.surface,
-                borderRadius: tokens.radius.lg,
-                border: `1px solid ${tokens.colors.border}`,
-                padding: tokens.spacing[6]
-              }}>
+              <div className="pricing-card">
                 <h3 style={{
                   fontSize: tokens.typography.fontSize.lg,
                   fontWeight: tokens.typography.fontWeight.semibold,
@@ -324,11 +310,7 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
                 }}>
                   Pricing & Shipping
                 </h3>
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: tokens.spacing[4]
-                }}>
+                <div className="pricing-grid">
                   <div>
                     <p style={{
                       fontSize: tokens.typography.fontSize.sm,
@@ -365,8 +347,8 @@ ${optimizations?.description?.optimized || aiOptimizations.description.optimized
               </div>
             </div>
 
-            {/* Sidebar - 1/3 width */}
-            <div style={{ gridColumn: 'span 4' }}>
+            {/* Sidebar - 1/3 width on desktop, full width below main content on mobile */}
+            <div className="studio-sidebar">
               <PriorityActionsSidebar issues={priorityIssues} />
             </div>
           </div>
