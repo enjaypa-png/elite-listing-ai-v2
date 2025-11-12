@@ -109,7 +109,7 @@ export function KeywordResults({ data }: KeywordResultsProps) {
       ])
     ];
     
-    const csvContent = csvRows.map(row => row.join(',')).join('\\n');
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
