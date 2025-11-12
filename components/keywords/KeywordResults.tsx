@@ -1080,7 +1080,32 @@ export function KeywordResults({ data }: KeywordResultsProps) {
             flex-direction: column;
           }
           
-          .action-buttons button {
+          .action-buttons button, .action-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+        
+        /* Additional mobile optimizations */
+        @media (max-width: 768px) {
+          /* Make toast notification smaller on mobile */
+          .toast-notification {
+            font-size: 14px;
+            padding: ${tokens.spacing[3]} ${tokens.spacing[4]};
+          }
+          
+          /* Ensure keyword cards stack on mobile */
+          .keyword-grid {
+            grid-template-columns: 1fr !important;
+          }
+          
+          /* Make action button container stack */
+          .action-btn-container {
+            flex-direction: column;
+            width: 100%;
+          }
+          
+          .action-btn-container button {
             width: 100%;
           }
         }
