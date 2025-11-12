@@ -602,7 +602,7 @@ export function KeywordResults({ data }: KeywordResultsProps) {
         {showSecondary && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
             gap: tokens.spacing[3]
           }}>
             {data.secondaryKeywords.map((keyword, index) => (
