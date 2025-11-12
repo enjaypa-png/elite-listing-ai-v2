@@ -585,21 +585,3 @@ export default function OptimizePage() {
     </Suspense>
   )
 }
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0B0F14'
-      }}>
-        <div style={{
-          width: '3rem',
-          height: '3rem',
-          border: '3px solid #2A3441',
-          borderTop: '3px solid #00B3FF',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-      </div>
-    }>
-      <OptimizeContent />
-    </Suspense>
-  )
-}
