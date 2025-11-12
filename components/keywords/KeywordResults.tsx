@@ -36,6 +36,9 @@ interface KeywordResultsProps {
 
 export function KeywordResults({ data }: KeywordResultsProps) {
   const [showSecondary, setShowSecondary] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [recentlyAdded, setRecentlyAdded] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   const getCompetitionColor = (competition: string) => {
     switch (competition) {
