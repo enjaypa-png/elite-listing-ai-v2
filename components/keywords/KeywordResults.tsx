@@ -126,23 +126,23 @@ export function KeywordResults({ data }: KeywordResultsProps) {
     
     return (
       <div style={{
-        background: 'linear-gradient(135deg, #1E293B 0%, #1A2332 100%)',
-        border: `2px solid ${isPrimary ? '#3B82F6' : '#334155'}`,
+        background: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)',
+        border: `2px solid ${isPrimary ? '#3B82F6' : '#475569'}`,
         borderRadius: tokens.radius.lg,
         padding: 0,
         transition: 'all 0.2s ease',
         cursor: 'pointer',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset'
       }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.4)';
+        e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.3) inset';
         e.currentTarget.style.borderColor = '#3B82F6';
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)';
-        e.currentTarget.style.borderColor = isPrimary ? '#3B82F6' : '#334155';
+        e.currentTarget.style.boxShadow = '0 8px 16px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
+        e.currentTarget.style.borderColor = isPrimary ? '#3B82F6' : '#475569';
       }}
       >
         {/* Keyword Title Header */}
