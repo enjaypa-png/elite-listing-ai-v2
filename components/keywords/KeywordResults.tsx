@@ -356,35 +356,48 @@ export function KeywordResults({ data }: KeywordResultsProps) {
             📋 Copy
           </button>
           <button
+            onClick={() => addToTags(keyword.keyword)}
+            disabled={isAdded}
+            title={isAdded ? "Already added to your tags" : "Click to add this keyword to your list of tags for your Etsy listing"}
             style={{
               flex: 1,
               minHeight: '44px',
               minWidth: '44px',
               padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
-              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+              background: isAdded 
+                ? 'linear-gradient(135deg, #10B981, #059669)' 
+                : 'linear-gradient(135deg, #3B82F6, #2563EB)',
               color: 'white',
               border: 'none',
               borderRadius: tokens.radius.md,
               fontSize: '16px',
               fontWeight: tokens.typography.fontWeight.medium,
-              cursor: 'pointer',
+              cursor: isAdded ? 'default' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: tokens.spacing[2],
               transition: 'all 0.2s ease',
-              boxShadow: '0 4px 6px rgba(59, 130, 246, 0.3)'
+              boxShadow: isAdded 
+                ? '0 4px 6px rgba(16, 185, 129, 0.3)' 
+                : '0 4px 6px rgba(59, 130, 246, 0.3)',
+              opacity: isAdded ? 0.9 : 1,
+              transform: isRecentlyAdded ? 'scale(1.05)' : 'scale(1)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 6px 12px rgba(59, 130, 246, 0.4)';
+              if (!isAdded) {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 6px 12px rgba(59, 130, 246, 0.4)';
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(59, 130, 246, 0.3)';
+              if (!isAdded) {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 4px 6px rgba(59, 130, 246, 0.3)';
+              }
             }}
           >
-            ➕ Add to Tags
+            {isAdded ? '✓ Added' : '➕ Add to Tags'}
           </button>
         </div>
       </div>
