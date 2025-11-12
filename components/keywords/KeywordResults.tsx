@@ -677,6 +677,45 @@ export function KeywordResults({ data }: KeywordResultsProps) {
         </div>
       </div>
 
+      {/* Info Banner - How to Use */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.12))',
+        border: '2px solid #10B981',
+        borderRadius: tokens.radius.lg,
+        padding: tokens.spacing[4],
+        marginBottom: tokens.spacing[6],
+        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'start', gap: tokens.spacing[3] }}>
+          <span style={{ fontSize: '24px', lineHeight: 1 }}>💡</span>
+          <div>
+            <h4 style={{
+              fontSize: tokens.typography.fontSize.base,
+              fontWeight: tokens.typography.fontWeight.bold,
+              color: '#10B981',
+              marginBottom: tokens.spacing[2]
+            }}>
+              How to Use Keywords
+            </h4>
+            <p style={{
+              fontSize: tokens.typography.fontSize.sm,
+              color: '#94A3B8',
+              lineHeight: 1.6,
+              marginBottom: tokens.spacing[2]
+            }}>
+              Click <strong style={{ color: '#60A5FA' }}>➕ Add to Tags</strong> on any keyword below to build your tag collection. Selected tags appear in a bar at the bottom where you can copy all at once or remove individual ones.
+            </p>
+            <p style={{
+              fontSize: tokens.typography.fontSize.xs,
+              color: '#64748B',
+              lineHeight: 1.5
+            }}>
+              <strong>💡 Tip:</strong> Etsy allows up to 13 tags per listing. Choose keywords with high relevance and good conversion potential for best results.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Algorithm Insights */}
       {data.algorithmInsights.optimizationTips && data.algorithmInsights.optimizationTips.length > 0 && (
         <div style={{
