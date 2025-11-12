@@ -971,7 +971,7 @@ export function KeywordResults({ data }: KeywordResultsProps) {
             Copy all keywords, export as CSV, or save to your account
           </p>
         </div>
-        <div style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
+        <div className="action-btn-container" style={{ display: 'flex', gap: tokens.spacing[2], flexWrap: 'wrap' }}>
           <button
             onClick={() => {
               const allKeywords = [
