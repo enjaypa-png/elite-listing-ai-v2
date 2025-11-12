@@ -980,54 +980,66 @@ export function KeywordResults({ data }: KeywordResultsProps) {
               ].join(', ');
               copyToClipboard(allKeywords);
             }}
+            title="Copy all keywords to clipboard"
+            className="action-btn"
             style={{
               padding: `${tokens.spacing[3]} ${tokens.spacing[5]}`,
               backgroundColor: tokens.colors.surface,
               color: tokens.colors.text,
               border: `1px solid ${tokens.colors.border}`,
               borderRadius: tokens.radius.lg,
-              fontSize: tokens.typography.fontSize.sm,
+              fontSize: '16px',
               fontWeight: tokens.typography.fontWeight.semibold,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: tokens.spacing[2]
+              gap: tokens.spacing[2],
+              minHeight: '44px',
+              minWidth: '44px'
             }}
           >
             📋 Copy All
           </button>
           <button
             onClick={exportAsCSV}
+            title="Export keywords as CSV file"
+            className="action-btn"
             style={{
               padding: `${tokens.spacing[3]} ${tokens.spacing[5]}`,
               backgroundColor: tokens.colors.surface,
               color: tokens.colors.text,
               border: `1px solid ${tokens.colors.border}`,
               borderRadius: tokens.radius.lg,
-              fontSize: tokens.typography.fontSize.sm,
+              fontSize: '16px',
               fontWeight: tokens.typography.fontWeight.semibold,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: tokens.spacing[2]
+              gap: tokens.spacing[2],
+              minHeight: '44px',
+              minWidth: '44px'
             }}
           >
             📄 Export CSV
           </button>
           <button
+            title="Save keywords to your account"
+            className="action-btn"
             style={{
               padding: `${tokens.spacing[3]} ${tokens.spacing[6]}`,
               background: `linear-gradient(135deg, ${tokens.colors.primary}, ${tokens.colors.success})`,
               color: 'white',
               border: 'none',
               borderRadius: tokens.radius.lg,
-              fontSize: tokens.typography.fontSize.base,
+              fontSize: '16px',
               fontWeight: tokens.typography.fontWeight.semibold,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: tokens.spacing[2],
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              minHeight: '44px',
+              minWidth: '44px'
             }}
           >
             💾 Save to Account
