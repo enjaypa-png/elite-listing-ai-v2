@@ -13,27 +13,37 @@ export default function PhotoCheckupPage() {
 
   useEffect(() => {
     analyzePhoto();
-  }, []);
+  }, [params.id]);
 
   const analyzePhoto = async () => {
     setIsLoading(true);
     
     try {
-      // TODO: Wire up to /api/optimize/image/analyze
-      // For now, use mock data
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Get stored photo data
+      const { OptimizationStorage } = await import('@/lib/optimizationState');
+      const state = OptimizationStorage.get(params.id as string);
+      
+      if (!state || !state.photo.analysis) {
+        // No cached data, might need to re-analyze
+        console.log('No cached analysis found');
+        setIsLoading(false);
+        return;
+      }
+
+      // Use existing analysis from upload step
+      const analysis = state.photo.analysis;
       
       setPhotoAnalysis({
-        score: 'Good', // Good / OK / Needs Work
-        overallScore: 75,
-        tips: [
+        score: analysis.overallScore >= 75 ? 'Good' : analysis.overallScore >= 50 ? 'OK' : 'Needs Work',
+        overallScore: analysis.overallScore || 75,
+        tips: analysis.suggestions || [
           'Great lighting - product is clearly visible',
           'Background is clean and not distracting',
           'Photo is sharp and in focus',
           'Consider adding more product angles',
           'Photo meets Etsy resolution requirements'
         ],
-        imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7' // Mock
+        imageUrl: state.photo.original
       });
     } catch (error) {
       console.error('Analysis error:', error);
