@@ -15,44 +15,70 @@ export default function TitleDescriptionPage() {
 
   useEffect(() => {
     generateContent();
-  }, []);
+  }, [params.id]);
 
   const generateContent = async () => {
     setIsGenerating(true);
     
     try {
-      // TODO: Wire up to /api/optimize with selected keywords
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get stored data
+      const { OptimizationStorage } = await import('@/lib/optimizationState');
+      const state = OptimizationStorage.get(params.id as string);
+      
+      if (!state) {
+        console.error('No optimization state found');
+        router.push('/upload');
+        return;
+      }
+
+      // Call optimization API with selected keywords
+      const response = await fetch('/api/optimize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: state.title.current || '',
+          description: state.description.current || '',
+          tags: state.keywords.selected,
+          platform: 'etsy'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Content generation failed');
+      }
+
+      const data = await response.json();
+      
+      // Get first variant
+      const variant = data.variants?.[0] || {};
       
       setContent({
         title: {
-          current: 'Ceramic Mug',
-          suggested: 'Handmade Ceramic Coffee Mug | Artisan Pottery | Gift for Coffee Lovers'
+          current: state.title.current || 'Your Product',
+          suggested: variant.title || 'AI-Generated Title'
         },
         description: {
-          current: 'Nice ceramic mug for coffee or tea. Handmade with care.',
-          suggested: `Discover the perfect blend of artistry and functionality with this handmade ceramic coffee mug. Each piece is carefully crafted by skilled artisans, making every mug unique.
+          current: state.description.current || 'Product description',
+          suggested: variant.description || 'AI-Generated Description'
+        }
+      });
 
-🎨 Features:
-• Handmade ceramic construction
-• Perfect size for coffee or tea
-• Unique artisan design
-• Dishwasher and microwave safe
-• Makes a thoughtful gift for coffee lovers
-
-This beautiful pottery mug combines rustic charm with everyday practicality. The smooth glaze and comfortable handle make it perfect for your morning ritual or as a special gift.
-
-✨ Why Choose This Mug:
-• One-of-a-kind artisan quality
-• Supports small business and traditional crafts
-• Durable and built to last
-• Adds warmth to any kitchen
-
-Perfect for coffee enthusiasts, tea lovers, or anyone who appreciates handcrafted pottery. Each mug tells its own story through subtle variations in glaze and form.`
+      // Update state
+      OptimizationStorage.update(params.id as string, {
+        title: {
+          current: state.title.current || 'Your Product',
+          suggested: variant.title || '',
+          selected: 'suggested'
+        },
+        description: {
+          current: state.description.current || '',
+          suggested: variant.description || '',
+          selected: 'suggested'
         }
       });
     } catch (error) {
       console.error('Content generation error:', error);
+      alert('Failed to generate content. Please try again.');
     } finally {
       setIsGenerating(false);
     }
