@@ -113,7 +113,17 @@ export default function KeywordsPage() {
       alert('Please select at least one keyword to continue');
       return;
     }
-    // Save selected tags and continue to title/description
+    
+    // Save selected tags to state
+    const { OptimizationStorage } = require('@/lib/optimizationState');
+    OptimizationStorage.update(params.id as string, {
+      keywords: {
+        generated: keywords,
+        selected: selectedTags
+      }
+    });
+    
+    // Continue to title/description
     router.push(`/title-description/${params.id}`);
   };
 
