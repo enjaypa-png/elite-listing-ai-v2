@@ -180,9 +180,7 @@ export default function PhotoCheckupPage() {
                   fontSize: '16px',
                   cursor: 'help'
                 }}
-              >
-                ℹ
-              </span>
+              >{"ℹ"}</span>
             </h1>
           </div>
 
