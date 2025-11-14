@@ -111,7 +111,8 @@ export default function HomePage() {
             </button>
 
             {/* Info Bubble */}
-            <div
+            <button
+              type="button"
               title="Start here to optimize a new Etsy listing"
               style={{
                 position: 'absolute',
@@ -125,14 +126,14 @@ export default function HomePage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'white',
-                fontSize: '18px',
+                fontSize: '14px',
                 fontWeight: 'bold',
                 cursor: 'help',
                 boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
                 border: '3px solid #0F172A'
               }}
             >
-              {'i'}
+              ℹ
             </button>
           </div>
 
