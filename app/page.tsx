@@ -132,7 +132,7 @@ export default function HomePage() {
                 border: '3px solid #0F172A'
               }}
             >
-              ℹ️
+              ℹ
             </button>
           </div>
 
