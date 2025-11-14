@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
-// File upload endpoint - uploads to Supabase storage and returns URL
+// Simple file upload that converts to base64 data URL
+// This avoids needing Supabase storage bucket setup
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
 
@@ -44,15 +45,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024;
+    // Validate file size (max 5MB for base64 conversion)
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
         {
           ok: false,
           error: {
             code: 'file_too_large',
-            message: 'Image must be less than 10MB',
+            message: 'Image must be less than 5MB',
             requestId,
           },
         },
@@ -60,51 +61,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upload to Supabase Storage
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const fileName = `${requestId}-${file.name}`;
-    const filePath = `uploads/${fileName}`;
-
-    // Convert File to ArrayBuffer
+    // Convert to base64 data URL
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error(`[${requestId}] Supabase upload error:`, uploadError);
-      return NextResponse.json(
-        {
-          ok: false,
-          error: {
-            code: 'upload_failed',
-            message: uploadError.message || 'Failed to upload image',
-            requestId,
-          },
-        },
-        { status: 500 }
-      );
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    console.log(`[${requestId}] File uploaded successfully: ${urlData.publicUrl}`);
+    console.log(`[${requestId}] File converted to base64 successfully`);
 
     return NextResponse.json({
       ok: true,
-      imageUrl: urlData.publicUrl,
+      imageUrl: dataUrl,
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
@@ -127,3 +94,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
