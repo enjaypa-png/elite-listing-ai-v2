@@ -26,7 +26,7 @@ export default function UploadPage() {
   };
 
   const handleAnalyze = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile || !preview) return;
 
     setIsAnalyzing(true);
 
@@ -34,17 +34,19 @@ export default function UploadPage() {
       // Create optimization ID
       const optimizationId = `opt_${Date.now()}`;
       
-      // Upload photo and get analysis
-      const formData = new FormData();
-      formData.append('image', selectedFile);
-
+      // The API expects an imageUrl, so we use the base64 preview we already have
       const response = await fetch('/api/optimize/image/analyze', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: preview, // base64 data URL
+          platform: 'etsy'
+        })
       });
 
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Analysis failed');
       }
 
       const analysisData = await response.json();
@@ -55,7 +57,7 @@ export default function UploadPage() {
       
       OptimizationStorage.update(optimizationId, {
         photo: {
-          original: preview!,
+          original: preview,
           selected: 'original',
           analysis: analysisData
         }
@@ -63,9 +65,9 @@ export default function UploadPage() {
 
       // Redirect to photo checkup
       router.push(`/photo-checkup/${optimizationId}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      alert('Upload failed. Please try again.');
+      alert(error.message || 'Upload failed. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
