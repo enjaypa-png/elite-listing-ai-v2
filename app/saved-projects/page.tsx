@@ -18,33 +18,46 @@ export default function SavedProjectsPage() {
     setIsLoading(true);
     
     try {
-      // TODO: Wire up to /api/optimizations (get user's saved optimizations)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Fetch from database API
+      const response = await fetch('/api/optimizations');
       
-      // Mock data
-      setProjects([
-        {
-          id: '1',
-          title: 'Handmade Ceramic Coffee Mug',
-          thumbnail: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=200',
-          score: 215,
-          createdAt: '2 hours ago',
-          status: 'completed'
-        },
-        {
-          id: '2',
-          title: 'Brown Leather Wallet',
-          thumbnail: 'https://images.unsplash.com/photo-1627123424574-724758594e93?w=200',
-          score: 198,
-          createdAt: '1 day ago',
-          status: 'completed'
-        }
-      ]);
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Transform API data to display format
+        const formattedProjects = (data.optimizations || []).map((opt: any) => ({
+          id: opt.id,
+          title: opt.result?.title || 'Untitled Optimization',
+          thumbnail: opt.result?.photo || 'https://via.placeholder.com/200',
+          score: opt.result?.score || 0,
+          createdAt: formatDate(opt.createdAt),
+          status: opt.status
+        }));
+        
+        setProjects(formattedProjects);
+      } else {
+        // Fallback to empty state
+        setProjects([]);
+      }
     } catch (error) {
       console.error('Load error:', error);
+      // Fallback to empty state
+      setProjects([]);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
   };
 
   if (isLoading) {
