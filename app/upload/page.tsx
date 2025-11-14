@@ -34,30 +34,47 @@ export default function UploadPage() {
       // Create optimization ID
       const optimizationId = `opt_${Date.now()}`;
       
-      // The API expects an imageUrl, so we use the base64 preview we already have
-      const response = await fetch('/api/optimize/image/analyze', {
+      // Step 1: Upload file to storage
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      const uploadResponse = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error?.message || 'Upload failed');
+      }
+
+      const uploadData = await uploadResponse.json();
+      const imageUrl = uploadData.imageUrl;
+
+      // Step 2: Analyze the uploaded image
+      const analyzeResponse = await fetch('/api/optimize/image/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: preview, // base64 data URL
+          imageUrl: imageUrl,
           platform: 'etsy'
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!analyzeResponse.ok) {
+        const errorData = await analyzeResponse.json();
         throw new Error(errorData.error?.message || 'Analysis failed');
       }
 
-      const analysisData = await response.json();
+      const analysisData = await analyzeResponse.json();
 
-      // Store in session storage
+      // Step 3: Store in session storage
       const { OptimizationStorage } = await import('@/lib/optimizationState');
       const state = OptimizationStorage.create(optimizationId);
       
       OptimizationStorage.update(optimizationId, {
         photo: {
-          original: preview,
+          original: imageUrl,
           selected: 'original',
           analysis: analysisData
         }
