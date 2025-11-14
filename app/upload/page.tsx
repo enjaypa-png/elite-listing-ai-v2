@@ -31,16 +31,38 @@ export default function UploadPage() {
     setIsAnalyzing(true);
 
     try {
-      // Upload to storage or use existing upload API
+      // Create optimization ID
+      const optimizationId = `opt_${Date.now()}`;
+      
+      // Upload photo and get analysis
       const formData = new FormData();
       formData.append('image', selectedFile);
 
-      // For now, simulate upload and redirect to photo checkup
-      // TODO: Wire up to existing /api/optimize/image/analyze
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/optimize/image/analyze', {
+        method: 'POST',
+        body: formData
+      });
 
-      // Redirect to photo checkup with mock ID
-      router.push(`/photo-checkup/temp-${Date.now()}`);
+      if (!response.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      const analysisData = await response.json();
+
+      // Store in session storage
+      const { OptimizationStorage } = await import('@/lib/optimizationState');
+      const state = OptimizationStorage.create(optimizationId);
+      
+      OptimizationStorage.update(optimizationId, {
+        photo: {
+          original: preview!,
+          selected: 'original',
+          analysis: analysisData
+        }
+      });
+
+      // Redirect to photo checkup
+      router.push(`/photo-checkup/${optimizationId}`);
     } catch (error) {
       console.error('Upload error:', error);
       alert('Upload failed. Please try again.');
