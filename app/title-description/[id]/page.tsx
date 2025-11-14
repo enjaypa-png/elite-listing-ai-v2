@@ -90,7 +90,20 @@ export default function TitleDescriptionPage() {
   };
 
   const handleContinue = () => {
-    // Save selections and continue to finish
+    // Save selections to state
+    const { OptimizationStorage } = require('@/lib/optimizationState');
+    OptimizationStorage.update(params.id as string, {
+      title: {
+        ...content.title,
+        selected: selectedTitle
+      },
+      description: {
+        ...content.description,
+        selected: selectedDescription
+      }
+    });
+    
+    // Continue to finish
     router.push(`/finish/${params.id}`);
   };
 
