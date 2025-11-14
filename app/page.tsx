@@ -131,7 +131,7 @@ export default function HomePage() {
                 boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
                 border: '3px solid #0F172A'
               }}
-            >i</button>
+            >{'i'}</button>
           </div>
 
           <p style={{
