@@ -259,9 +259,7 @@ export default function PhotoCheckupPage() {
                         fontSize: '12px',
                         cursor: 'help'
                       }}
-                    >
-                      ℹ
-                    </span>
+                    >{"ℹ"}</span>
                   </h3>
                   <ul style={{
                     listStyle: 'none',
