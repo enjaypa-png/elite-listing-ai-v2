@@ -20,33 +20,57 @@ export default function KeywordsPage() {
 
   useEffect(() => {
     generateKeywords();
-  }, []);
+  }, [params.id]);
 
   const generateKeywords = async () => {
     setIsGenerating(true);
     
     try {
-      // TODO: Wire up to /api/keywords/generate
-      // Extract product info from photo using Vision API
-      // For now, use mock data
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Get stored photo data
+      const { OptimizationStorage } = await import('@/lib/optimizationState');
+      const state = OptimizationStorage.get(params.id as string);
       
-      const mockKeywords = [
-        { keyword: 'handmade ceramic coffee mug', keywordScore: 92, searchVolume: 850, competition: 'medium', ctrPotential: 86, conversionPotential: 89, algorithmFit: 'High buyer intent + clear product match' },
-        { keyword: 'pottery mug handmade', keywordScore: 88, searchVolume: 720, competition: 'medium', ctrPotential: 84, conversionPotential: 87, algorithmFit: 'Strong craft appeal' },
-        { keyword: 'ceramic mug gift', keywordScore: 85, searchVolume: 920, competition: 'high', ctrPotential: 82, conversionPotential: 85, algorithmFit: 'Gifting intent boosts conversion' },
-        { keyword: 'artisan coffee mug', keywordScore: 82, searchVolume: 680, competition: 'low', ctrPotential: 88, conversionPotential: 84, algorithmFit: 'Low competition advantage' },
-        { keyword: 'handmade mug pottery', keywordScore: 78, searchVolume: 590, competition: 'medium', ctrPotential: 79, conversionPotential: 81, algorithmFit: 'Solid niche keyword' },
-        { keyword: 'ceramic cup handmade', keywordScore: 75, searchVolume: 540, competition: 'low', ctrPotential: 77, conversionPotential: 79, algorithmFit: 'Alternative phrasing' },
-        { keyword: 'coffee lover gift', keywordScore: 72, searchVolume: 1100, competition: 'high', ctrPotential: 75, conversionPotential: 78, algorithmFit: 'High volume, high competition' },
-        { keyword: 'unique coffee mug', keywordScore: 68, searchVolume: 890, competition: 'high', ctrPotential: 71, conversionPotential: 74, algorithmFit: 'Generic but popular' },
-        { keyword: 'kitchen gift ideas', keywordScore: 65, searchVolume: 1250, competition: 'high', ctrPotential: 68, conversionPotential: 70, algorithmFit: 'Broad match' },
-        { keyword: 'coffee mug set', keywordScore: 62, searchVolume: 780, competition: 'medium', ctrPotential: 65, conversionPotential: 68, algorithmFit: 'Set implication (adjust if selling single)' }
-      ];
+      if (!state) {
+        console.error('No optimization state found');
+        router.push('/upload');
+        return;
+      }
+
+      // Call keyword generation API
+      const response = await fetch('/api/keywords/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: state.title.current || 'Product photo',
+          description: state.description.current || 'Based on uploaded photo',
+          platform: 'etsy'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Keyword generation failed');
+      }
+
+      const data = await response.json();
       
-      setKeywords(mockKeywords);
+      // Combine and sort all keywords by score
+      const allKeywords = [
+        ...(data.primaryKeywords || []),
+        ...(data.secondaryKeywords || [])
+      ].sort((a, b) => b.keywordScore - a.keywordScore);
+      
+      setKeywords(allKeywords);
+      
+      // Store in state
+      OptimizationStorage.update(params.id as string, {
+        keywords: {
+          generated: allKeywords,
+          selected: []
+        }
+      });
     } catch (error) {
       console.error('Keyword generation error:', error);
+      alert('Failed to generate keywords. Please try again.');
     } finally {
       setIsGenerating(false);
     }
