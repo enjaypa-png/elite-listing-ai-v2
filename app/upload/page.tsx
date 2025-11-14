@@ -162,9 +162,7 @@ export default function UploadPage() {
                   fontSize: '16px',
                   cursor: 'help'
                 }}
-              >
-                ℹ
-              </span>
+              >{"ℹ"}</span>
             </h1>
             <p style={{
               fontSize: '18px',
