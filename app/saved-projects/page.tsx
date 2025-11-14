@@ -134,7 +134,7 @@ export default function SavedProjectsPage() {
                     cursor: 'help'
                   }}
                 >
-                  ℹ️
+                  ℹ
                 </span>
               </h1>
               <p style={{

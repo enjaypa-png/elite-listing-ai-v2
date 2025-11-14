@@ -229,7 +229,7 @@ export default function KeywordsPage() {
                     cursor: 'help'
                   }}
                 >
-                  ℹ️
+                  ℹ
                 </span>
               </h1>
               <p style={{

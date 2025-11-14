@@ -117,7 +117,7 @@ export default function PhotoImprovePage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h1>
             <p style={{
@@ -258,7 +258,7 @@ export default function PhotoImprovePage() {
                     cursor: 'help'
                   }}
                 >
-                  ℹ️
+                  ℹ
                 </span>
               </h3>
               <ul style={{

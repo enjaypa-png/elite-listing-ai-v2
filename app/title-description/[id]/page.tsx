@@ -177,7 +177,7 @@ export default function TitleDescriptionPage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h1>
             <p style={{
@@ -214,7 +214,7 @@ export default function TitleDescriptionPage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h2>
 
@@ -338,7 +338,7 @@ export default function TitleDescriptionPage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h2>
 

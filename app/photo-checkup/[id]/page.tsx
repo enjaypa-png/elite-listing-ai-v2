@@ -181,7 +181,7 @@ export default function PhotoCheckupPage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h1>
           </div>
@@ -262,7 +262,7 @@ export default function PhotoCheckupPage() {
                         cursor: 'help'
                       }}
                     >
-                      ℹ️
+                      ℹ
                     </span>
                   </h3>
                   <ul style={{

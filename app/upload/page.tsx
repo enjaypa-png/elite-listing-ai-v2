@@ -163,7 +163,7 @@ export default function UploadPage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h1>
             <p style={{

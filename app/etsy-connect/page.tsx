@@ -72,7 +72,7 @@ export default function EtsyConnectPage() {
                   cursor: 'help'
                 }}
               >
-                ℹ️
+                ℹ
               </span>
             </h1>
             <p style={{
