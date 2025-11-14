@@ -116,9 +116,7 @@ export default function PhotoImprovePage() {
                   fontSize: '16px',
                   cursor: 'help'
                 }}
-              >
-                ℹ
-              </span>
+              >{"ℹ"}</span>
             </h1>
             <p style={{
               fontSize: '18px',
@@ -257,9 +255,7 @@ export default function PhotoImprovePage() {
                     fontSize: '12px',
                     cursor: 'help'
                   }}
-                >
-                  ℹ
-                </span>
+                >{"ℹ"}</span>
               </h3>
               <ul style={{
                 listStyle: 'none',

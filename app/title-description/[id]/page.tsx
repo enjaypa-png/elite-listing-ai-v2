@@ -176,9 +176,7 @@ export default function TitleDescriptionPage() {
                   fontSize: '16px',
                   cursor: 'help'
                 }}
-              >
-                ℹ
-              </span>
+              >{"ℹ"}</span>
             </h1>
             <p style={{
               fontSize: '18px',
@@ -213,9 +211,7 @@ export default function TitleDescriptionPage() {
                   fontSize: '12px',
                   cursor: 'help'
                 }}
-              >
-                ℹ
-              </span>
+              >{"ℹ"}</span>
             </h2>
 
             <div style={{
@@ -337,9 +333,7 @@ export default function TitleDescriptionPage() {
                   fontSize: '12px',
                   cursor: 'help'
                 }}
-              >
-                ℹ
-              </span>
+              >{"ℹ"}</span>
             </h2>
 
             <div style={{

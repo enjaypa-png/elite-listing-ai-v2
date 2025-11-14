@@ -133,9 +133,7 @@ export default function SavedProjectsPage() {
                     fontSize: '16px',
                     cursor: 'help'
                   }}
-                >
-                  ℹ
-                </span>
+                >{"ℹ"}</span>
               </h1>
               <p style={{
                 fontSize: '18px',
