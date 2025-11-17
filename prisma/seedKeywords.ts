@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import manusDataset from './manusDataset.json';
 
 const prisma = new PrismaClient();
 
