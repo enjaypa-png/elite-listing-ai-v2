@@ -170,3 +170,33 @@ model WebhookEvent {
   @@index([eventId])
   @@map("webhook_events")
 }
+
+model Keyword {
+  id          String   @id @default(cuid())
+  keyword     String   @unique
+  category    String   // "Jewelry", "WallArt", "Materials", "Styles", etc.
+  subcategory String?  // For nested categories
+  type        String   @default("product") // "product", "material", "style", "intent", "seasonal"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([category])
+  @@index([type])
+  @@map("keywords")
+}
+
+model LongTailPattern {
+  id          String   @id @default(cuid())
+  pattern     String   @unique
+  description String?
+  variables   Json     // Array of variable names like ["adjective", "material", "product"]
+  category    String   @default("general")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([category])
+  @@map("long_tail_patterns")
+}
+
