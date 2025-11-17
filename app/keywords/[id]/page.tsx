@@ -110,6 +110,36 @@ export default function KeywordsPage() {
     }
   };
 
+  const handleExpandMore = async () => {
+    setIsExpanding(true);
+    
+    try {
+      // Extract product name from first keyword or state
+      const { OptimizationStorage } = await import('@/lib/optimizationState');
+      const state = OptimizationStorage.get(params.id as string);
+      const productName = keywords[0]?.keyword?.split(' ').slice(-2).join(' ') || 'product';
+
+      // Call expand API
+      const response = await fetch('/api/keywords/expand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: productName,
+          count: 20
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setExpandedKeywords(data.expansions || []);
+      }
+    } catch (error) {
+      console.error('Expand error:', error);
+    } finally {
+      setIsExpanding(false);
+    }
+  };
+
   const handleContinue = () => {
     if (selectedTags.length === 0) {
       alert('Please select at least one keyword to continue');
