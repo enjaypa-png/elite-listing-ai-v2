@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 const SEED_TOKEN = process.env.SEED_TOKEN || "SEED123";
 
@@ -21,7 +21,7 @@ export async function GET(req: Request) {
     let keywordCount = 0;
     let patternCount = 0;
 
-    // Seed Keywords
+    // Seed Keywords - ProductKeywords
     for (const [category, items] of Object.entries(dataset.ProductKeywords)) {
       for (const item of items as string[]) {
         await prisma.keyword.upsert({
