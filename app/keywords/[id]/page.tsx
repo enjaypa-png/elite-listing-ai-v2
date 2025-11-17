@@ -335,6 +335,26 @@ export default function KeywordsPage() {
                 >
                   📋 Copy Selected
                 </button>
+
+                <button
+                  onClick={handleExpandMore}
+                  disabled={isExpanding}
+                  title="Generate more keyword variations using Manus patterns"
+                  style={{
+                    padding: '10px 20px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    color: '#FBBF24',
+                    border: '1px solid #F59E0B',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: isExpanding ? 'not-allowed' : 'pointer',
+                    minHeight: '44px',
+                    opacity: isExpanding ? 0.6 : 1
+                  }}
+                >
+                  {isExpanding ? '⏳ Expanding...' : '🔄 Expand More'}
+                </button>
               </div>
             </div>
 
