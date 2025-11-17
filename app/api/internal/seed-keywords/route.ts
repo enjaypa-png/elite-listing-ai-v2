@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Seed endpoint - completely rewritten to avoid any undefined variables
 const SEED_TOKEN = process.env.SEED_TOKEN || "SEED123";
 
 export async function GET(req: Request) {
