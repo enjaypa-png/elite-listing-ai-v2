@@ -366,6 +366,77 @@ export default function KeywordsPage() {
               onShowDetails={setDetailKeyword}
             />
 
+            {/* Expanded Keywords Section */}
+            {expandedKeywords.length > 0 && (
+              <div style={{
+                marginTop: '32px',
+                padding: '24px',
+                background: 'rgba(245, 158, 11, 0.05)',
+                border: '2px solid rgba(245, 158, 11, 0.3)',
+                borderRadius: '12px'
+              }}>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  color: '#F9FAFB',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🔄 More Keyword Ideas
+                  <span
+                    title="Additional keyword variations generated using Manus patterns"
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      background: '#F59E0B',
+                      borderRadius: '50%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      cursor: 'help',
+                      color: 'white',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    <span>ℹ</span>
+                  </span>
+                </h3>
+                <div style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '8px'
+                }}>
+                  {expandedKeywords.map((keyword, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        if (!selectedTags.includes(keyword)) {
+                          setSelectedTags([...selectedTags, keyword]);
+                        }
+                      }}
+                      disabled={selectedTags.includes(keyword)}
+                      style={{
+                        padding: '8px 16px',
+                        background: selectedTags.includes(keyword) ? '#10B981' : 'rgba(245, 158, 11, 0.1)',
+                        color: selectedTags.includes(keyword) ? 'white' : '#FBBF24',
+                        border: `1px solid ${selectedTags.includes(keyword) ? '#10B981' : '#F59E0B'}`,
+                        borderRadius: '20px',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        cursor: selectedTags.includes(keyword) ? 'default' : 'pointer',
+                        opacity: selectedTags.includes(keyword) ? 0.7 : 1
+                      }}
+                    >
+                      {selectedTags.includes(keyword) ? '✓ ' : '+'} {keyword}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Locked Keywords for Free Users */}
             {!isPremium && lockedCount > 0 && (
               <div style={{
