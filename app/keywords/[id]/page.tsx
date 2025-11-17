@@ -13,6 +13,8 @@ export default function KeywordsPage() {
   const params = useParams();
   const [isGenerating, setIsGenerating] = useState(true);
   const [keywords, setKeywords] = useState<any[]>([]);
+  const [expandedKeywords, setExpandedKeywords] = useState<string[]>([]);
+  const [isExpanding, setIsExpanding] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [detailKeyword, setDetailKeyword] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
