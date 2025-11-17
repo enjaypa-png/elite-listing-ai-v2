@@ -5,6 +5,7 @@ const SEED_TOKEN = process.env.SEED_TOKEN || "SEED123";
 
 export async function GET(req: Request) {
   try {
+    // Validate token
     const { searchParams } = new URL(req.url);
     const token = searchParams.get("token");
 
@@ -18,10 +19,9 @@ export async function GET(req: Request) {
     // Import Manus dataset
     const dataset = await import("@/prisma/manusDataset.json");
 
-    let keywordCount = 0;
-    let patternCount = 0;
+    let inserted = 0;
 
-    // Seed Keywords - ProductKeywords
+    // Seed Product Keywords
     for (const [category, items] of Object.entries(dataset.ProductKeywords)) {
       for (const item of items as string[]) {
         await prisma.keyword.upsert({
@@ -33,7 +33,7 @@ export async function GET(req: Request) {
             type: "product",
           },
         });
-        keywordCount++;
+        inserted++;
       }
     }
 
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
           type: "material",
         },
       });
-      keywordCount++;
+      inserted++;
     }
 
     // Seed Styles
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
           type: "style",
         },
       });
-      keywordCount++;
+      inserted++;
     }
 
     // Seed Buyer Intent
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
           type: "intent",
         },
       });
-      keywordCount++;
+      inserted++;
     }
 
     // Seed Seasonal
@@ -90,7 +90,7 @@ export async function GET(req: Request) {
           type: "seasonal",
         },
       });
-      keywordCount++;
+      inserted++;
     }
 
     // Seed Patterns
@@ -104,13 +104,12 @@ export async function GET(req: Request) {
           variables: JSON.stringify([]),
         },
       });
-      patternCount++;
+      inserted++;
     }
 
     return NextResponse.json({
       ok: true,
-      insertedKeywords: keywordCount,
-      insertedPatterns: patternCount,
+      inserted: inserted,
     });
   } catch (error: any) {
     return NextResponse.json(
