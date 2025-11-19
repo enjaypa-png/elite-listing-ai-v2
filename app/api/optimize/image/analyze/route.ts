@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 export const runtime = 'nodejs'
 // Input validation schema
 const AnalyzeImageRequestSchema = z.object({
-  imageUrl: z.string().url('Image URL must be a valid URL'),
+  imageUrl: z.string().min(1, 'Image URL is required'),
   platform: z.string().min(1, 'Platform is required').default('etsy'),
   listingId: z.string().optional(),
   userId: z.string().optional(),
@@ -61,6 +61,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedInput = AnalyzeImageRequestSchema.parse(body);
     const { imageUrl, platform } = validatedInput;
+
+    // Enhanced logging for debugging
+    console.log(`[${requestId}] Image URL type: ${imageUrl.startsWith('data:') ? 'base64 data URL' : 'HTTP URL'}`);
+    console.log(`[${requestId}] Image URL length: ${imageUrl.length} characters`);
 
     // Check if OpenAI is configured
     if (!process.env.OPENAI_API_KEY) {
