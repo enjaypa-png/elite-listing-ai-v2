@@ -30,7 +30,7 @@ export default function SignInPage() {
         throw new Error(data.error || 'Failed to sign in')
       }
 
-      router.push('/dashboard')
+      router.push('/upload')
       router.refresh()
     } catch (err: any) {
       setError(err.message)
