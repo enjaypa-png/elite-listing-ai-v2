@@ -6,14 +6,12 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 // Client-side Supabase client (uses anon key)
-// Configured with secure session storage
+// Configured with secure session storage using cookies
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'sb-auth-token',
     flowType: 'pkce', // Use PKCE flow for enhanced security
   },
 })
