@@ -44,9 +44,20 @@ export default function UploadPage() {
         body: formData
       });
 
+      // Handle non-JSON responses (like 413 Payload Too Large)
+      const contentType = uploadResponse.headers.get('content-type');
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        throw new Error(errorData.error?.message || 'Upload failed');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error?.message || 'Upload failed');
+        } else {
+          // Non-JSON error (likely HTML error page)
+          const errorText = await uploadResponse.text();
+          if (uploadResponse.status === 413) {
+            throw new Error('Image is too large. Please try a smaller image (max 10MB).');
+          }
+          throw new Error(`Upload failed (${uploadResponse.status}): ${errorText.substring(0, 100)}`);
+        }
       }
 
       const uploadData = await uploadResponse.json();
@@ -62,9 +73,20 @@ export default function UploadPage() {
         })
       });
 
+      // Handle non-JSON responses
+      const analyzeContentType = analyzeResponse.headers.get('content-type');
       if (!analyzeResponse.ok) {
-        const errorData = await analyzeResponse.json();
-        throw new Error(errorData.error?.message || 'Analysis failed');
+        if (analyzeContentType && analyzeContentType.includes('application/json')) {
+          const errorData = await analyzeResponse.json();
+          throw new Error(errorData.error?.message || 'Analysis failed');
+        } else {
+          // Non-JSON error
+          const errorText = await analyzeResponse.text();
+          if (analyzeResponse.status === 413) {
+            throw new Error('Image analysis payload too large. Please contact support.');
+          }
+          throw new Error(`Analysis failed (${analyzeResponse.status}): ${errorText.substring(0, 100)}`);
+        }
       }
 
       const analysisData = await analyzeResponse.json();

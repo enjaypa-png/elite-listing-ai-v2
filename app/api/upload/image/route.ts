@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
-import sharp from 'sharp';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Maximum dimensions for images (to keep base64 size manageable for OpenAI)
-const MAX_WIDTH = 2000;
-const MAX_HEIGHT = 2000;
-const JPEG_QUALITY = 85;
-
-// Simple file upload that converts to base64 data URL
-// Images are resized to reduce token usage in OpenAI Vision API
+// Upload images to Supabase Storage (proper approach for production)
+// This avoids payload size limits and token limits
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
 
@@ -51,7 +46,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (max 10MB before processing)
+    // Validate file size (max 10MB)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
@@ -67,43 +62,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`[${requestId}] Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB) to Supabase Storage...`);
+
+    // Generate unique filename
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${requestId}.${fileExt}`;
+    const filePath = `uploads/${fileName}`;
+
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
-    const inputBuffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(arrayBuffer);
 
-    console.log(`[${requestId}] Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from('product-images')
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false,
+      });
 
-    // Resize and compress image using sharp
-    const resizedBuffer = await sharp(inputBuffer)
-      .resize(MAX_WIDTH, MAX_HEIGHT, {
-        fit: 'inside',
-        withoutEnlargement: true, // Don't upscale small images
-      })
-      .jpeg({ quality: JPEG_QUALITY })
-      .toBuffer();
-
-    console.log(`[${requestId}] Resized file size: ${(resizedBuffer.length / 1024 / 1024).toFixed(2)}MB`);
-
-    // Convert to base64 data URL
-    const base64 = resizedBuffer.toString('base64');
-    const dataUrl = `data:image/jpeg;base64,${base64}`;
-
-    // Estimate token usage (rough estimate: 1 token ≈ 4 chars for base64)
-    const estimatedTokens = Math.ceil(dataUrl.length / 4);
-    console.log(`[${requestId}] Estimated tokens: ${estimatedTokens.toLocaleString()}`);
-
-    if (estimatedTokens > 25000) {
-      console.warn(`[${requestId}] WARNING: Image may exceed OpenAI token limits`);
+    if (uploadError) {
+      console.error(`[${requestId}] Supabase upload error:`, uploadError);
+      throw new Error(`Upload failed: ${uploadError.message}`);
     }
 
-    console.log(`[${requestId}] File processed successfully`);
+    // Get public URL
+    const { data: urlData } = supabaseAdmin.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    const imageUrl = urlData.publicUrl;
+
+    console.log(`[${requestId}] File uploaded successfully to: ${imageUrl}`);
 
     return NextResponse.json({
       ok: true,
-      imageUrl: dataUrl,
+      imageUrl: imageUrl,
       fileName: file.name,
-      fileSize: resizedBuffer.length,
-      fileType: 'image/jpeg',
+      fileSize: file.size,
+      fileType: file.type,
       requestId,
     });
 
