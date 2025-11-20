@@ -1,4 +1,4 @@
-# Elite Listing AI v2 🚀
+# Elite Listing AI v2 
 
 **AI-Powered Etsy Listing Optimization Platform**
 
