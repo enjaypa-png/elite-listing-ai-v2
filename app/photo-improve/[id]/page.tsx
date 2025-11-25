@@ -20,13 +20,23 @@ export default function PhotoImprovePage() {
     setIsImproving(true);
     
     try {
-      // TODO: Wire up to image improvement API
-      // For now, use mock data
+      // Get the actual uploaded photo from sessionStorage
+      const { OptimizationStorage } = await import('@/lib/optimizationState');
+      const state = OptimizationStorage.get(params.id as string);
+      
+      if (!state || !state.photo.original) {
+        console.error('No photo found in optimization state');
+        setIsImproving(false);
+        return;
+      }
+
+      // TODO: Wire up to actual image improvement API
+      // For now, show original image on both sides
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       setPhotoData({
-        original: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7',
-        improved: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80&sat=1.2&sharp=10',
+        original: state.photo.original,
+        improved: state.photo.original, // TODO: Replace with actual improved image from AI
         improvements: [
           'Enhanced brightness by 15%',
           'Sharpened product details',
