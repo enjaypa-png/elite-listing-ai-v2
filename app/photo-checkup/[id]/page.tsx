@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Container, Button, Card } from '@/components/ui';
+import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
 import tokens from '@/design-system/tokens.json';
 
 export default function PhotoCheckupPage() {
@@ -24,7 +25,6 @@ export default function PhotoCheckupPage() {
       const state = OptimizationStorage.get(params.id as string);
       
       if (!state || !state.photo.analysis) {
-        // No cached data, might need to re-analyze
         console.log('No cached analysis found');
         setIsLoading(false);
         return;
@@ -34,8 +34,8 @@ export default function PhotoCheckupPage() {
       const analysis = state.photo.analysis;
       
       setPhotoAnalysis({
-        score: analysis.overallScore >= 75 ? 'Good' : analysis.overallScore >= 50 ? 'OK' : 'Needs Work',
-        overallScore: analysis.overallScore || 75,
+        score: analysis.score >= 75 ? 'Good' : analysis.score >= 50 ? 'OK' : 'Needs Work',
+        overallScore: analysis.score || 75,
         tips: analysis.suggestions || [
           'Great lighting - product is clearly visible',
           'Background is clean and not distracting',
@@ -53,31 +53,36 @@ export default function PhotoCheckupPage() {
   };
 
   const getScoreColor = (score: string) => {
-    if (score === 'Good') return { bg: '#10B981', text: 'Excellent quality!' };
-    if (score === 'OK') return { bg: '#F59E0B', text: 'Room for improvement' };
-    return { bg: '#EF4444', text: 'Needs improvement' };
+    if (score === 'Good') return { bg: tokens.colors.success, text: 'Excellent quality!' };
+    if (score === 'OK') return { bg: tokens.colors.warning, text: 'Room for improvement' };
+    return { bg: tokens.colors.danger, text: 'Needs improvement' };
   };
 
   if (isLoading) {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+        background: tokens.colors.background,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: '64px',
-            height: '64px',
-            border: '4px solid #374151',
-            borderTopColor: '#3B82F6',
-            borderRadius: '50%',
+            width: tokens.spacing[16],
+            height: tokens.spacing[16],
+            border: `4px solid ${tokens.colors.surface2}`,
+            borderTopColor: tokens.colors.primary,
+            borderRadius: tokens.radius.full,
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 24px'
+            margin: `0 auto ${tokens.spacing[6]}`
           }} />
-          <p style={{ fontSize: '18px', color: '#9CA3AF' }}>Analyzing your photo...</p>
+          <p style={{ 
+            fontSize: tokens.typography.fontSize.lg, 
+            color: tokens.colors.textMuted 
+          }}>
+            Analyzing your photo...
+          </p>
         </div>
         <style jsx>{`
           @keyframes spin {
@@ -92,103 +97,51 @@ export default function PhotoCheckupPage() {
   const scoreColor = getScoreColor(photoAnalysis.score);
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-      paddingTop: '40px',
-      paddingBottom: '80px'
-    }}>
-      <Container>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          {/* Progress Indicator */}
-          <div style={{
+    <StepLayout
+      header={
+        <>
+          <ProgressIndicator currentStep={2} />
+          <h1 style={{
+            fontSize: tokens.typography.fontSize['3xl'],
+            fontWeight: tokens.typography.fontWeight.bold,
+            color: tokens.colors.text,
+            marginBottom: tokens.spacing[3],
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '16px',
-            marginBottom: '40px'
+            gap: tokens.spacing[3]
           }}>
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: '#10B981',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold'
-            }}>
-              ✓
-            </div>
-            <div style={{ width: '60px', height: '2px', background: '#3B82F6' }} />
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: '#3B82F6',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold'
-            }}>
-              2
-            </div>
-            <div style={{ width: '60px', height: '2px', background: '#374151' }} />
-            <div style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '50%',
-              background: '#374151',
-              color: '#6B7280',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold'
-            }}>
-              3
-            </div>
-          </div>
-
-          {/* Header */}
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '40px'
-          }}>
-            <h1 style={{
-              fontSize: '36px',
-              fontWeight: 'bold',
-              color: '#F9FAFB',
-              marginBottom: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px'
-            }}>
-              Step 2: Photo Checkup
-              <span
-                title="We look at lighting, sharpness, and background clarity"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  background: '#3B82F6',
-                  borderRadius: '50%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  cursor: 'help'
-                }}
-              >{"ℹ"}</span>
-            </h1>
-          </div>
-
+            Step 2: Photo Checkup
+            <InfoTooltip text="We look at lighting, sharpness, and background clarity" />
+          </h1>
+        </>
+      }
+      footer={
+        <>
+          <Button 
+            variant="primary" 
+            size="lg"
+            onClick={() => router.push(`/photo-improve/${params.id}`)}
+          >
+            ✨ Improve My Photo
+          </Button>
+          <Button 
+            variant="secondary" 
+            size="lg"
+            onClick={() => router.push(`/keywords/${params.id}`)}
+          >
+            Skip to Keywords →
+          </Button>
+        </>
+      }
+    >
+      <Container>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '32px',
-            marginBottom: '32px'
+            gap: tokens.spacing[8],
+            marginBottom: tokens.spacing[8]
           }}>
             {/* Photo Preview */}
             <Card>
@@ -200,7 +153,7 @@ export default function PhotoCheckupPage() {
                     width: '100%',
                     height: '400px',
                     objectFit: 'cover',
-                    borderRadius: '12px'
+                    borderRadius: tokens.radius.xl
                   }}
                 />
               </div>
@@ -210,23 +163,23 @@ export default function PhotoCheckupPage() {
             <div>
               {/* Score Badge */}
               <div style={{
-                padding: '24px',
+                padding: tokens.spacing[6],
                 background: scoreColor.bg,
-                borderRadius: '12px',
-                marginBottom: '24px',
+                borderRadius: tokens.radius.xl,
+                marginBottom: tokens.spacing[6],
                 textAlign: 'center'
               }}>
                 <p style={{
-                  fontSize: '48px',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  marginBottom: '8px'
+                  fontSize: tokens.typography.fontSize['4xl'],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.text,
+                  marginBottom: tokens.spacing[2]
                 }}>
                   {photoAnalysis.score}
                 </p>
                 <p style={{
-                  fontSize: '18px',
-                  color: 'white',
+                  fontSize: tokens.typography.fontSize.lg,
+                  color: tokens.colors.text,
                   opacity: 0.9
                 }}>
                   {scoreColor.text}
@@ -235,31 +188,18 @@ export default function PhotoCheckupPage() {
 
               {/* Tips */}
               <Card>
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: tokens.spacing[6] }}>
                   <h3 style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#F9FAFB',
-                    marginBottom: '16px',
+                    fontSize: tokens.typography.fontSize.xl,
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[4],
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px'
+                    gap: tokens.spacing[2]
                   }}>
                     💡 Photo Tips
-                    <span
-                      title="Simple ways to make your photo better"
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        background: '#3B82F6',
-                        borderRadius: '50%',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '12px',
-                        cursor: 'help'
-                      }}
-                    >{"ℹ"}</span>
+                    <InfoTooltip text="Simple ways to make your photo better" />
                   </h3>
                   <ul style={{
                     listStyle: 'none',
@@ -270,16 +210,18 @@ export default function PhotoCheckupPage() {
                       <li
                         key={index}
                         style={{
-                          padding: '12px 0',
-                          borderBottom: index < photoAnalysis.tips.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                          fontSize: '16px',
-                          color: '#D1D5DB',
+                          padding: `${tokens.spacing[3]} 0`,
+                          borderBottom: index < photoAnalysis.tips.length - 1 ? `1px solid ${tokens.colors.border}` : 'none',
+                          fontSize: tokens.typography.fontSize.base,
+                          color: tokens.colors.textMuted,
                           display: 'flex',
                           alignItems: 'start',
-                          gap: '12px'
+                          gap: tokens.spacing[3]
                         }}
                       >
-                        <span style={{ color: tip.includes('Consider') ? '#F59E0B' : '#10B981' }}>
+                        <span style={{ 
+                          color: tip.includes('Consider') ? tokens.colors.warning : tokens.colors.success 
+                        }}>
                           {tip.includes('Consider') ? '⚠️' : '✓'}
                         </span>
                         <span>{tip}</span>
@@ -290,59 +232,17 @@ export default function PhotoCheckupPage() {
               </Card>
             </div>
           </div>
-
-          {/* Action Buttons */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '16px'
-          }}>
-            <button
-              onClick={() => router.push(`/photo-improve/${params.id}`)}
-              style={{
-                padding: '16px 32px',
-                background: 'linear-gradient(135deg, #3B82F6, #10B981)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                minHeight: '56px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-              }}
-            >
-              ✨ Improve My Photo
-            </button>
-
-            <button
-              onClick={() => router.push(`/keywords/${params.id}`)}
-              style={{
-                padding: '16px 32px',
-                background: 'rgba(59, 130, 246, 0.1)',
-                color: '#60A5FA',
-                border: '1px solid #3B82F6',
-                borderRadius: '8px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                minHeight: '56px'
-              }}
-            >
-              Skip to Keywords →
-            </button>
-          </div>
         </div>
       </Container>
 
       {/* Mobile Responsive */}
       <style jsx>{`
         @media (max-width: 768px) {
-          .grid-container {
+          div[style*="gridTemplateColumns"] {
             grid-template-columns: 1fr !important;
           }
         }
       `}</style>
-    </div>
+    </StepLayout>
   );
 }

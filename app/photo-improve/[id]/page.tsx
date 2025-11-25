@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Container, Card } from '@/components/ui';
+import { Container, Card, Button } from '@/components/ui';
+import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
 import tokens from '@/design-system/tokens.json';
 
 export default function PhotoImprovePage() {
   const router = useRouter();
   const params = useParams();
   const [isImproving, setIsImproving] = useState(true);
-  const [selectedVersion, setSelectedVersion] = useState<'original' | 'improved'>('improved');
+  const [selectedVersion, setSelectedVersion] = useState<'original' | 'improved'>('original');
   const [photoData, setPhotoData] = useState<any>(null);
 
   useEffect(() => {
@@ -30,13 +31,12 @@ export default function PhotoImprovePage() {
         return;
       }
 
-      // TODO: Wire up to actual image improvement API
-      // For now, skip this step automatically
+      // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setPhotoData({
         original: state.photo.original,
-        improved: state.photo.original, // Same as original - AI enhancement coming soon
+        improved: state.photo.original,
         improvements: [
           'AI photo enhancement feature coming soon',
           'For now, using your original photo',
@@ -51,30 +51,34 @@ export default function PhotoImprovePage() {
   };
 
   const handleContinue = () => {
-    // Save selection and continue to keywords
-    router.push(`/keywords/${params.id}?photo=${selectedVersion}`);
+    router.push(`/keywords/${params.id}`);
   };
 
   if (isImproving) {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+        background: tokens.colors.background,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{
-            width: '64px',
-            height: '64px',
-            border: '4px solid #374151',
-            borderTopColor: '#3B82F6',
-            borderRadius: '50%',
+            width: tokens.spacing[16],
+            height: tokens.spacing[16],
+            border: `4px solid ${tokens.colors.surface2}`,
+            borderTopColor: tokens.colors.primary,
+            borderRadius: tokens.radius.full,
             animation: 'spin 1s linear infinite',
-            margin: '0 auto 24px'
+            margin: `0 auto ${tokens.spacing[6]}`
           }} />
-          <p style={{ fontSize: '18px', color: '#9CA3AF' }}>Improving your photo...</p>
+          <p style={{ 
+            fontSize: tokens.typography.fontSize.lg, 
+            color: tokens.colors.textMuted 
+          }}>
+            Preparing your photo...
+          </p>
         </div>
         <style jsx>{`
           @keyframes spin {
@@ -87,101 +91,88 @@ export default function PhotoImprovePage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-      paddingTop: '40px',
-      paddingBottom: '80px'
-    }}>
+    <StepLayout
+      header={
+        <>
+          <ProgressIndicator currentStep={3} />
+          <h1 style={{
+            fontSize: tokens.typography.fontSize['3xl'],
+            fontWeight: tokens.typography.fontWeight.bold,
+            color: tokens.colors.text,
+            marginBottom: tokens.spacing[3],
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: tokens.spacing[3]
+          }}>
+            Step 3: Photo Improvement
+            <InfoTooltip text="AI photo enhancement coming soon" />
+          </h1>
+          <p style={{
+            fontSize: tokens.typography.fontSize.lg,
+            color: tokens.colors.textMuted
+          }}>
+            Compare your original photo with enhanced version (coming soon)
+          </p>
+        </>
+      }
+      footer={
+        <>
+          <Button variant="secondary" size="lg" onClick={() => router.back()}>
+            ← Back
+          </Button>
+          <Button variant="primary" size="lg" onClick={handleContinue}>
+            Continue to Keywords →
+          </Button>
+        </>
+      }
+    >
       <Container>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{
-            textAlign: 'center',
-            marginBottom: '40px'
-          }}>
-            <h1 style={{
-              fontSize: '36px',
-              fontWeight: 'bold',
-              color: '#F9FAFB',
-              marginBottom: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px'
-            }}>
-              Step 3: Photo Improvement
-              <span
-                title="See how your image improves after cleaning and sharpening"
-                style={{
-                  width: '28px',
-                  height: '28px',
-                  background: '#3B82F6',
-                  borderRadius: '50%',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  cursor: 'help'
-                }}
-              >{"ℹ"}</span>
-            </h1>
-            <p style={{
-              fontSize: '18px',
-              color: '#9CA3AF'
-            }}>
-              Compare your original photo with our AI-enhanced version
-            </p>
-          </div>
-
           {/* Before/After Comparison */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '32px',
-            marginBottom: '40px'
-          }}
-          className="comparison-grid"
-          >
+            gap: tokens.spacing[8],
+            marginBottom: tokens.spacing[10]
+          }}>
             {/* Original */}
             <div>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '16px'
+                marginBottom: tokens.spacing[4]
               }}>
                 <h3 style={{
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  color: '#F9FAFB'
+                  fontSize: tokens.typography.fontSize.xl,
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.text
                 }}>
                   Original
                 </h3>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
                   <input
                     type="radio"
-                    name="photoVersion"
+                    name="photo"
                     checked={selectedVersion === 'original'}
                     onChange={() => setSelectedVersion('original')}
-                    style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#3B82F6' }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
-                  <span style={{ fontSize: '16px', color: '#D1D5DB', fontWeight: 600 }}>
-                    Keep Original
-                  </span>
+                  <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.textMuted }}>Keep Original</span>
                 </label>
               </div>
               <Card>
                 <div style={{ padding: 0 }}>
                   <img
                     src={photoData.original}
-                    alt="Original photo"
+                    alt="Original"
                     style={{
                       width: '100%',
                       height: '400px',
-                      objectFit: 'cover',
-                      borderRadius: '12px',
-                      border: selectedVersion === 'original' ? '3px solid #3B82F6' : 'none'
+                      objectFit: 'contain',
+                      borderRadius: tokens.radius.xl,
+                      background: tokens.colors.surface
                     }}
                   />
                 </div>
@@ -194,42 +185,41 @@ export default function PhotoImprovePage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '16px'
+                marginBottom: tokens.spacing[4]
               }}>
                 <h3 style={{
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  color: '#F9FAFB',
+                  fontSize: tokens.typography.fontSize.xl,
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.success,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: tokens.spacing[2]
                 }}>
                   Improved ✨
                 </h3>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], cursor: 'pointer' }}>
                   <input
                     type="radio"
-                    name="photoVersion"
+                    name="photo"
                     checked={selectedVersion === 'improved'}
                     onChange={() => setSelectedVersion('improved')}
-                    style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#10B981' }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
                   />
-                  <span style={{ fontSize: '16px', color: '#D1D5DB', fontWeight: 600 }}>
-                    Use Improved
-                  </span>
+                  <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.textMuted }}>Use Improved</span>
                 </label>
               </div>
               <Card>
-                <div style={{ padding: 0 }}>
+                <div style={{ padding: 0, position: 'relative' }}>
                   <img
                     src={photoData.improved}
-                    alt="Improved photo"
+                    alt="Improved"
                     style={{
                       width: '100%',
                       height: '400px',
-                      objectFit: 'cover',
-                      borderRadius: '12px',
-                      border: selectedVersion === 'improved' ? '3px solid #10B981' : 'none'
+                      objectFit: 'contain',
+                      borderRadius: tokens.radius.xl,
+                      background: tokens.colors.surface,
+                      border: selectedVersion === 'improved' ? `3px solid ${tokens.colors.success}` : 'none'
                     }}
                   />
                 </div>
@@ -237,33 +227,20 @@ export default function PhotoImprovePage() {
             </div>
           </div>
 
-          {/* Improvements List */}
+          {/* What We Improved */}
           <Card>
-            <div style={{ padding: '32px' }}>
+            <div style={{ padding: tokens.spacing[6] }}>
               <h3 style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: '#F9FAFB',
-                marginBottom: '16px',
+                fontSize: tokens.typography.fontSize.xl,
+                fontWeight: tokens.typography.fontWeight.bold,
+                color: tokens.colors.text,
+                marginBottom: tokens.spacing[4],
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: tokens.spacing[2]
               }}>
-                🎨 What We Improved
-                <span
-                  title="Automatic enhancements made to your photo"
-                  style={{
-                    width: '20px',
-                    height: '20px',
-                    background: '#3B82F6',
-                    borderRadius: '50%',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    cursor: 'help'
-                  }}
-                >{"ℹ"}</span>
+                💡 What We Improved
+                <InfoTooltip text="Enhancement features coming soon" />
               </h3>
               <ul style={{
                 listStyle: 'none',
@@ -274,16 +251,16 @@ export default function PhotoImprovePage() {
                   <li
                     key={index}
                     style={{
-                      padding: '12px 0',
-                      borderBottom: index < photoData.improvements.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none',
-                      fontSize: '16px',
-                      color: '#D1D5DB',
+                      padding: `${tokens.spacing[3]} 0`,
+                      borderBottom: index < photoData.improvements.length - 1 ? `1px solid ${tokens.colors.border}` : 'none',
+                      fontSize: tokens.typography.fontSize.base,
+                      color: tokens.colors.textMuted,
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px'
+                      alignItems: 'start',
+                      gap: tokens.spacing[3]
                     }}
                   >
-                    <span style={{ color: '#10B981', fontSize: '20px' }}>✓</span>
+                    <span style={{ color: tokens.colors.success }}>✓</span>
                     <span>{improvement}</span>
                   </li>
                 ))}
@@ -291,74 +268,30 @@ export default function PhotoImprovePage() {
             </div>
           </Card>
 
-          {/* Action Buttons */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '16px',
-            marginTop: '40px'
-          }}>
-            <button
-              onClick={() => router.back()}
-              style={{
-                padding: '16px 32px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                color: '#EF4444',
-                border: '1px solid #EF4444',
-                borderRadius: '8px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                minHeight: '56px'
-              }}
-            >
-              ← Back
-            </button>
-
-            <button
-              onClick={handleContinue}
-              style={{
-                padding: '16px 48px',
-                background: 'linear-gradient(135deg, #3B82F6, #10B981)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                minHeight: '56px',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}
-            >
-              Continue to Keywords →
-            </button>
-          </div>
-
-          {/* Selection Summary */}
-          <div style={{
-            marginTop: '24px',
+            marginTop: tokens.spacing[8],
             textAlign: 'center',
-            fontSize: '14px',
-            color: '#9CA3AF'
+            padding: tokens.spacing[4],
+            background: `${tokens.colors.primary}0D`,
+            borderRadius: tokens.radius.lg,
+            border: `1px solid ${tokens.colors.border}`
           }}>
-            Using: <strong style={{ color: selectedVersion === 'improved' ? '#10B981' : '#60A5FA' }}>
-              {selectedVersion === 'improved' ? 'Improved Photo' : 'Original Photo'}
-            </strong>
+            <p style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.textMuted }}>
+              Using: <strong style={{ color: selectedVersion === 'improved' ? tokens.colors.success : tokens.colors.primary }}>
+                {selectedVersion === 'improved' ? 'Improved Photo' : 'Original Photo'}
+              </strong>
+            </p>
           </div>
         </div>
       </Container>
 
-      {/* Mobile Responsive */}
       <style jsx>{`
         @media (max-width: 768px) {
-          .comparison-grid {
+          div[style*="gridTemplateColumns"] {
             grid-template-columns: 1fr !important;
           }
         }
       `}</style>
-    </div>
+    </StepLayout>
   );
 }
