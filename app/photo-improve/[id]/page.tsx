@@ -31,18 +31,16 @@ export default function PhotoImprovePage() {
       }
 
       // TODO: Wire up to actual image improvement API
-      // For now, show original image on both sides
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // For now, skip this step automatically
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setPhotoData({
         original: state.photo.original,
-        improved: state.photo.original, // TODO: Replace with actual improved image from AI
+        improved: state.photo.original, // Same as original - AI enhancement coming soon
         improvements: [
-          'Enhanced brightness by 15%',
-          'Sharpened product details',
-          'Removed background noise',
-          'Improved color saturation',
-          'Cropped to better composition'
+          'AI photo enhancement feature coming soon',
+          'For now, using your original photo',
+          'Continue to keywords to optimize your listing text'
         ]
       });
     } catch (error) {
