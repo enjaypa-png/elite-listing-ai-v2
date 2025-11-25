@@ -1,433 +1,602 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-interface SEOAuditRequest {
-  platform: string;
-  title: string;
-  description: string;
-  tags: string;
-  category?: string;
-  price?: number;
-  imageUrl?: string;
-  photoCount?: number;
+// ==============================================
+// ETSY 285-POINT OPTIMIZATION SYSTEM
+// ==============================================
+interface EtsyScoreResult {
+  score: number;
+  maxScore: number;
+  percentage: number;
+  issues: string[];
+  suggestions: string[];
+  details?: any;
 }
 
-interface SEOIssue {
-  severity: 'critical' | 'warning' | 'info';
-  category: string;
-  issue: string;
-  suggestion: string;
-  impact: string;
-  pointsLost: number;
+// 1. TITLE OPTIMIZATION (65 points)
+// =====================================
+function analyzeTitleOptimizationEtsy(
+  title: string,
+  keywords: string[]
+): EtsyScoreResult {
+  let score = 0;
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+  const maxScore = 65;
+
+  // Rule 1: Length (15 points)
+  const length = title.length;
+  if (length >= 50 && length <= 110) {
+    score += 15;
+  } else if (length < 50) {
+    issues.push(`Title too short (${length} chars, need 50-110)`);
+    suggestions.push('Add descriptive keywords to reach 50-110 characters');
+    score += Math.round((length / 50) * 15);
+  } else {
+    issues.push(`Title too long (${length} chars, max 110)`);
+    suggestions.push('Shorten to 110 characters or less');
+    score += 5;
+  }
+
+  // Rule 2: Primary Keyword Placement (15 points)
+  if (keywords.length > 0) {
+    const words = title.toLowerCase().split(/\\s+/);
+    const primaryKeyword = keywords[0].toLowerCase();
+    const keywordPosition = words.findIndex(word =>
+      word.includes(primaryKeyword) || primaryKeyword.includes(word)
+    );
+    if (keywordPosition === 0) {
+      score += 15;
+    } else if (keywordPosition >= 1 && keywordPosition <= 2) {
+      score += 10;
+      suggestions.push(`Move "${keywords[0]}" to the beginning of title`);
+    } else if (keywordPosition > 2) {
+      score += 5;
+      issues.push('Primary keyword not in first 3 words');
+      suggestions.push(`Start title with "${keywords[0]}"`);
+    } else {
+      issues.push('Primary keyword not found in title');
+      suggestions.push(`Include "${keywords[0]}" at the start of title`);
+    }
+  } else {
+    score += 7; // No keywords provided, give partial credit
+  }
+
+  // Rule 3: Keyword Density (10 points)
+  const keywordsFound = keywords.filter(kw =>
+    title.toLowerCase().includes(kw.toLowerCase())
+  ).length;
+  if (keywordsFound >= 2 && keywordsFound <= 4) {
+    score += 10;
+  } else if (keywordsFound > 4) {
+    score += 8;
+    issues.push('Too many keywords (may appear spammy)');
+    suggestions.push('Use 2-4 keywords naturally in title');
+  } else if (keywordsFound === 1) {
+    score += 5;
+    suggestions.push('Include 1-2 more relevant keywords');
+  } else {
+    issues.push('Not enough keywords in title');
+    suggestions.push('Include 2-4 relevant keywords');
+  }
+
+  // Rule 4: Readability No Keyword Stuffing (10 points)
+  const hasPipes = title.includes('|');
+  const hasExcessivePunctuation = (title.match(/[:|,]/g) || []).length > 3;
+  if (!hasPipes && !hasExcessivePunctuation) {
+    score += 10;
+  } else {
+    issues.push('Title appears keyword-stuffed or uses excessive separators');
+    suggestions.push('Write naturally without pipes (|) or excessive commas');
+  }
+
+  // Rule 5: No Pipes (5 points)
+  if (!hasPipes) {
+    score += 5;
+  } else {
+    issues.push('Remove pipe separators (|) - Etsy penalizes these');
+  }
+
+  // Rule 6: Material/Attribute Inclusion (5 points)
+  const materials = [
+    'ceramic', 'wood', 'metal', 'leather', 'cotton', 'silver', 'gold',
+    'handmade', 'vintage', 'custom', 'personalized', 'brass', 'copper',
+    'stainless', 'glass', 'crystal', 'canvas', 'linen', 'wool', 'silk'
+  ];
+  const hasMaterial = materials.some(mat =>
+    title.toLowerCase().includes(mat)
+  );
+  if (hasMaterial) {
+    score += 5;
+  } else {
+    suggestions.push('Include material or key attribute (e.g., "ceramic", "handmade")');
+  }
+
+  // Rule 7: Descriptive Adjectives (5 points)
+  const adjectives = [
+    'beautiful', 'unique', 'handmade', 'custom', 'personalized', 'vintage',
+    'modern', 'rustic', 'elegant', 'minimalist', 'bohemian', 'luxury',
+    'premium', 'artisan', 'handcrafted', 'exclusive', 'limited', 'rare'
+  ];
+  const adjectiveCount = adjectives.filter(adj =>
+    title.toLowerCase().includes(adj)
+  ).length;
+  if (adjectiveCount >= 2) {
+    score += 5;
+  } else if (adjectiveCount === 1) {
+    score += 3;
+    suggestions.push('Add one more descriptive adjective');
+  } else {
+    suggestions.push('Add descriptive adjectives (e.g., "handmade", "unique")');
+  }
+
+  return {
+    score,
+    maxScore,
+    percentage: Math.round((score / maxScore) * 100),
+    issues,
+    suggestions
+  };
 }
 
-interface SEOAuditResult {
+// 2. TAGS OPTIMIZATION (55 points)
+// =====================================
+function analyzeTagsOptimizationEtsy(
+  tags: string[],
+  title: string,
+  category: string
+): EtsyScoreResult {
+  let score = 0;
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+  const maxScore = 55;
+
+  // Rule 1: Tag Count (10 points)
+  const tagCount = tags.length;
+  if (tagCount === 13) {
+    score += 10;
+  } else if (tagCount >= 10) {
+    score += 7;
+    suggestions.push(`Add ${13 - tagCount} more tags to reach 13`);
+  } else if (tagCount >= 7) {
+    score += 5;
+    issues.push(`Only ${tagCount} tags used (need 13)`);
+    suggestions.push('Use all 13 available tag slots');
+  } else {
+    issues.push(`Only ${tagCount} tags used (need 13)`);
+    suggestions.push('Add more tags - you\'re missing significant search traffic');
+  }
+
+  // Rule 2: Multi-Word Tags (10 points)
+  const wordCounts = tags.map(tag => tag.trim().split(/\\s+/).length);
+  const avgWords = wordCounts.reduce((a, b) => a + b, 0) / (tags.length || 1);
+  if (avgWords >= 2) {
+    score += 10;
+  } else if (avgWords >= 1.5) {
+    score += 5;
+    suggestions.push('Use more multi-word phrases (e.g., "ceramic coffee mug" vs "mug")');
+  } else {
+    issues.push('Too many single-word tags');
+    suggestions.push('Replace single words with 2-3 word phrases');
+  }
+
+  // Rule 3: Long-Tail Keywords (10 points)
+  const longTailCount = tags.filter(tag =>
+    tag.trim().split(/\\s+/).length >= 3
+  ).length;
+  if (longTailCount >= 5) {
+    score += 10;
+  } else if (longTailCount >= 3) {
+    score += 7;
+    suggestions.push(`Add ${5 - longTailCount} more long-tail keywords (3+ words)`);
+  } else if (longTailCount >= 1) {
+    score += 3;
+    issues.push('Not enough long-tail keywords');
+    suggestions.push('Add specific 3-word phrases (e.g., "handmade ceramic coffee mug")');
+  } else {
+    issues.push('No long-tail keywords found');
+    suggestions.push('Add at least 5 long-tail keywords (3+ words each)');
+  }
+
+  // Rule 4: No Duplicates (5 points)
+  const uniqueTags = new Set(tags.map(t => t.toLowerCase().trim()));
+  if (uniqueTags.size === tags.length) {
+    score += 5;
+  } else {
+    issues.push('Duplicate tags found');
+    suggestions.push('Remove duplicate tags and add unique keywords');
+  }
+
+  // Rule 5: Match Title Keywords (10 points)
+  const titleWords = title.toLowerCase().split(/\\s+/);
+  const matchingTags = tags.filter(tag =>
+    titleWords.some(word => tag.toLowerCase().includes(word) && word.length > 3)
+  ).slice(0, 3).length;
+  if (matchingTags === 3) {
+    score += 10;
+  } else if (matchingTags === 2) {
+    score += 7;
+    suggestions.push('First 3 tags should match primary keywords from title');
+  } else if (matchingTags === 1) {
+    score += 3;
+    issues.push('Tags don\'t match title keywords well');
+  } else {
+    issues.push('Tags don\'t match title keywords');
+    suggestions.push('First 3 tags should match primary keywords from title');
+  }
+
+  // Rule 6: Regional Variants (5 points)
+  const needsVariants = ['jewelry', 'color', 'personalize', 'organize'];
+  const hasVariantWord = needsVariants.some(word =>
+    tags.some(tag => tag.toLowerCase().includes(word))
+  );
+  if (hasVariantWord) {
+    const variants: Record<string, string> = {
+      'jewelry': 'jewellery',
+      'color': 'colour',
+      'personalize': 'personalise',
+      'organize': 'organise'
+    };
+    const hasVariant = Object.values(variants).some(v =>
+      tags.some(tag => tag.toLowerCase().includes(v))
+    );
+    if (hasVariant) {
+      score += 5;
+    } else {
+      suggestions.push('Add regional spelling variants (e.g., "jewellery" for UK)');
+    }
+  } else {
+    score += 5; // N/A, give full credit
+  }
+
+  // Rule 7: No Category/Attribute Repeats (5 points)
+  const categoryWords = category.toLowerCase().split(/[\\s>/]+/);
+  const redundantTags = tags.filter(tag =>
+    categoryWords.some(cw => tag.toLowerCase() === cw && cw.length > 3)
+  );
+  if (redundantTags.length === 0) {
+    score += 5;
+  } else {
+    issues.push('Tags repeat category words');
+    suggestions.push(`Remove redundant tags: ${redundantTags.join(', ')}`);
+  }
+
+  return {
+    score,
+    maxScore,
+    percentage: Math.round((score / maxScore) * 100),
+    issues,
+    suggestions
+  };
+}
+
+// 3. DESCRIPTION OPTIMIZATION (55 points)
+// ======================================
+function analyzeDescriptionOptimizationEtsy(
+  description: string,
+  keywords: string[]
+): EtsyScoreResult {
+  let score = 0;
+  const issues: string[] = [];
+  const suggestions: string[] = [];
+  const maxScore = 55;
+
+  // Rule 1: Length (10 points)
+  const length = description.length;
+  if (length >= 500) {
+    score += 10;
+  } else if (length >= 200) {
+    score += 7;
+    suggestions.push('Expand description to 500+ characters for better SEO');
+  } else if (length >= 100) {
+    score += 3;
+    issues.push(`Description too short (${length} chars, need 500+)`);
+    suggestions.push('Write detailed description (500-1000 characters)');
+  } else {
+    issues.push(`Description too short (${length} chars, need 500+)`);
+    suggestions.push('Write a comprehensive product description');
+  }
+
+  // Rule 2: Keywords in First Sentence (15 points)
+  const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  const firstTwoSentences = sentences.slice(0, 2).join(' ').toLowerCase();
+  const keywordsInIntro = keywords.filter(kw =>
+    firstTwoSentences.includes(kw.toLowerCase())
+  ).length;
+  if (keywordsInIntro >= 3) {
+    score += 15;
+  } else if (keywordsInIntro === 2) {
+    score += 10;
+    suggestions.push('Add one more keyword to first 2 sentences');
+  } else if (keywordsInIntro === 1) {
+    score += 5;
+    issues.push('Not enough keywords in opening sentences');
+    suggestions.push('Include 2-3 keywords in first 2 sentences');
+  } else {
+    issues.push('No keywords in first 2 sentences');
+    suggestions.push('Start description with primary keywords');
+  }
+
+  // Rule 3: Keyword Density (10 points)
+  const words = description.toLowerCase().split(/\\s+/).filter(w => w.length > 0);
+  const keywordOccurrences = keywords.reduce((count, kw) => {
+    const regex = new RegExp(kw.toLowerCase().replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'), 'g');
+    return count + (description.toLowerCase().match(regex) || []).length;
+  }, 0);
+  const density = words.length > 0 ? (keywordOccurrences / words.length) * 100 : 0;
+  if (density >= 1 && density <= 2) {
+    score += 10;
+  } else if ((density >= 0.5 && density < 1) || (density > 2 && density <= 3)) {
+    score += 5;
+    if (density < 1) {
+      suggestions.push('Naturally include keywords 1-2 more times');
+    } else {
+      suggestions.push('Reduce keyword repetition (appears spammy)');
+    }
+  } else {
+    issues.push(`Keyword density ${density.toFixed(1)}% (target: 1-2%)`);
+    if (density < 0.5) {
+      suggestions.push('Include keywords more frequently (target 1-2% density)');
+    } else {
+      suggestions.push('Reduce keyword stuffing (target 1-2% density)');
+    }
+  }
+
+  // Rule 4: Readability (5 points)
+  const hasExcessiveKeywords = density > 3;
+  const hasParagraphs = description.includes('\\n\\n') || description.includes('\\n');
+  if (!hasExcessiveKeywords && hasParagraphs) {
+    score += 5;
+  } else {
+    if (hasExcessiveKeywords) {
+      issues.push('Description appears keyword-stuffed');
+    }
+    if (!hasParagraphs) {
+      suggestions.push('Break into paragraphs for readability');
+    }
+  }
+
+  // Rule 5: Product Details (10 points)
+  const hasDimensions = /\\d+\\s*(inch|cm|mm|\"|'|x|×)/i.test(description);
+  const hasMaterials = /(made of|material|ceramic|wood|metal|leather|cotton|silver|gold)/i.test(description);
+  const hasUses = /(perfect for|great for|ideal for|use for|suitable for)/i.test(description);
+  const detailsCount = [hasDimensions, hasMaterials, hasUses].filter(Boolean).length;
+  if (detailsCount === 3) {
+    score += 10;
+  } else if (detailsCount === 2) {
+    score += 7;
+    if (!hasDimensions) suggestions.push('Add dimensions/size');
+    if (!hasMaterials) suggestions.push('Mention materials used');
+    if (!hasUses) suggestions.push('Describe use cases or occasions');
+  } else if (detailsCount === 1) {
+    score += 3;
+    issues.push('Missing product details');
+    if (!hasDimensions) suggestions.push('Add dimensions/size');
+    if (!hasMaterials) suggestions.push('Mention materials used');
+    if (!hasUses) suggestions.push('Describe use cases or occasions');
+  } else {
+    issues.push('Missing product details');
+    suggestions.push('Add dimensions, materials, and use cases');
+  }
+
+  // Rule 6: Call-to-Action (5 points)
+  const ctaPhrases = [
+    'order now', 'buy now', 'add to cart', 'purchase', 'shop now',
+    'message me', 'contact me', 'questions', 'custom order', 'get yours'
+  ];
+  const hasCTA = ctaPhrases.some(phrase =>
+    description.toLowerCase().includes(phrase)
+  );
+  if (hasCTA) {
+    score += 5;
+  } else {
+    suggestions.push('Add call-to-action (e.g., "Order now" or "Message me with questions")');
+  }
+
+  return {
+    score,
+    maxScore,
+    percentage: Math.round((score / maxScore) * 100),
+    issues,
+    suggestions,
+    details: {
+      length,
+      keywordDensity: density.toFixed(2),
+      hasDimensions,
+      hasMaterials,
+      hasUses,
+      hasCTA
+    }
+  };
+}
+
+// 4. CALCULATE OVERALL OPPORTUNITY SCORE
+// =======================================
+function calculateOverallOpportunityScore(
+  titleResult: EtsyScoreResult,
+  tagsResult: EtsyScoreResult,
+  descriptionResult: EtsyScoreResult,
+  photoCount: number
+): {
   overallScore: number;
   maxScore: number;
   percentage: number;
-  categoryScores: {
-    titleOptimization: { score: number; max: number };
-    descriptionQuality: { score: number; max: number };
-    tagEffectiveness: { score: number; max: number };
-    imageOptimization: { score: number; max: number };
-    pricingStrategy: { score: number; max: number };
-    metadataCompleteness: { score: number; max: number };
-  };
-  issues: SEOIssue[];
-  strengths: string[];
-  recommendations: string[];
-  algorithmBreakdown: {
-    listingQualityScore: string;
-    conversionPotential: string;
-    customerExperience: string;
-    overallRanking: string;
-  };
-  detailedAnalysis: {
-    keywordDensity: number;
-    readabilityScore: number;
-    titleLength: number;
-    descriptionLength: number;
-    tagCount: number;
-    primaryKeywordPosition: number;
-    buyerIntentScore: number;
-    mobileOptimizationScore: number;
-  };
-}
+  opportunityPercentage: number;
+  breakdown: any;
+  priorityIssues: string[];
+  quickWins: string[];
+} {
+  const photoMaxScore = 65;
+  // Attributes and category (simplified - not implemented yet)
+  const attributesScore = 12; // Placeholder
+  const attributesMaxScore = 25;
+  const categoryScore = 10; // Placeholder
+  const categoryMaxScore = 20;
 
-// Analyze title with 285-point system
-function analyzeTitleOptimization(title: string, platform: string): { score: number; max: number; issues: SEOIssue[] } {
-  const issues: SEOIssue[] = [];
-  let score = 50; // Max points for title in 285-point system
-  const max = 50;
-  
-  const titleLength = title.length;
-  const words = title.split(/\s+/);
-  
-  // Rule 1: Primary keyword in first 5 words (15 points)
-  const firstFiveWords = words.slice(0, 5).join(' ').toLowerCase();
-  if (words.length < 3) {
-    issues.push({
-      severity: 'critical',
-      category: 'Title Keywords',
-      issue: 'Title too short - likely missing primary keyword in first 5 words',
-      suggestion: 'Start title with your primary keyword phrase (2-3 words)',
-      impact: 'Missing 15 points - primary keyword positioning is critical for algorithm',
-      pointsLost: 15
-    });
-    score -= 15;
-  }
-  
-  // Rule 2: Buyer intent phrases (10 points)
-  const buyerIntentPhrases = ['gift for', 'personalized', 'custom', 'unique', 'handmade', 'wedding', 'birthday', 'anniversary'];
-  const hasBuyerIntent = buyerIntentPhrases.some(phrase => title.toLowerCase().includes(phrase));
-  if (!hasBuyerIntent) {
-    issues.push({
-      severity: 'warning',
-      category: 'Buyer Intent',
-      issue: 'No buyer intent phrases detected (e.g., "gift for", "personalized")',
-      suggestion: 'Add buyer intent language to improve conversion rate (25% algorithm weight)',
-      impact: 'Missing 10 points - reduced conversion signals',
-      pointsLost: 10
-    });
-    score -= 10;
-  }
-  
-  // Rule 3: Readability (10 points)
-  const keywordStuffing = /(\w+)(\s+\1){2,}/gi.test(title);
-  if (keywordStuffing) {
-    issues.push({
-      severity: 'critical',
-      category: 'Readability',
-      issue: 'Keyword stuffing detected - algorithm penalizes this in 2025',
-      suggestion: 'Rewrite title naturally while keeping key terms',
-      impact: 'Penalty: -10 points + potential algorithmic suppression',
-      pointsLost: 10
-    });
-    score -= 10;
-  }
-  
-  // Rule 4: Character count 60-140 (5 points)
-  if (titleLength < 60) {
-    issues.push({
-      severity: 'warning',
-      category: 'Title Length',
-      issue: `Title too short (${titleLength} chars) - optimal is 60-140 for Etsy`,
-      suggestion: 'Expand to 80-120 characters with descriptive keywords',
-      impact: 'Missing 5 points - opportunity for more keywords',
-      pointsLost: 5
-    });
-    score -= 5;
-  } else if (titleLength > 140) {
-    issues.push({
-      severity: 'warning',
-      category: 'Title Length',
-      issue: `Title too long (${titleLength} chars) - truncated in mobile search`,
-      suggestion: 'Reduce to 140 characters or less',
-      impact: '44% of Etsy traffic is mobile - truncation reduces CTR',
-      pointsLost: 5
-    });
-    score -= 5;
-  }
-  
-  // Rule 5: Multi-word phrases (5 points)
-  const singleWords = words.filter(w => w.length > 3);
-  const avgWordLength = singleWords.reduce((sum, w) => sum + w.length, 0) / singleWords.length;
-  if (avgWordLength < 5) {
-    issues.push({
-      severity: 'info',
-      category: 'Keyword Strategy',
-      issue: 'Title uses mostly short, single words',
-      suggestion: 'Use multi-word phrases (e.g., "modern wall art" vs "art wall modern")',
-      impact: 'Multi-word phrases perform better in 2025 algorithm',
-      pointsLost: 5
-    });
-    score -= 5;
-  }
-  
-  return { score: Math.max(0, score), max, issues };
-}
+  const totalScore =
+    titleResult.score +
+    tagsResult.score +
+    descriptionResult.score +
+    Math.min(photoCount * 6.5, photoMaxScore) + // Photo score (simplified)
+    attributesScore +
+    categoryScore;
 
-// Analyze tags with 285-point system
-function analyzeTagEffectiveness(tags: string, platform: string): { score: number; max: number; issues: SEOIssue[] } {
-  const issues: SEOIssue[] = [];
-  let score = 35; // Max points for tags
-  const max = 35;
-  
-  const tagArray = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
-  
-  // Rule 1: 13 tags used (10 points)
-  if (tagArray.length < 13) {
-    issues.push({
-      severity: 'critical',
-      category: 'Tag Count',
-      issue: `Only ${tagArray.length}/13 tags used`,
-      suggestion: `Add ${13 - tagArray.length} more tags - each tag is a search opportunity`,
-      impact: 'Missing 10 points + losing search visibility',
-      pointsLost: 10
-    });
-    score -= 10;
-  }
-  
-  // Rule 3: Long-tail variations (7 points)
-  const longTailTags = tagArray.filter(t => t.split(/\s+/).length >= 3);
-  if (longTailTags.length < 5) {
-    issues.push({
-      severity: 'warning',
-      category: 'Tag Strategy',
-      issue: `Only ${longTailTags.length} long-tail tags (need 5+ for niche targeting)`,
-      suggestion: 'Add 3-word phrase tags like "boho nursery wall art" for niche searches',
-      impact: 'Missing 7 points - long-tail = less competition',
-      pointsLost: 7
-    });
-    score -= 7;
-  }
-  
-  // Rule 4: No duplicates (5 points)
-  const uniqueTags = new Set(tagArray.map(t => t.toLowerCase()));
-  if (uniqueTags.size < tagArray.length) {
-    issues.push({
-      severity: 'warning',
-      category: 'Tag Quality',
-      issue: 'Duplicate tags detected - wasting slots',
-      suggestion: 'Replace duplicates with unique keywords',
-      impact: 'Missing 5 points + lost search opportunities',
-      pointsLost: 5
-    });
-    score -= 5;
-  }
-  
-  return { score: Math.max(0, score), max, issues };
-}
+  const maxScore = 285;
+  const percentage = Math.round((totalScore / maxScore) * 100);
+  const opportunityPercentage = 100 - percentage;
 
-// Analyze description with 285-point system
-function analyzeDescriptionQuality(description: string): { score: number; max: number; issues: SEOIssue[] } {
-  const issues: SEOIssue[] = [];
-  let score = 30; // Max points for description
-  const max = 30;
-  
-  const descLength = description.length;
-  
-  // Rule 1: First 160 characters compelling + keyword-rich (10 points)
-  if (descLength < 160) {
-    issues.push({
-      severity: 'critical',
-      category: 'Description Length',
-      issue: 'Description shorter than 160 characters (shows in preview)',
-      suggestion: 'Write compelling 160+ char opening with primary keyword',
-      impact: 'Missing 10 points - first 160 chars appear in search results',
-      pointsLost: 10
-    });
-    score -= 10;
-  }
-  
-  // Rule 2: Benefits-focused language (10 points)
-  const benefitWords = ['perfect', 'great', 'ideal', 'best', 'quality', 'unique', 'special', 'beautiful'];
-  const hasBenefits = benefitWords.some(word => description.toLowerCase().includes(word));
-  if (!hasBenefits) {
-    issues.push({
-      severity: 'warning',
-      category: 'Description Quality',
-      issue: 'Description lacks benefit-focused language',
-      suggestion: 'Highlight why buyers should choose this (quality, uniqueness, value)',
-      impact: 'Missing 10 points - benefits drive conversion (25% algorithm weight)',
-      pointsLost: 10
-    });
-    score -= 10;
-  }
-  
-  // Rule 3: Formatting/structure (5 points)
-  const hasLineBreaks = description.includes('\n') || description.match(/\n\n/);
-  if (!hasLineBreaks && descLength > 200) {
-    issues.push({
-      severity: 'info',
-      category: 'Formatting',
-      issue: 'No paragraph breaks - difficult to read',
-      suggestion: 'Break into 2-3 paragraphs for better mobile readability',
-      impact: 'Missing 5 points - readability affects conversion',
-      pointsLost: 5
-    });
-    score -= 5;
-  }
-  
-  // Additional check: Too short overall
-  if (descLength < 300) {
-    issues.push({
-      severity: 'critical',
-      category: 'Description Length',
-      issue: `Description too short (${descLength} chars) - aim for 300-1000`,
-      suggestion: 'Add: materials, dimensions, use cases, care instructions, benefits',
-      impact: 'Insufficient content for algorithm to understand product',
-      pointsLost: 0 // Already penalized above
-    });
-  }
-  
-  return { score: Math.max(0, score), max, issues };
-}
+  // Collect all issues
+  const allIssues = [
+    ...titleResult.issues,
+    ...tagsResult.issues,
+    ...descriptionResult.issues
+  ];
 
-// Analyze images (based on count)
-function analyzeImageOptimization(photoCount: number = 0): { score: number; max: number; issues: SEOIssue[] } {
-  const issues: SEOIssue[] = [];
-  let score = 70; // Max points for images in 285-point system
-  const max = 70;
-  
-  // Rule: 5+ photos strongly recommended (Etsy shows 10 slots)
-  if (photoCount < 5) {
-    const pointsLost = (5 - photoCount) * 14; // ~14 points per missing photo
-    issues.push({
-      severity: 'critical',
-      category: 'Image Count',
-      issue: `Only ${photoCount} photos (Etsy allows 10, recommends 5+ minimum)`,
-      suggestion: `Add ${5 - photoCount} more photos - listings with 10 photos get 40% more views`,
-      impact: `Missing ${pointsLost} points - images = 70 points in algorithm`,
-      pointsLost: pointsLost
-    });
-    score -= pointsLost;
-  } else if (photoCount < 10) {
-    const pointsLost = (10 - photoCount) * 5;
-    issues.push({
-      severity: 'warning',
-      category: 'Image Count',
-      issue: `${photoCount}/10 photos used`,
-      suggestion: `Add ${10 - photoCount} more photos for maximum visibility`,
-      impact: `Missing ${pointsLost} points - 10 photos = 40% more views`,
-      pointsLost: pointsLost
-    });
-    score -= pointsLost;
-  }
-  
-  return { score: Math.max(0, score), max, issues };
-}
+  // Collect all suggestions
+  const allSuggestions = [
+    ...titleResult.suggestions,
+    ...tagsResult.suggestions,
+    ...descriptionResult.suggestions
+  ];
 
-export async function POST(request: NextRequest) {
-  // Check for API key first
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('OPENAI_API_KEY is not set');
-    return NextResponse.json(
-      { 
-        error: 'OpenAI API key not configured',
-        details: 'OPENAI_API_KEY environment variable is missing'
+  return {
+    overallScore: totalScore,
+    maxScore,
+    percentage,
+    opportunityPercentage,
+    breakdown: {
+      title: {
+        score: titleResult.score,
+        maxScore: titleResult.maxScore,
+        percentage: titleResult.percentage
       },
-      { status: 500 }
-    );
-  }
+      tags: {
+        score: tagsResult.score,
+        maxScore: tagsResult.maxScore,
+        percentage: tagsResult.percentage
+      },
+      description: {
+        score: descriptionResult.score,
+        maxScore: descriptionResult.maxScore,
+        percentage: descriptionResult.percentage
+      },
+      photos: {
+        score: Math.min(photoCount * 6.5, photoMaxScore),
+        maxScore: photoMaxScore,
+        percentage: Math.round((Math.min(photoCount * 6.5, photoMaxScore) / photoMaxScore) * 100)
+      },
+      attributes: {
+        score: attributesScore,
+        maxScore: attributesMaxScore,
+        percentage: Math.round((attributesScore / attributesMaxScore) * 100)
+      },
+      category: {
+        score: categoryScore,
+        maxScore: categoryMaxScore,
+        percentage: Math.round((categoryScore / categoryMaxScore) * 100)
+      }
+    },
+    priorityIssues: allIssues.slice(0, 5),
+    quickWins: allSuggestions.slice(0, 5)
+  };
+}
 
+// ==============================================
+// POST HANDLER - UPGRADED 285-POINT SYSTEM
+// ==============================================
+export async function POST(request: NextRequest) {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
   });
-  
+
   try {
-    const body: SEOAuditRequest = await request.json();
-    const { platform, title, description, tags, category, price, photoCount = 0 } = body;
-    
+    const body = await request.json();
+    const { platform, title, description, tags, category, price, imageUrl, keywords } = body;
+
+    // Validate required fields
     if (!platform || !title || !description || !tags) {
       return NextResponse.json(
         { error: 'Missing required fields: platform, title, description, tags' },
         { status: 400 }
       );
     }
-    
-    console.log('Running 285-point SEO audit for:', { title, platform, photoCount });
-    
-    // Perform analysis with 285-point system
-    const titleAnalysis = analyzeTitleOptimization(title, platform);
-    const descriptionAnalysis = analyzeDescriptionQuality(description);
-    const tagAnalysis = analyzeTagEffectiveness(tags, platform);
-    const imageAnalysis = analyzeImageOptimization(photoCount);
-    
-    // Calculate pricing score (simplified - in production would check competitiveness)
-    const pricingScore = price && price > 0 ? 23 : 0;
-    const pricingMax = 23;
-    
-    // Calculate metadata score
-    const metadataScore = (
-      (title.length > 0 ? 7 : 0) +
-      (description.length >= 200 ? 7 : 0) +
-      (tags.split(',').length >= 10 ? 7 : 0) +
-      (category ? 7 : 0)
-    );
-    const metadataMax = 28;
-    
-    const categoryScores = {
-      titleOptimization: { score: titleAnalysis.score, max: titleAnalysis.max },
-      descriptionQuality: { score: descriptionAnalysis.score, max: descriptionAnalysis.max },
-      tagEffectiveness: { score: tagAnalysis.score, max: tagAnalysis.max },
-      imageOptimization: { score: imageAnalysis.score, max: imageAnalysis.max },
-      pricingStrategy: { score: pricingScore, max: pricingMax },
-      metadataCompleteness: { score: metadataScore, max: metadataMax }
-    };
-    
-    // Calculate overall score out of 285
-    const overallScore = 
-      titleAnalysis.score + 
-      descriptionAnalysis.score + 
-      tagAnalysis.score + 
-      imageAnalysis.score + 
-      pricingScore + 
-      metadataScore;
-    
-    const maxScore = 285;
-    const percentage = Math.round((overallScore / maxScore) * 100);
-    
-    // Collect all issues
-    const allIssues: SEOIssue[] = [
-      ...titleAnalysis.issues,
-      ...descriptionAnalysis.issues,
-      ...tagAnalysis.issues,
-      ...imageAnalysis.issues
-    ];
-    
-    // Calculate detailed metrics
-    const titleWords = title.split(/\s+/);
-    const primaryKeyword = titleWords.slice(0, 3).join(' ').toLowerCase();
-    const keywordMatches = description.toLowerCase().match(new RegExp(primaryKeyword, 'g'));
-    const keywordDensity = keywordMatches ? (keywordMatches.length / description.split(/\s+/).length * 100) : 0;
-    
-    const buyerIntentWords = ['gift', 'personalized', 'custom', 'unique', 'handmade', 'wedding', 'birthday'];
-    const buyerIntentScore = Math.min(100, buyerIntentWords.filter(word => 
-      title.toLowerCase().includes(word) || description.toLowerCase().includes(word)
-    ).length * 15);
-    
-    const mobileOptimizationScore = Math.min(100, 
-      (title.length <= 140 ? 50 : 30) + 
-      (photoCount >= 5 ? 50 : photoCount * 10)
-    );
-    
-    // Get AI insights
-    const aiPrompt = `Analyze this ${platform} listing against Etsy's 2025 algorithm (285-point system):
 
+    // Parse tags
+    const tagArray = typeof tags === 'string'
+      ? tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
+      : tags;
+
+    // Extract keywords from title if not provided
+    const keywordList = keywords || [
+      ...title.split(/\\s+/).slice(0, 3).filter((w: string) => w.length > 3)
+    ];
+
+    // ===
+    // ETSY 285-POINT ANALYSIS
+    // ===
+
+    // 1. Analyze Title (65 points)
+    const titleAnalysis = analyzeTitleOptimizationEtsy(title, keywordList);
+
+    // 2. Analyze Tags (55 points)
+    const tagsAnalysis = analyzeTagsOptimizationEtsy(
+      tagArray,
+      title,
+      category || 'General'
+    );
+
+    // 3. Analyze Description (55 points)
+    const descriptionAnalysis = analyzeDescriptionOptimizationEtsy(
+      description,
+      keywordList
+    );
+
+    // 4. Calculate Overall Score (285 points)
+    const photoCount = imageUrl ? 1 : 0; // Will be updated when photo analysis is integrated
+    const overallAnalysis = calculateOverallOpportunityScore(
+      titleAnalysis,
+      tagsAnalysis,
+      descriptionAnalysis,
+      photoCount
+    );
+
+    // ===
+    // AI-POWERED RECOMMENDATIONS
+    // ===
+    const aiPrompt = `Analyze this ${platform} product listing and provide strategic recommendations:
+
+LISTING DATA:
 Title: ${title}
-Description: ${description.substring(0, 500)}...
-Tags: ${tags}
-Photos: ${photoCount}/10
+Description: ${description}
+Tags: ${tagArray.join(', ')}
 Category: ${category || 'Not specified'}
 
-Provide:
-1. 3 strengths aligned with algorithm priorities
-2. 3 specific recommendations to increase score
-3. Algorithm breakdown:
-   - Listing Quality Score assessment
-   - Conversion potential (3-4% target)
-   - Customer experience factors
-   - Overall ranking potential
+CURRENT SCORES:
+Title: ${titleAnalysis.percentage}% (${titleAnalysis.score}/${titleAnalysis.maxScore})
+Tags: ${tagsAnalysis.percentage}% (${tagsAnalysis.score}/${tagsAnalysis.maxScore})
+Description: ${descriptionAnalysis.percentage}% (${descriptionAnalysis.score}/${descriptionAnalysis.maxScore})
+Overall: ${overallAnalysis.percentage}% (${overallAnalysis.overallScore}/${overallAnalysis.maxScore})
+
+Based on this analysis, provide:
+1. Top 3 strengths of this listing
+2. Top 3 specific, actionable recommendations to improve the score
+3. Estimated ranking potential (Excellent/Good/Fair/Poor)
+4. Improvement potential percentage (0-100)
 
 Format as JSON:
 {
   "strengths": ["strength1", "strength2", "strength3"],
   "recommendations": ["rec1", "rec2", "rec3"],
-  "algorithmBreakdown": {
-    "listingQualityScore": "Assessment of CTR/conversion/images",
-    "conversionPotential": "Estimated % and factors",
-    "customerExperience": "Review/response time assessment",
-    "overallRanking": "Excellent/Good/Fair/Poor with reasoning"
-  }
+  "ranking": "Good",
+  "improvementPotential": 75
 }`;
-    
+
     const aiResponse = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini', // Using gpt-4o-mini for faster response
       messages: [
         {
           role: 'system',
-          content: 'You are an expert in Etsy\'s 2025 algorithm (285-point system). Provide specific, actionable advice based on: Listing Quality (30%), Conversion (25%), Customer Experience (15%), Recency (10%), Shipping (8%), CTR (7%), Shop Performance (3%), Personalization (2%).'
+          content: 'You are an expert in Etsy SEO optimization. Provide specific, actionable advice based on Etsy\'s 2025 algorithm.'
         },
         {
           role: 'user',
@@ -437,83 +606,73 @@ Format as JSON:
       response_format: { type: 'json_object' },
       temperature: 0.7,
     });
-    
+
     const aiAnalysis = JSON.parse(aiResponse.choices[0].message.content || '{}');
-    
-    const result: SEOAuditResult = {
-      overallScore,
-      maxScore,
-      percentage,
-      categoryScores,
-      issues: allIssues.sort((a, b) => b.pointsLost - a.pointsLost),
+
+    // ===
+    // RETURN COMPLETE ANALYSIS
+    // ===
+    return NextResponse.json({
+      success: true,
+      platform,
+      // Overall Scores
+      overallScore: overallAnalysis.percentage,
+      opportunityScore: overallAnalysis.opportunityPercentage,
+      totalPoints: overallAnalysis.overallScore,
+      maxPoints: overallAnalysis.maxScore,
+      // Component Breakdown
+      breakdown: overallAnalysis.breakdown,
+      // Detailed Analysis
+      titleAnalysis: {
+        score: titleAnalysis.score,
+        maxScore: titleAnalysis.maxScore,
+        percentage: titleAnalysis.percentage,
+        issues: titleAnalysis.issues,
+        suggestions: titleAnalysis.suggestions
+      },
+      tagsAnalysis: {
+        score: tagsAnalysis.score,
+        maxScore: tagsAnalysis.maxScore,
+        percentage: tagsAnalysis.percentage,
+        issues: tagsAnalysis.issues,
+        suggestions: tagsAnalysis.suggestions
+      },
+      descriptionAnalysis: {
+        score: descriptionAnalysis.score,
+        maxScore: descriptionAnalysis.maxScore,
+        percentage: descriptionAnalysis.percentage,
+        issues: descriptionAnalysis.issues,
+        suggestions: descriptionAnalysis.suggestions,
+        details: descriptionAnalysis.details
+      },
+      // Priority Actions
+      priorityIssues: overallAnalysis.priorityIssues,
+      quickWins: overallAnalysis.quickWins,
+      // AI Recommendations
       strengths: aiAnalysis.strengths || [],
       recommendations: aiAnalysis.recommendations || [],
-      algorithmBreakdown: aiAnalysis.algorithmBreakdown || {
-        listingQualityScore: 'Moderate - needs photo optimization',
-        conversionPotential: '2-3% estimated',
-        customerExperience: 'Cannot assess without shop data',
-        overallRanking: 'Fair'
-      },
-      detailedAnalysis: {
-        keywordDensity: parseFloat(keywordDensity.toFixed(2)),
-        readabilityScore: 75, // Simplified
-        titleLength: title.length,
-        descriptionLength: description.length,
-        tagCount: tags.split(',').filter(t => t.trim()).length,
-        primaryKeywordPosition: title.toLowerCase().indexOf(primaryKeyword),
-        buyerIntentScore,
-        mobileOptimizationScore
+      competitiveAnalysis: {
+        estimatedRanking: aiAnalysis.ranking || 'Good',
+        improvementPotential: aiAnalysis.improvementPotential || 50
       }
-    };
-    
-    console.log('285-point audit complete:', {
-      score: overallScore,
-      percentage,
-      criticalIssues: allIssues.filter(i => i.severity === 'critical').length
     });
-    
-    return NextResponse.json(result);
-    
   } catch (error: any) {
     console.error('SEO Audit Error:', error);
-    
-    // Enhanced error logging
-    const errorDetails = {
-      message: error.message || 'Unknown error',
-      stack: error.stack,
-      name: error.name,
-      apiKeyConfigured: !!process.env.OPENAI_API_KEY
-    };
-    
-    console.error('Full SEO audit error details:', JSON.stringify(errorDetails, null, 2));
-    
     return NextResponse.json(
-      { 
-        error: 'Failed to perform SEO audit', 
-        details: error.name === 'OpenAIError' ? 'OpenAI API error - check API key and quota' : error.message,
-        hasApiKey: !!process.env.OPENAI_API_KEY
-      },
+      { error: 'Failed to perform SEO audit', details: error.message },
       { status: 500 }
     );
   }
 }
 
-// GET endpoint for health check
+// Health check endpoint
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    endpoint: '/api/seo/audit',
-    status: 'ready',
+    status: 'R.A.N.K. 285™ SEO Audit endpoint ready',
+    model: 'gpt-4o-mini',
     hasApiKey: !!process.env.OPENAI_API_KEY,
-    model: 'gpt-4o',
-    scoringSystem: '285-point Etsy 2025 algorithm',
-    categories: {
-      title: '50 points',
-      tags: '35 points',
-      description: '30 points',
-      images: '70 points',
-      pricing: '23 points',
-      metadata: '28 points'
-    }
+    system: '285-Point Etsy Algorithm',
+    version: '2.0'
   });
 }
