@@ -609,7 +609,7 @@ Format as JSON:
 }`;
 
     const aiResponse = await openai.chat.completions.create({
-      model: 'gpt-4o-mini', // Using gpt-4o-mini for faster response
+      model: 'gpt-4o', // Using gpt-4o (your account has access to this)
       messages: [
         {
           role: 'system',
@@ -687,7 +687,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     status: 'R.A.N.K. 285™ SEO Audit endpoint ready',
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     hasApiKey: !!process.env.OPENAI_API_KEY,
     system: '285-Point Etsy Algorithm',
     version: '2.0'
