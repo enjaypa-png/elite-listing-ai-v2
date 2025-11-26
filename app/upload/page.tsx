@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Button, Card } from '@/components/ui';
 import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
+import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 
 export default function UploadPage() {
@@ -114,7 +115,11 @@ export default function UploadPage() {
   };
 
   return (
-    <StepLayout
+    <>
+      <TopNav />
+      <Breadcrumbs />
+      
+      <StepLayout
       header={
         <>
           <ProgressIndicator currentStep={1} />
@@ -285,6 +290,22 @@ export default function UploadPage() {
                       Upload a different photo
                     </span>
                   </label>
+                  
+                  {/* Skip to Dashboard */}
+                  <div style={{
+                    marginTop: tokens.spacing[6],
+                    textAlign: 'center',
+                    paddingTop: tokens.spacing[6],
+                    borderTop: `1px solid ${tokens.colors.border}`
+                  }}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push('/dashboard')}
+                    >
+                      ← Back to Dashboard
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -299,5 +320,6 @@ export default function UploadPage() {
         }
       `}</style>
     </StepLayout>
+    </>
   );
 }

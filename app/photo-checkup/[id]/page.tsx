@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Container, Button, Card } from '@/components/ui';
 import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
+import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 
 export default function PhotoCheckupPage() {
@@ -97,7 +98,11 @@ export default function PhotoCheckupPage() {
   const scoreColor = getScoreColor(photoAnalysis.score);
 
   return (
-    <StepLayout
+    <>
+      <TopNav />
+      <Breadcrumbs />
+      
+      <StepLayout
       header={
         <>
           <ProgressIndicator currentStep={2} />
@@ -244,5 +249,6 @@ export default function PhotoCheckupPage() {
         }
       `}</style>
     </StepLayout>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Container, Card, Button } from '@/components/ui';
 import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
+import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 
 export default function PhotoImprovePage() {
@@ -91,7 +92,11 @@ export default function PhotoImprovePage() {
   }
 
   return (
-    <StepLayout
+    <>
+      <TopNav />
+      <Breadcrumbs />
+      
+      <StepLayout
       header={
         <>
           <ProgressIndicator currentStep={3} />
@@ -293,5 +298,6 @@ export default function PhotoImprovePage() {
         }
       `}</style>
     </StepLayout>
+    </>
   );
 }
