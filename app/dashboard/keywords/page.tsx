@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Card, Button } from '@/components/ui';
 import { TopNav, Breadcrumbs } from '@/components/navigation';
-import { CompetitiveIntel } from '@/components/seo';
 import tokens from '@/design-system/tokens.json';
 
 export default function KeywordsAnalysisPage() {
@@ -333,17 +332,6 @@ export default function KeywordsAnalysisPage() {
                   })}
                 </div>
               </Card>
-
-              {/* Competitive Intelligence */}
-              <div style={{ marginTop: tokens.spacing[8] }}>
-                <CompetitiveIntel
-                  currentScore={analysisResult.totalPoints}
-                  optimizedScore={Math.min(analysisResult.totalPoints + 100, 285)}
-                  maxScore={285}
-                  category={productInfo.category}
-                  averagePrice={25}
-                />
-              </div>
 
               {analysisResult.priorityIssues && analysisResult.priorityIssues.length > 0 && (
                 <Card>

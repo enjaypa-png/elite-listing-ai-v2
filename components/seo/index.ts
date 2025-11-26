@@ -1,2 +1,2 @@
 export { RewriteSuggestions } from './RewriteSuggestions';
-export { CompetitiveIntel } from './CompetitiveIntel';
+export { KeywordStrategyEngine } from './KeywordStrategyEngine';

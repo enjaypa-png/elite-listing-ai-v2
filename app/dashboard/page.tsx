@@ -27,10 +27,10 @@ export default function DashboardPage() {
     },
     {
       icon: '🔍',
-      title: 'R.A.N.K. 285™ Keywords',
-      description: 'Find high-ranking search phrases',
-      route: '/dashboard/keywords',
-      stats: '285-point algorithm',
+      title: 'Keyword Strategy',
+      description: 'Find blue ocean opportunities with real Etsy data',
+      route: '/dashboard/keyword-strategy',
+      stats: 'Real Etsy data',
       color: tokens.colors.success
     },
     {
