@@ -516,19 +516,21 @@ export async function POST(request: NextRequest) {
     
     const { platform, title, description, tags, category, price, imageUrl, keywords } = body;
 
-    // Validate required fields
-    if (!platform || !title || !description || !tags) {
-      console.error('[SEO Audit] Missing required fields');
+    // Validate required fields (tags are optional)
+    if (!platform || !title || !description) {
+      console.error('[SEO Audit] Missing required fields - platform, title, or description');
       return NextResponse.json(
-        { error: 'Missing required fields: platform, title, description, tags' },
+        { error: 'Missing required fields: platform, title, description' },
         { status: 400 }
       );
     }
 
-    // Parse tags
-    const tagArray = typeof tags === 'string'
-      ? tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
-      : tags;
+    // Parse tags - handle empty tags gracefully
+    const tagArray = !tags || tags === '' 
+      ? [] 
+      : typeof tags === 'string'
+        ? tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
+        : tags;
     
     console.log('[SEO Audit] Parsed tags:', tagArray);
 
