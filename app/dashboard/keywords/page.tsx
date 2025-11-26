@@ -50,15 +50,21 @@ export default function KeywordsAnalysisPage() {
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Analysis failed');
+        console.error('API Error:', data);
+        throw new Error(data.error || data.details || 'Analysis failed');
       }
 
-      const data = await response.json();
+      if (!data.success) {
+        throw new Error('Analysis returned unsuccessful result');
+      }
+
       setAnalysisResult(data);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Analysis error:', error);
-      alert('Failed to analyze. Please try again.');
+      alert(`Failed to analyze: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }

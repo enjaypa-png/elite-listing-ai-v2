@@ -510,11 +510,15 @@ export async function POST(request: NextRequest) {
   });
 
   try {
+    console.log('[SEO Audit] Processing request...');
     const body = await request.json();
+    console.log('[SEO Audit] Request body:', JSON.stringify(body).substring(0, 200));
+    
     const { platform, title, description, tags, category, price, imageUrl, keywords } = body;
 
     // Validate required fields
     if (!platform || !title || !description || !tags) {
+      console.error('[SEO Audit] Missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields: platform, title, description, tags' },
         { status: 400 }
@@ -525,33 +529,44 @@ export async function POST(request: NextRequest) {
     const tagArray = typeof tags === 'string'
       ? tags.split(',').map(t => t.trim()).filter(t => t.length > 0)
       : tags;
+    
+    console.log('[SEO Audit] Parsed tags:', tagArray);
 
     // Extract keywords from title if not provided
     const keywordList = keywords || [
       ...title.split(/\\s+/).slice(0, 3).filter((w: string) => w.length > 3)
     ];
+    
+    console.log('[SEO Audit] Keywords:', keywordList);
 
     // ===
     // ETSY 285-POINT ANALYSIS
     // ===
 
     // 1. Analyze Title (65 points)
+    console.log('[SEO Audit] Analyzing title...');
     const titleAnalysis = analyzeTitleOptimizationEtsy(title, keywordList);
+    console.log('[SEO Audit] Title score:', titleAnalysis.score);
 
     // 2. Analyze Tags (55 points)
+    console.log('[SEO Audit] Analyzing tags...');
     const tagsAnalysis = analyzeTagsOptimizationEtsy(
       tagArray,
       title,
       category || 'General'
     );
+    console.log('[SEO Audit] Tags score:', tagsAnalysis.score);
 
     // 3. Analyze Description (55 points)
+    console.log('[SEO Audit] Analyzing description...');
     const descriptionAnalysis = analyzeDescriptionOptimizationEtsy(
       description,
       keywordList
     );
+    console.log('[SEO Audit] Description score:', descriptionAnalysis.score);
 
     // 4. Calculate Overall Score (285 points)
+    console.log('[SEO Audit] Calculating overall score...');
     const photoCount = imageUrl ? 1 : 0; // Will be updated when photo analysis is integrated
     const overallAnalysis = calculateOverallOpportunityScore(
       titleAnalysis,
@@ -559,10 +574,12 @@ export async function POST(request: NextRequest) {
       descriptionAnalysis,
       photoCount
     );
+    console.log('[SEO Audit] Overall score:', overallAnalysis.overallScore);
 
     // ===
     // AI-POWERED RECOMMENDATIONS
     // ===
+    console.log('[SEO Audit] Generating AI recommendations...');
     const aiPrompt = `Analyze this ${platform} product listing and provide strategic recommendations:
 
 LISTING DATA:
