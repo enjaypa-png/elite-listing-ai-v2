@@ -20,10 +20,11 @@ export function Card({ children, hover = false, padding = '8', className = '', o
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       style={{
-        backgroundColor: tokens.colors.surface,
-        border: `1px solid ${isHovered && hover ? tokens.colors.primary : tokens.colors.border}`,
-        borderRadius: tokens.radius.xl,
-        padding: tokens.spacing[padding],
+        backgroundColor: tokens.card.background,
+        border: `1px solid ${isHovered && hover ? tokens.colors.primary : tokens.card.border}`,
+        borderRadius: tokens.card.radius,
+        padding: tokens.card.padding,
+        boxShadow: isHovered && hover ? tokens.shadows.card : 'none',
         transition: `all ${tokens.motion.duration.normal}`,
         transform: isHovered && hover ? 'translateY(-4px)' : 'translateY(0)',
         cursor: onClick ? 'pointer' : 'default'
