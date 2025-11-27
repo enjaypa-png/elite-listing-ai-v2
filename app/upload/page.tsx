@@ -341,7 +341,7 @@ export default function UploadPage() {
                       color: tokens.colors.text,
                       marginBottom: tokens.spacing[3]
                     }}>
-                      💡 Suggestions:
+                      💡 Suggestions for Improvement:
                     </h3>
                     <ul style={{ margin: 0, paddingLeft: tokens.spacing[6] }}>
                       {analysisResults.suggestions.map((suggestion: string, index: number) => (
@@ -355,7 +355,30 @@ export default function UploadPage() {
                     </ul>
                   </div>
                 )}
-                <div style={{ marginTop: tokens.spacing[6] }}>
+                <div style={{
+                  marginTop: tokens.spacing[6],
+                  padding: tokens.spacing[4],
+                  background: tokens.colors.surface,
+                  borderRadius: tokens.radius.md,
+                  border: `1px solid ${tokens.colors.border}`
+                }}>
+                  <div style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted,
+                    marginBottom: tokens.spacing[3]
+                  }}>
+                    <strong style={{ color: tokens.colors.text }}>Next Steps:</strong>
+                  </div>
+                  <div style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted
+                  }}>
+                    • Use these suggestions to manually improve your photo<br/>
+                    • Or upload a new photo with better lighting/composition<br/>
+                    • AI photo enhancement feature coming in future update
+                  </div>
+                </div>
+                <div style={{ marginTop: tokens.spacing[6], display: 'flex', gap: tokens.spacing[3] }}>
                   <Button
                     variant="secondary"
                     size="md"
@@ -366,6 +389,13 @@ export default function UploadPage() {
                     }}
                   >
                     Analyze Another Photo
+                  </Button>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    onClick={() => router.push('/dashboard')}
+                  >
+                    Back to Dashboard
                   </Button>
                 </div>
               </div>

@@ -49,19 +49,39 @@ export default function OptimizeListingPage() {
     setIsOptimizing(true);
 
     try {
-      // For now, show that it's working (full optimization logic coming next)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setOptimizationResult({
-        success: true,
-        message: 'Analysis complete! Full optimization features being built.',
-        selectedOptions: optimizationOptions,
-        listingUrl: listingUrl,
-        note: 'Next: We will fetch the listing, run R.A.N.K. 285™ analysis, and provide optimized versions of title, tags, and description.'
+      // Extract listing ID from URL
+      const listingIdMatch = listingUrl.match(/listing\/(\d+)/);
+      const listingId = listingIdMatch ? listingIdMatch[1] : '';
+
+      // For now, run R.A.N.K. 285™ analysis on placeholder data
+      // In production, this would fetch actual listing data from Etsy
+      const response = await fetch('/api/seo/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: 'Etsy',
+          title: 'Sample Listing Title (fetching real data coming soon)',
+          description: 'Sample description text for analysis',
+          tags: 'sample, tags, keywords',
+          category: 'Home & Living'
+        })
       });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setOptimizationResult({
+          ...data,
+          listingId: listingId,
+          listingUrl: listingUrl,
+          selectedOptions: optimizationOptions
+        });
+      } else {
+        alert('Analysis failed. Please try again.');
+      }
     } catch (error) {
       console.error('Optimization error:', error);
-      alert('Failed to optimize listing. Please try again.');
+      alert('Failed to analyze listing. Please try again.');
     } finally {
       setIsOptimizing(false);
     }
@@ -184,49 +204,212 @@ export default function OptimizeListingPage() {
               </Button>
 
               {optimizationResult && (
-                <div style={{
-                  marginTop: tokens.spacing[6],
-                  padding: tokens.spacing[6],
-                  background: `${tokens.colors.primary}1A`,
-                  border: `1px solid ${tokens.colors.primary}33`,
-                  borderRadius: tokens.radius.md
-                }}>
+                <div style={{ marginTop: tokens.spacing[6] }}>
+                  {/* Overall Score */}
                   <div style={{
-                    fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.primary,
-                    marginBottom: tokens.spacing[3],
-                    fontSize: tokens.typography.fontSize.lg
+                    padding: tokens.spacing[8],
+                    background: tokens.card.background,
+                    border: `1px solid ${tokens.card.border}`,
+                    borderRadius: tokens.card.radius,
+                    boxShadow: tokens.shadows.card,
+                    textAlign: 'center',
+                    marginBottom: tokens.spacing[6]
                   }}>
-                    ✅ {optimizationResult.message}
+                    <div style={{
+                      fontSize: tokens.typography.fontSize['6xl'],
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      color: tokens.colors.primary,
+                      marginBottom: tokens.spacing[2]
+                    }}>
+                      {optimizationResult.totalPoints || 0} / 285
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xl,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[1]
+                    }}>
+                      R.A.N.K. Score: {optimizationResult.overallScore || 0}%
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.base,
+                      color: tokens.colors.textMuted
+                    }}>
+                      ⚡ {optimizationResult.opportunityScore || 0}% Improvement Potential
+                    </div>
                   </div>
+
+                  {/* Component Breakdown */}
+                  {optimizationResult.breakdown && (
+                    <div style={{
+                      padding: tokens.spacing[8],
+                      background: tokens.card.background,
+                      border: `1px solid ${tokens.card.border}`,
+                      borderRadius: tokens.card.radius,
+                      boxShadow: tokens.shadows.card,
+                      marginBottom: tokens.spacing[6]
+                    }}>
+                      <h3 style={{
+                        fontSize: tokens.typography.fontSize['2xl'],
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.text,
+                        marginBottom: tokens.spacing[6]
+                      }}>
+                        Component Breakdown
+                      </h3>
+                      {Object.entries(optimizationResult.breakdown).map(([component, data]: [string, any]) => {
+                        const icons: Record<string, string> = {
+                          title: '📝',
+                          tags: '🏷️',
+                          description: '📄',
+                          photos: '📸',
+                          attributes: '🎯',
+                          category: '📁'
+                        };
+                        const color = data.percentage >= 70 ? tokens.colors.success : 
+                                     data.percentage >= 50 ? tokens.colors.warning : tokens.colors.danger;
+                        
+                        return (
+                          <div key={component} style={{ marginBottom: tokens.spacing[4] }}>
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              marginBottom: tokens.spacing[2]
+                            }}>
+                              <span style={{
+                                fontSize: tokens.typography.fontSize.base,
+                                color: tokens.colors.text,
+                                fontWeight: tokens.typography.fontWeight.medium
+                              }}>
+                                {icons[component]} {component.charAt(0).toUpperCase() + component.slice(1)}
+                              </span>
+                              <span style={{
+                                fontSize: tokens.typography.fontSize.sm,
+                                color: color,
+                                fontWeight: tokens.typography.fontWeight.bold
+                              }}>
+                                {data.score}/{data.maxScore} ({data.percentage}%)
+                              </span>
+                            </div>
+                            <div style={{
+                              width: '100%',
+                              height: '8px',
+                              background: tokens.colors.surface2,
+                              borderRadius: tokens.radius.full,
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                width: `${data.percentage}%`,
+                                height: '100%',
+                                background: color,
+                                transition: `width ${tokens.motion.duration.slow}`
+                              }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Priority Issues */}
+                  {optimizationResult.priorityIssues && optimizationResult.priorityIssues.length > 0 && (
+                    <div style={{
+                      padding: tokens.spacing[8],
+                      background: tokens.card.background,
+                      border: `1px solid ${tokens.card.border}`,
+                      borderRadius: tokens.card.radius,
+                      boxShadow: tokens.shadows.card,
+                      marginBottom: tokens.spacing[6]
+                    }}>
+                      <h3 style={{
+                        fontSize: tokens.typography.fontSize['2xl'],
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.danger,
+                        marginBottom: tokens.spacing[4]
+                      }}>
+                        🚨 Priority Issues
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        {optimizationResult.priorityIssues.map((issue: string, index: number) => (
+                          <div key={index} style={{
+                            padding: tokens.spacing[4],
+                            background: `${tokens.colors.danger}1A`,
+                            border: `1px solid ${tokens.colors.danger}33`,
+                            borderRadius: tokens.radius.md,
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.text
+                          }}>
+                            {index + 1}. {issue}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick Wins */}
+                  {optimizationResult.quickWins && optimizationResult.quickWins.length > 0 && (
+                    <div style={{
+                      padding: tokens.spacing[8],
+                      background: tokens.card.background,
+                      border: `1px solid ${tokens.card.border}`,
+                      borderRadius: tokens.card.radius,
+                      boxShadow: tokens.shadows.card,
+                      marginBottom: tokens.spacing[6]
+                    }}>
+                      <h3 style={{
+                        fontSize: tokens.typography.fontSize['2xl'],
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.success,
+                        marginBottom: tokens.spacing[4]
+                      }}>
+                        ⚡ Quick Wins
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                        {optimizationResult.quickWins.map((win: string, index: number) => (
+                          <div key={index} style={{
+                            padding: tokens.spacing[4],
+                            background: `${tokens.colors.success}1A`,
+                            border: `1px solid ${tokens.colors.success}33`,
+                            borderRadius: tokens.radius.md,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: tokens.spacing[3]
+                          }}>
+                            <span style={{ fontSize: tokens.typography.fontSize.xl }}>✓</span>
+                            <span style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.text }}>{win}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Note about fetching */}
                   <div style={{
-                    fontSize: tokens.typography.fontSize.sm,
-                    color: tokens.colors.textMuted,
-                    marginBottom: tokens.spacing[3]
+                    padding: tokens.spacing[6],
+                    background: tokens.colors.surface,
+                    border: `1px solid ${tokens.colors.border}`,
+                    borderRadius: tokens.radius.md,
+                    marginBottom: tokens.spacing[4]
                   }}>
-                    <strong>Selected:</strong> {optimizationResult.selectedOptions.includes('all') ? 'Optimize Everything' : optimizationResult.selectedOptions.join(', ')}
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      color: tokens.colors.textMuted,
+                      marginBottom: tokens.spacing[2]
+                    }}>
+                      <strong style={{ color: tokens.colors.text }}>Note:</strong> This analysis uses sample data. 
+                      Next update will fetch your actual listing from Etsy and provide real optimized versions.
+                    </div>
                   </div>
-                  <div style={{
-                    fontSize: tokens.typography.fontSize.sm,
-                    color: tokens.colors.textMuted,
-                    padding: tokens.spacing[4],
-                    background: tokens.colors.background,
-                    borderRadius: tokens.radius.sm,
-                    marginTop: tokens.spacing[3],
-                    border: `1px solid ${tokens.colors.border}`
-                  }}>
-                    <strong style={{ color: tokens.colors.text }}>Coming Next:</strong><br/>
-                    {optimizationResult.note}
-                  </div>
-                  <div style={{ marginTop: tokens.spacing[4] }}>
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      onClick={() => setOptimizationResult(null)}
-                    >
-                      Optimize Another Listing
-                    </Button>
-                  </div>
+
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => {
+                      setOptimizationResult(null);
+                      setListingUrl('');
+                    }}
+                  >
+                    Analyze Another Listing
+                  </Button>
                 </div>
               )}
             </div>
