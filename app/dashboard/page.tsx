@@ -13,4 +13,280 @@ export default function DashboardPage() {
       <TopNav />
 
       <Container>
-        <div style={{ \n          maxWidth: '1200px', \n          margin: '0 auto',\n          paddingTop: tokens.spacing[12],\n          paddingBottom: tokens.spacing[12]\n        }}>\n          {/* Welcome Hero */}\n          <div style={{ marginBottom: tokens.spacing[12] }}>\n            <h1 style={{\n              fontSize: tokens.typography.fontSize['4xl'],\n              fontWeight: tokens.typography.fontWeight.bold,\n              color: tokens.colors.text,\n              marginBottom: tokens.spacing[3]\n            }}>\n              Welcome to Elite Listing AI\n            </h1>\n            <p style={{\n              fontSize: tokens.typography.fontSize.lg,\n              color: tokens.colors.textMuted\n            }}>\n              Etsy gives you search data. We show you what to do with it.\n            </p>\n          </div>\n\n          {/* Primary Actions - Large Cards */}\n          <div style={{\n            display: 'grid',\n            gridTemplateColumns: 'repeat(2, 1fr)',\n            gap: tokens.spacing[6],\n            marginBottom: tokens.spacing[12]\n          }}>\n            {/* Hidden Pond Finder */}\n            <div\n              onClick={() => router.push('/dashboard/hidden-pond-finder')}\n              style={{\n                background: tokens.colors.surface,\n                border: `2px solid ${tokens.colors.primary}80`,\n                borderRadius: tokens.radius.md,\n                padding: tokens.spacing[8],\n                cursor: 'pointer',\n                transition: `all ${tokens.motion.duration.normal}`\n              }}\n              onMouseEnter={(e) => {\n                e.currentTarget.style.borderColor = tokens.colors.primary;\n                e.currentTarget.style.transform = 'translateY(-4px)';\n              }}\n              onMouseLeave={(e) => {\n                e.currentTarget.style.borderColor = `${tokens.colors.primary}80`;\n                e.currentTarget.style.transform = 'translateY(0)';\n              }}\n            >\n              <div style={{ display: 'flex', alignItems: 'start', gap: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>\n                <div style={{\n                  width: tokens.spacing[16],\n                  height: tokens.spacing[16],\n                  background: `${tokens.colors.primary}1A`,\n                  borderRadius: tokens.radius.md,\n                  display: 'flex',\n                  alignItems: 'center',\n                  justifyContent: 'center',\n                  fontSize: tokens.typography.fontSize['4xl']\n                }}>\n                  \ud83c\udfdd\n                </div>\n                <div style={{ flex: 1 }}>\n                  <h2 style={{\n                    fontSize: tokens.typography.fontSize['2xl'],\n                    fontWeight: tokens.typography.fontWeight.bold,\n                    color: tokens.colors.text,\n                    marginBottom: tokens.spacing[2]\n                  }}>\n                    Find Hidden Ponds\n                  </h2>\n                  <p style={{\n                    fontSize: tokens.typography.fontSize.sm,\n                    color: tokens.colors.textMuted,\n                    marginBottom: tokens.spacing[4]\n                  }}>\n                    Discover niches with less competition and higher profit potential. \n                    Perfect for deciding what to make next.\n                  </p>\n                  <div style={{\n                    display: 'inline-flex',\n                    alignItems: 'center',\n                    gap: tokens.spacing[2],\n                    color: tokens.colors.primary,\n                    fontWeight: tokens.typography.fontWeight.semibold\n                  }}>\n                    Start Finding <span>\u2192</span>\n                  </div>\n                </div>\n              </div>\n            </div>\n\n            {/* Listing Optimizer */}\n            <div\n              onClick={() => router.push('/dashboard/listing-optimizer')}\n              style={{\n                background: tokens.colors.surface,\n                border: `2px solid ${tokens.colors.border}`,\n                borderRadius: tokens.radius.md,\n                padding: tokens.spacing[8],\n                cursor: 'pointer',\n                transition: `all ${tokens.motion.duration.normal}`\n              }}\n              onMouseEnter={(e) => {\n                e.currentTarget.style.borderColor = tokens.colors.primary;\n                e.currentTarget.style.transform = 'translateY(-4px)';\n              }}\n              onMouseLeave={(e) => {\n                e.currentTarget.style.borderColor = tokens.colors.border;\n                e.currentTarget.style.transform = 'translateY(0)';\n              }}\n            >\n              <div style={{ display: 'flex', alignItems: 'start', gap: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>\n                <div style={{\n                  width: tokens.spacing[16],\n                  height: tokens.spacing[16],\n                  background: `${tokens.colors.primary}1A`,\n                  borderRadius: tokens.radius.md,\n                  display: 'flex',\n                  alignItems: 'center',\n                  justifyContent: 'center',\n                  fontSize: tokens.typography.fontSize['4xl']\n                }}>\n                  \ud83d\udce6\n                </div>\n                <div style={{ flex: 1 }}>\n                  <h2 style={{\n                    fontSize: tokens.typography.fontSize['2xl'],\n                    fontWeight: tokens.typography.fontWeight.bold,\n                    color: tokens.colors.text,\n                    marginBottom: tokens.spacing[2]\n                  }}>\n                    Optimize Existing Listing\n                  </h2>\n                  <p style={{\n                    fontSize: tokens.typography.fontSize.sm,\n                    color: tokens.colors.textMuted,\n                    marginBottom: tokens.spacing[4]\n                  }}>\n                    Audit and optimize your current listings with our R.A.N.K. 285\u2122 \n                    scoring system. Get your listing to rank higher.\n                  </p>\n                  <div style={{\n                    display: 'inline-flex',\n                    alignItems: 'center',\n                    gap: tokens.spacing[2],\n                    color: tokens.colors.primary,\n                    fontWeight: tokens.typography.fontWeight.semibold\n                  }}>\n                    Start Optimizing <span>\u2192</span>\n                  </div>\n                </div>\n              </div>\n            </div>\n          </div>\n\n          {/* Secondary Tools */}\n          <div style={{ marginBottom: tokens.spacing[8] }}>\n            <h3 style={{\n              fontSize: tokens.typography.fontSize.lg,\n              fontWeight: tokens.typography.fontWeight.semibold,\n              color: tokens.colors.text,\n              marginBottom: tokens.spacing[4]\n            }}>\n              Quick Access\n            </h3>\n            <div style={{\n              display: 'grid',\n              gridTemplateColumns: 'repeat(4, 1fr)',\n              gap: tokens.spacing[4]\n            }}>\n              <div\n                onClick={() => router.push('/dashboard/listings')}\n                style={{\n                  background: tokens.colors.surface,\n                  border: `1px solid ${tokens.colors.border}`,\n                  borderRadius: tokens.radius.md,\n                  padding: tokens.spacing[6],\n                  cursor: 'pointer',\n                  transition: `all ${tokens.motion.duration.fast}`\n                }}\n                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}\n                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}\n              >\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udccb</div>\n                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>My Listings</div>\n                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>View & manage</div>\n              </div>\n\n              <div\n                onClick={() => router.push('/dashboard/photo-analysis')}\n                style={{\n                  background: tokens.colors.surface,\n                  border: `1px solid ${tokens.colors.border}`,\n                  borderRadius: tokens.radius.md,\n                  padding: tokens.spacing[6],\n                  cursor: 'pointer',\n                  transition: `all ${tokens.motion.duration.fast}`\n                }}\n                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}\n                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}\n              >\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udcf8</div>\n                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Photo Analysis</div>\n                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Optimize images</div>\n              </div>\n\n              <div\n                onClick={() => router.push('/dashboard/etsy-sync')}\n                style={{\n                  background: tokens.colors.surface,\n                  border: `1px solid ${tokens.colors.border}`,\n                  borderRadius: tokens.radius.md,\n                  padding: tokens.spacing[6],\n                  cursor: 'pointer',\n                  transition: `all ${tokens.motion.duration.fast}`\n                }}\n                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}\n                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}\n              >\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udd04</div>\n                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Etsy Sync</div>\n                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Connect shop</div>\n              </div>\n\n              <div\n                onClick={() => router.push('/dashboard/batch')}\n                style={{\n                  background: tokens.colors.surface,\n                  border: `1px solid ${tokens.colors.border}`,\n                  borderRadius: tokens.radius.md,\n                  padding: tokens.spacing[6],\n                  cursor: 'pointer',\n                  transition: `all ${tokens.motion.duration.fast}`\n                }}\n                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}\n                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}\n              >\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\u26a1</div>\n                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Batch Optimize</div>\n                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Multiple listings</div>\n              </div>\n            </div>\n          </div>\n\n          {/* Stats */}\n          <div style={{\n            display: 'grid',\n            gridTemplateColumns: 'repeat(3, 1fr)',\n            gap: tokens.spacing[6]\n          }}>\n            <Card>\n              <div style={{ padding: tokens.spacing[6] }}>\n                <div style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm, marginBottom: tokens.spacing[1] }}>Total Listings</div>\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text }}>0</div>\n              </div>\n            </Card>\n            <Card>\n              <div style={{ padding: tokens.spacing[6] }}>\n                <div style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm, marginBottom: tokens.spacing[1] }}>Optimized</div>\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success }}>0</div>\n              </div>\n            </Card>\n            <Card>\n              <div style={{ padding: tokens.spacing[6] }}>\n                <div style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm, marginBottom: tokens.spacing[1] }}>Avg R.A.N.K. Score</div>\n                <div style={{ fontSize: tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text }}>-</div>\n              </div>\n            </Card>\n          </div>\n        </div>\n      </Container>\n    </div>\n  );\n}
+        <div style={{ 
+          maxWidth: '1200px', 
+          margin: '0 auto',
+          paddingTop: tokens.spacing[12],
+          paddingBottom: tokens.spacing[12]
+        }}>
+          {/* Welcome Hero */}
+          <div style={{ marginBottom: tokens.spacing[12] }}>
+            <h1 style={{
+              fontSize: tokens.typography.fontSize['4xl'],
+              fontWeight: tokens.typography.fontWeight.bold,
+              color: tokens.colors.text,
+              marginBottom: tokens.spacing[3]
+            }}>
+              Welcome to Elite Listing AI
+            </h1>
+            <p style={{
+              fontSize: tokens.typography.fontSize.lg,
+              color: tokens.colors.textMuted
+            }}>
+              Etsy gives you search data. We show you what to do with it.
+            </p>
+          </div>
+
+          {/* Primary Actions - Large Cards */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: tokens.spacing[6],
+            marginBottom: tokens.spacing[12]
+          }}>
+            {/* One-Click Optimizer */}
+            <div
+              onClick={() => router.push('/dashboard/optimize-listing')}
+              style={{
+                background: tokens.card.background,
+                border: `2px solid ${tokens.colors.primary}80`,
+                borderRadius: tokens.card.radius,
+                padding: tokens.spacing[8],
+                boxShadow: tokens.shadows.card,
+                cursor: 'pointer',
+                transition: `all ${tokens.motion.duration.normal}`
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = tokens.colors.primary;
+                e.currentTarget.style.transform = 'translateY(-4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = `${tokens.colors.primary}80`;
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'start', gap: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>
+                <div style={{
+                  width: tokens.spacing[16],
+                  height: tokens.spacing[16],
+                  background: `${tokens.colors.primary}1A`,
+                  borderRadius: tokens.radius.md,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: tokens.typography.fontSize['4xl']
+                }}>
+                  \u26A1
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h2 style={{
+                    fontSize: tokens.typography.fontSize['2xl'],
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[2]
+                  }}>
+                    One-Click Listing Optimizer
+                  </h2>
+                  <p style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted,
+                    marginBottom: tokens.spacing[4]
+                  }}>
+                    Optimize title, tags, description, and images with our R.A.N.K. 285™ system.
+                  </p>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[2],
+                    color: tokens.colors.primary,
+                    fontWeight: tokens.typography.fontWeight.semibold
+                  }}>
+                    Start Optimizing <span>→</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Store Sync */}
+            <div
+              onClick={() => router.push('/dashboard/etsy-sync')}
+              style={{
+                background: tokens.card.background,
+                border: `2px solid ${tokens.colors.border}`,
+                borderRadius: tokens.card.radius,
+                padding: tokens.spacing[8],
+                boxShadow: tokens.shadows.card,
+                cursor: 'pointer',
+                transition: `all ${tokens.motion.duration.normal}`
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = tokens.colors.primary;
+                e.currentTarget.style.transform = 'translateY(-4px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = tokens.colors.border;
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'start', gap: tokens.spacing[4], marginBottom: tokens.spacing[4] }}>
+                <div style={{
+                  width: tokens.spacing[16],
+                  height: tokens.spacing[16],
+                  background: `${tokens.colors.primary}1A`,
+                  borderRadius: tokens.radius.md,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: tokens.typography.fontSize['4xl']
+                }}>
+                  \uD83D\uDD04
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h2 style={{
+                    fontSize: tokens.typography.fontSize['2xl'],
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[2]
+                  }}>
+                    Sync My Store
+                  </h2>
+                  <p style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted,
+                    marginBottom: tokens.spacing[4]
+                  }}>
+                    Connect your Etsy shop and pull your active listings for optimization.
+                  </p>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: tokens.spacing[2],
+                    color: tokens.colors.primary,
+                    fontWeight: tokens.typography.fontWeight.semibold
+                  }}>
+                    Connect Store <span>→</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Secondary Tools */}
+          <div style={{ marginBottom: tokens.spacing[8] }}>
+            <h3 style={{
+              fontSize: tokens.typography.fontSize.lg,
+              fontWeight: tokens.typography.fontWeight.semibold,
+              color: tokens.colors.text,
+              marginBottom: tokens.spacing[4]
+            }}>
+              Quick Access
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: tokens.spacing[4]
+            }}>
+              <div
+                onClick={() => router.push('/dashboard/listings')}
+                style={{
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: tokens.radius.md,
+                  padding: tokens.spacing[6],
+                  cursor: 'pointer',
+                  transition: `all ${tokens.motion.duration.fast}`
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
+              >
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udccb</div>
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>My Listings</div>
+                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>View & manage</div>
+              </div>
+
+              <div
+                onClick={() => router.push('/dashboard/photo-analysis')}
+                style={{
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: tokens.radius.md,
+                  padding: tokens.spacing[6],
+                  cursor: 'pointer',
+                  transition: `all ${tokens.motion.duration.fast}`
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
+              >
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udcf8</div>
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Photo Analysis</div>
+                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Optimize images</div>
+              </div>
+
+              <div
+                onClick={() => router.push('/dashboard/etsy-sync')}
+                style={{
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: tokens.radius.md,
+                  padding: tokens.spacing[6],
+                  cursor: 'pointer',
+                  transition: `all ${tokens.motion.duration.fast}`
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
+              >
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udd04</div>
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Etsy Sync</div>
+                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Connect shop</div>
+              </div>
+
+              <div
+                onClick={() => router.push('/dashboard/batch')}
+                style={{
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: tokens.radius.md,
+                  padding: tokens.spacing[6],
+                  cursor: 'pointer',
+                  transition: `all ${tokens.motion.duration.fast}`
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
+              >
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\u26a1</div>
+                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Batch Optimize</div>
+                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Multiple listings</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: tokens.spacing[6]
+          }}>
+            <Card>
+              <div style={{ padding: tokens.spacing[6] }}>
+                <div style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm, marginBottom: tokens.spacing[1] }}>Total Listings</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text }}>0</div>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: tokens.spacing[6] }}>
+                <div style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm, marginBottom: tokens.spacing[1] }}>Optimized</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success }}>0</div>
+              </div>
+            </Card>
+            <Card>
+              <div style={{ padding: tokens.spacing[6] }}>
+                <div style={{ color: tokens.colors.textMuted, fontSize: tokens.typography.fontSize.sm, marginBottom: tokens.spacing[1] }}>Avg R.A.N.K. Score</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text }}>-</div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </Container>
+    </div>
+  );
+}
