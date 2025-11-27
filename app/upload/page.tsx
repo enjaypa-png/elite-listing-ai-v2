@@ -12,6 +12,7 @@ export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -92,24 +93,12 @@ export default function UploadPage() {
 
       const analysisData = await analyzeResponse.json();
 
-      // Step 3: Store in session storage
-      const { OptimizationStorage } = await import('@/lib/optimizationState');
-      const state = OptimizationStorage.create(optimizationId);
-      
-      OptimizationStorage.update(optimizationId, {
-        photo: {
-          original: imageUrl,
-          selected: 'original',
-          analysis: analysisData
-        }
-      });
-
-      // Redirect to photo checkup
-      router.push(`/photo-checkup/${optimizationId}`);
+      // Show results inline instead of redirecting
+      setAnalysisResults(analysisData);
+      setIsAnalyzing(false);
     } catch (error: any) {
       console.error('Upload error:', error);
       alert(error.message || 'Upload failed. Please try again.');
-    } finally {
       setIsAnalyzing(false);
     }
   };
@@ -310,6 +299,78 @@ export default function UploadPage() {
               )}
             </div>
           </Card>
+          
+          {/* Analysis Results */}
+          {analysisResults && (
+            <Card>
+              <div style={{ padding: tokens.spacing[8], marginTop: tokens.spacing[6] }}>
+                <h2 style={{
+                  fontSize: tokens.typography.fontSize['2xl'],
+                  fontWeight: tokens.typography.fontWeight.semibold,
+                  color: tokens.colors.text,
+                  marginBottom: tokens.spacing[6]
+                }}>
+                  📊 Analysis Results
+                </h2>
+                <div style={{
+                  padding: tokens.spacing[6],
+                  background: tokens.colors.background,
+                  borderRadius: tokens.radius.md,
+                  marginBottom: tokens.spacing[4]
+                }}>
+                  <div style={{
+                    fontSize: tokens.typography.fontSize['4xl'],
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.primary,
+                    textAlign: 'center',
+                    marginBottom: tokens.spacing[2]
+                  }}>
+                    {analysisResults.score || 0}/100
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    color: tokens.colors.textMuted
+                  }}>
+                    Overall Photo Quality Score
+                  </div>
+                </div>
+                {analysisResults.suggestions && analysisResults.suggestions.length > 0 && (
+                  <div>
+                    <h3 style={{
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[3]
+                    }}>
+                      💡 Suggestions:
+                    </h3>
+                    <ul style={{ margin: 0, paddingLeft: tokens.spacing[6] }}>
+                      {analysisResults.suggestions.map((suggestion: string, index: number) => (
+                        <li key={index} style={{
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[2]
+                        }}>
+                          {suggestion}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <div style={{ marginTop: tokens.spacing[6] }}>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => {
+                      setAnalysisResults(null);
+                      setSelectedFile(null);
+                      setPreview(null);
+                    }}
+                  >
+                    Analyze Another Photo
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </Container>
 

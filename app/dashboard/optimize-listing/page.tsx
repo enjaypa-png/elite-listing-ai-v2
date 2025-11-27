@@ -9,6 +9,7 @@ export default function OptimizeListingPage() {
   const [listingUrl, setListingUrl] = useState('');
   const [optimizationOptions, setOptimizationOptions] = useState<string[]>(['all']);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationResult, setOptimizationResult] = useState<any>(null);
 
   const options = [
     { value: 'all', label: 'Optimize Everything', icon: '⚡' },
@@ -30,6 +31,43 @@ export default function OptimizeListingPage() {
       } else {
         setOptimizationOptions([...newOptions, value]);
       }
+    }
+  };
+
+  const handleOptimize = async () => {
+    // Validation
+    if (!listingUrl.trim()) {
+      alert('⚠️ Please enter an Etsy listing URL to analyze');
+      return;
+    }
+    
+    if (!listingUrl.includes('etsy.com/listing/')) {
+      alert('⚠️ Please enter a valid Etsy listing URL\\n\\nExample: https://www.etsy.com/listing/123456789/product-name');
+      return;
+    }
+    
+    if (optimizationOptions.length === 0) {
+      alert('⚠️ Please select at least one optimization option above');
+      return;
+    }
+
+    setIsOptimizing(true);
+
+    try {
+      // Simulate optimization - replace with real API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setOptimizationResult({
+        success: true,
+        message: 'Optimization complete! (Demo mode - full functionality coming soon)',
+        selectedOptions: optimizationOptions,
+        listingUrl: listingUrl
+      });
+    } catch (error) {
+      console.error('Optimization error:', error);
+      alert('Failed to optimize listing. Please try again.');
+    } finally {
+      setIsOptimizing(false);
     }
   };
 
@@ -143,11 +181,35 @@ export default function OptimizeListingPage() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                onClick={() => setIsOptimizing(true)}
+                onClick={handleOptimize}
                 disabled={!listingUrl || isOptimizing}
               >
                 {isOptimizing ? 'Optimizing...' : '⚡ Optimize Listing'}
               </Button>
+
+              {optimizationResult && (
+                <div style={{
+                  marginTop: tokens.spacing[6],
+                  padding: tokens.spacing[6],
+                  background: `${tokens.colors.success}1A`,
+                  border: `1px solid ${tokens.colors.success}33`,
+                  borderRadius: tokens.radius.md
+                }}>
+                  <div style={{
+                    fontWeight: tokens.typography.fontWeight.semibold,
+                    color: tokens.colors.success,
+                    marginBottom: tokens.spacing[2]
+                  }}>
+                    ✅ {optimizationResult.message}
+                  </div>
+                  <div style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted
+                  }}>
+                    Selected options: {optimizationResult.selectedOptions.join(', ')}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
 
