@@ -45,15 +45,17 @@ export default function SignInPage() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: tokens.spacing[4]
+      padding: tokens.spacing[4],
+      background: tokens.colors.background
     }}>
       <div style={{
         maxWidth: '28rem',
         width: '100%',
-        backgroundColor: tokens.colors.surface,
-        borderRadius: tokens.radius.xl,
+        backgroundColor: tokens.card.background,
+        borderRadius: tokens.card.radius,
         padding: tokens.spacing[8],
-        border: `1px solid ${tokens.colors.border}`
+        border: `1px solid ${tokens.card.border}`,
+        boxShadow: tokens.shadows.card
       }}>
         <div style={{ textAlign: 'center', marginBottom: tokens.spacing[8] }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: tokens.spacing[6] }}>

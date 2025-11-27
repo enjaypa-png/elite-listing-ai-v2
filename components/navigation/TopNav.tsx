@@ -14,7 +14,7 @@ export function TopNav() {
   const navLinks = [
     { label: 'Dashboard', href: '/dashboard' },
     { label: 'My Listings', href: '/dashboard/listings' },
-    { label: 'Optimization', href: '/upload' },
+    { label: 'Optimization', href: '/dashboard/optimize-listing' },
     { label: 'Etsy Sync', href: '/dashboard/etsy-sync' }
   ];
 
