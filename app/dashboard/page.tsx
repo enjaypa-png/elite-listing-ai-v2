@@ -76,7 +76,7 @@ export default function DashboardPage() {
                   justifyContent: 'center',
                   fontSize: tokens.typography.fontSize['4xl']
                 }}>
-                  \u26A1
+                  ⚡
                 </div>
                 <div style={{ flex: 1 }}>
                   <h2 style={{
@@ -205,7 +205,7 @@ export default function DashboardPage() {
               </div>
 
               <div
-                onClick={() => router.push('/dashboard/photo-analysis')}
+                onClick={() => router.push('/upload')}
                 style={{
                   background: tokens.colors.surface,
                   border: `1px solid ${tokens.colors.border}`,
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
               >
-                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\u26a1</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>⚡</div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Batch Optimize</div>
                 <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Multiple listings</div>
               </div>

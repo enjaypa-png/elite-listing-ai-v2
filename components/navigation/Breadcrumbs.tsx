@@ -7,26 +7,37 @@ import tokens from '@/design-system/tokens.json';
 export function Breadcrumbs() {
   const pathname = usePathname();
   
-  // Parse pathname into breadcrumb segments
-  const segments = pathname?.split('/').filter(Boolean) || [];
+  // Don't show breadcrumbs on dashboard home
+  if (!pathname || pathname === '/dashboard') return null;
+  
+  // Parse pathname into breadcrumb segments, skip 'dashboard' if it's the first segment
+  const segments = pathname.split('/').filter(Boolean);
   
   // Map segments to readable names
   const nameMap: Record<string, string> = {
-    'dashboard': 'Dashboard',
-    'photo-analysis': 'Photo Analysis',
-    'keywords': 'Keywords',
-    'seo-audit': 'SEO Audit',
+    'optimize-listing': 'Optimize Listing',
+    'upload': 'Photo Analysis',
     'listings': 'My Listings',
     'etsy-sync': 'Etsy Sync',
     'batch': 'Batch Optimization',
-    'upload': 'Upload',
-    'photo-checkup': 'Photo Checkup',
-    'photo-improve': 'Photo Improve',
-    'title-description': 'Title & Description',
-    'finish': 'Finish'
+    'listing-optimizer': 'Listing Optimizer',
+    'seo-audit': 'SEO Audit'
   };
 
-  if (segments.length === 0) return null;
+  // Build breadcrumb items (skip 'dashboard' from path segments)
+  const items = segments
+    .filter((segment) => {
+      // Skip 'dashboard', numeric IDs, and optimization IDs
+      if (segment === 'dashboard') return false;
+      if (/^[a-f0-9-]{20,}$/i.test(segment) || segment.startsWith('opt_')) return false;
+      return true;
+    })
+    .map(segment => ({
+      label: nameMap[segment] || segment,
+      segment
+    }));
+
+  if (items.length === 0) return null;
 
   return (
     <div style={{
@@ -55,37 +66,18 @@ export function Breadcrumbs() {
         >
           Dashboard
         </Link>
-        {segments.map((segment, index) => {
-          const isLast = index === segments.length - 1;
-          const href = '/' + segments.slice(0, index + 1).join('/');
-          const name = nameMap[segment] || segment;
-          
-          // Skip numeric IDs
-          if (/^[a-f0-9-]{20,}$/i.test(segment) || segment.startsWith('opt_')) {
-            return null;
-          }
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
 
           return (
-            <div key={segment} style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+            <div key={item.segment} style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
               <span style={{ color: tokens.colors.textMuted }}>›</span>
-              {isLast ? (
-                <span style={{ color: tokens.colors.text, fontWeight: tokens.typography.fontWeight.medium }}>
-                  {name}
-                </span>
-              ) : (
-                <Link
-                  href={href}
-                  style={{
-                    color: tokens.colors.textMuted,
-                    textDecoration: 'none',
-                    transition: `color ${tokens.motion.duration.fast}`
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = tokens.colors.primary}
-                  onMouseLeave={(e) => e.currentTarget.style.color = tokens.colors.textMuted}
-                >
-                  {name}
-                </Link>
-              )}
+              <span style={{ 
+                color: isLast ? tokens.colors.text : tokens.colors.textMuted,
+                fontWeight: isLast ? tokens.typography.fontWeight.medium : tokens.typography.fontWeight.normal
+              }}>
+                {item.label}
+              </span>
             </div>
           );
         })}
