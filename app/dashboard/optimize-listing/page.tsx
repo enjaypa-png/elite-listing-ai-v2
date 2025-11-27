@@ -84,10 +84,10 @@ export default function OptimizeListingPage() {
                   Etsy Listing URL
                 </label>
                 <input
-                  type=\"text\"
+                  type="text"
                   value={listingUrl}
                   onChange={(e) => setListingUrl(e.target.value)}
-                  placeholder=\"https://www.etsy.com/listing/...\"
+                  placeholder="https://www.etsy.com/listing/..."
                   style={{
                     width: '100%',
                     padding: tokens.spacing[3],
@@ -140,8 +140,8 @@ export default function OptimizeListingPage() {
               </div>
 
               <Button
-                variant=\"primary\"
-                size=\"lg\"
+                variant="primary"
+                size="lg"
                 fullWidth
                 onClick={() => setIsOptimizing(true)}
                 disabled={!listingUrl || isOptimizing}
@@ -151,7 +151,6 @@ export default function OptimizeListingPage() {
             </div>
           </Card>
 
-          {/* Placeholder for results */}
           {isOptimizing && (
             <Card>
               <div style={{ padding: tokens.spacing[8], textAlign: 'center' }}>
