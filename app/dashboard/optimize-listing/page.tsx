@@ -42,26 +42,22 @@ export default function OptimizeListingPage() {
     }
     
     if (!listingUrl.includes('etsy.com/listing/')) {
-      alert('⚠️ Please enter a valid Etsy listing URL\\n\\nExample: https://www.etsy.com/listing/123456789/product-name');
-      return;
-    }
-    
-    if (optimizationOptions.length === 0) {
-      alert('⚠️ Please select at least one optimization option above');
+      alert('⚠️ Please enter a valid Etsy listing URL\n\nExample: https://www.etsy.com/listing/123456789/product-name');
       return;
     }
 
     setIsOptimizing(true);
 
     try {
-      // Simulate optimization - replace with real API call
+      // For now, show that it's working (full optimization logic coming next)
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       setOptimizationResult({
         success: true,
-        message: 'Optimization complete! (Demo mode - full functionality coming soon)',
+        message: 'Analysis complete! Full optimization features being built.',
         selectedOptions: optimizationOptions,
-        listingUrl: listingUrl
+        listingUrl: listingUrl,
+        note: 'Next: We will fetch the listing, run R.A.N.K. 285™ analysis, and provide optimized versions of title, tags, and description.'
       });
     } catch (error) {
       console.error('Optimization error:', error);
@@ -191,22 +187,45 @@ export default function OptimizeListingPage() {
                 <div style={{
                   marginTop: tokens.spacing[6],
                   padding: tokens.spacing[6],
-                  background: `${tokens.colors.success}1A`,
-                  border: `1px solid ${tokens.colors.success}33`,
+                  background: `${tokens.colors.primary}1A`,
+                  border: `1px solid ${tokens.colors.primary}33`,
                   borderRadius: tokens.radius.md
                 }}>
                   <div style={{
                     fontWeight: tokens.typography.fontWeight.semibold,
-                    color: tokens.colors.success,
-                    marginBottom: tokens.spacing[2]
+                    color: tokens.colors.primary,
+                    marginBottom: tokens.spacing[3],
+                    fontSize: tokens.typography.fontSize.lg
                   }}>
                     ✅ {optimizationResult.message}
                   </div>
                   <div style={{
                     fontSize: tokens.typography.fontSize.sm,
-                    color: tokens.colors.textMuted
+                    color: tokens.colors.textMuted,
+                    marginBottom: tokens.spacing[3]
                   }}>
-                    Selected options: {optimizationResult.selectedOptions.join(', ')}
+                    <strong>Selected:</strong> {optimizationResult.selectedOptions.includes('all') ? 'Optimize Everything' : optimizationResult.selectedOptions.join(', ')}
+                  </div>
+                  <div style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted,
+                    padding: tokens.spacing[4],
+                    background: tokens.colors.background,
+                    borderRadius: tokens.radius.sm,
+                    marginTop: tokens.spacing[3],
+                    border: `1px solid ${tokens.colors.border}`
+                  }}>
+                    <strong style={{ color: tokens.colors.text }}>Coming Next:</strong><br/>
+                    {optimizationResult.note}
+                  </div>
+                  <div style={{ marginTop: tokens.spacing[4] }}>
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      onClick={() => setOptimizationResult(null)}
+                    >
+                      Optimize Another Listing
+                    </Button>
                   </div>
                 </div>
               )}

@@ -183,7 +183,7 @@ export default function DashboardPage() {
             </h3>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(3, 1fr)',
               gap: tokens.spacing[4]
             }}>
               <div
@@ -238,24 +238,6 @@ export default function DashboardPage() {
                 <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udd04</div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Etsy Sync</div>
                 <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Connect shop</div>
-              </div>
-
-              <div
-                onClick={() => router.push('/dashboard/batch')}
-                style={{
-                  background: tokens.colors.surface,
-                  border: `1px solid ${tokens.colors.border}`,
-                  borderRadius: tokens.radius.md,
-                  padding: tokens.spacing[6],
-                  cursor: 'pointer',
-                  transition: `all ${tokens.motion.duration.fast}`
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
-              >
-                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>⚡</div>
-                <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Batch Optimize</div>
-                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Multiple listings</div>
               </div>
             </div>
           </div>
