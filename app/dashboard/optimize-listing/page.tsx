@@ -49,39 +49,93 @@ export default function OptimizeListingPage() {
     setIsOptimizing(true);
 
     try {
-      // Extract listing ID from URL
-      const listingIdMatch = listingUrl.match(/listing\/(\d+)/);
-      const listingId = listingIdMatch ? listingIdMatch[1] : '';
+      console.log('Step 1: Scraping Etsy listing...');
+      
+      // Step 1: Scrape the Etsy listing
+      const scrapeResponse = await fetch('/api/etsy/scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: listingUrl })
+      });
 
-      // For now, run R.A.N.K. 285™ analysis on placeholder data
-      // In production, this would fetch actual listing data from Etsy
-      const response = await fetch('/api/seo/audit', {
+      const scrapeData = await scrapeResponse.json();
+      
+      if (!scrapeData.success) {
+        alert(`⚠️ Failed to fetch listing data: ${scrapeData.error}\n\nPlease check the URL and try again.`);
+        setIsOptimizing(false);
+        return;
+      }
+
+      const listing = scrapeData.data;
+      console.log('Scraped listing:', listing.title);
+
+      // Step 2: Run R.A.N.K. 285™ analysis
+      console.log('Step 2: Running R.A.N.K. 285™ analysis...');
+      const auditResponse = await fetch('/api/seo/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           platform: 'Etsy',
-          title: 'Sample Listing Title (fetching real data coming soon)',
-          description: 'Sample description text for analysis',
-          tags: 'sample, tags, keywords',
-          category: 'Home & Living'
+          title: listing.title,
+          description: listing.description,
+          tags: listing.tags.join(', '),
+          category: listing.category,
+          photoCount: listing.imageCount
         })
       });
 
-      const data = await response.json();
+      const auditData = await auditResponse.json();
       
-      if (data.success) {
-        setOptimizationResult({
-          ...data,
-          listingId: listingId,
-          listingUrl: listingUrl,
-          selectedOptions: optimizationOptions
-        });
-      } else {
-        alert('Analysis failed. Please try again.');
+      if (!auditData.success) {
+        alert('⚠️ Analysis failed. Please try again.');
+        setIsOptimizing(false);
+        return;
       }
+
+      // Step 3: Generate optimized versions
+      console.log('Step 3: Generating optimized content...');
+      const optimizeResponse = await fetch('/api/optimize/listing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: listing.title,
+          description: listing.description,
+          tags: listing.tags,
+          category: listing.category,
+          price: listing.price,
+          images: listing.images
+        })
+      });
+
+      const optimizeData = await optimizeResponse.json();
+      
+      if (!optimizeData.success) {
+        // Still show results even if optimization fails
+        console.warn('Optimization generation failed:', optimizeData.error);
+      }
+
+      // Combine all data
+      setOptimizationResult({
+        ...auditData,
+        listingId: listing.listingId,
+        listingUrl: listingUrl,
+        selectedOptions: optimizationOptions,
+        originalData: {
+          title: listing.title,
+          description: listing.description,
+          tags: listing.tags,
+          images: listing.images,
+          price: listing.price,
+          category: listing.category
+        },
+        optimizedData: optimizeData.success ? optimizeData.optimized : null
+      });
+
+      console.log('✅ Optimization complete!');
+
     } catch (error) {
       console.error('Optimization error:', error);
-      alert('Failed to analyze listing. Please try again.');
+      alert('❌ Failed to analyze listing. Please check your internet connection and try again.');
     } finally {
       setIsOptimizing(false);
     }
@@ -382,23 +436,255 @@ export default function OptimizeListingPage() {
                     </div>
                   )}
 
-                  {/* Note about fetching */}
-                  <div style={{
-                    padding: tokens.spacing[6],
-                    background: tokens.colors.surface,
-                    border: `1px solid ${tokens.colors.border}`,
-                    borderRadius: tokens.radius.md,
-                    marginBottom: tokens.spacing[4]
-                  }}>
-                    <div style={{
-                      fontSize: tokens.typography.fontSize.sm,
-                      color: tokens.colors.textMuted,
-                      marginBottom: tokens.spacing[2]
-                    }}>
-                      <strong style={{ color: tokens.colors.text }}>Note:</strong> This analysis uses sample data. 
-                      Next update will fetch your actual listing from Etsy and provide real optimized versions.
-                    </div>
-                  </div>
+                  {/* Optimized Content */}
+                  {optimizationResult.optimizedData && (
+                    <>
+                      {/* Optimized Titles */}
+                      {optimizationResult.optimizedData.titles && optimizationResult.optimizedData.titles.length > 0 && (
+                        <div style={{
+                          padding: tokens.spacing[8],
+                          background: tokens.card.background,
+                          border: `1px solid ${tokens.card.border}`,
+                          borderRadius: tokens.card.radius,
+                          boxShadow: tokens.shadows.card,
+                          marginBottom: tokens.spacing[6]
+                        }}>
+                          <h3 style={{
+                            fontSize: tokens.typography.fontSize['2xl'],
+                            fontWeight: tokens.typography.fontWeight.semibold,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[6]
+                          }}>
+                            📝 Optimized Titles
+                          </h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                            {optimizationResult.optimizedData.titles.map((variant: any, index: number) => (
+                              <div key={index} style={{
+                                padding: tokens.spacing[6],
+                                background: tokens.colors.surface,
+                                border: `2px solid ${tokens.colors.border}`,
+                                borderRadius: tokens.radius.md,
+                                position: 'relative'
+                              }}>
+                                <div style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'start',
+                                  marginBottom: tokens.spacing[3]
+                                }}>
+                                  <div style={{
+                                    fontSize: tokens.typography.fontSize.xs,
+                                    color: tokens.colors.primary,
+                                    fontWeight: tokens.typography.fontWeight.semibold,
+                                    textTransform: 'uppercase'
+                                  }}>
+                                    {variant.approach}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(variant.text);
+                                      alert('✅ Title copied to clipboard!');
+                                    }}
+                                    style={{
+                                      padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                                      background: tokens.colors.primary,
+                                      color: tokens.colors.primaryForeground,
+                                      border: 'none',
+                                      borderRadius: tokens.radius.md,
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      fontWeight: tokens.typography.fontWeight.semibold,
+                                      cursor: 'pointer'
+                                    }}
+                                  >
+                                    📋 Copy
+                                  </button>
+                                </div>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.lg,
+                                  fontWeight: tokens.typography.fontWeight.semibold,
+                                  color: tokens.colors.text,
+                                  marginBottom: tokens.spacing[3],
+                                  lineHeight: tokens.typography.lineHeight.relaxed
+                                }}>
+                                  {variant.text}
+                                </div>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.sm,
+                                  color: tokens.colors.textMuted,
+                                  marginBottom: tokens.spacing[2]
+                                }}>
+                                  {variant.reasoning}
+                                </div>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.textMuted
+                                }}>
+                                  Keywords: {variant.keywords?.join(', ')}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Optimized Tags */}
+                      {optimizationResult.optimizedData.tags && optimizationResult.optimizedData.tags.length > 0 && (
+                        <div style={{
+                          padding: tokens.spacing[8],
+                          background: tokens.card.background,
+                          border: `1px solid ${tokens.card.border}`,
+                          borderRadius: tokens.card.radius,
+                          boxShadow: tokens.shadows.card,
+                          marginBottom: tokens.spacing[6]
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: tokens.spacing[4]
+                          }}>
+                            <h3 style={{
+                              fontSize: tokens.typography.fontSize['2xl'],
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.text
+                            }}>
+                              🏷️ Optimized Tags ({optimizationResult.optimizedData.tags.length}/13)
+                            </h3>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(optimizationResult.optimizedData.tags.join(', '));
+                                alert('✅ All tags copied to clipboard!');
+                              }}
+                              style={{
+                                padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                                background: tokens.colors.primary,
+                                color: tokens.colors.primaryForeground,
+                                border: 'none',
+                                borderRadius: tokens.radius.md,
+                                fontSize: tokens.typography.fontSize.sm,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              📋 Copy All Tags
+                            </button>
+                          </div>
+                          <div style={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: tokens.spacing[2],
+                            marginBottom: tokens.spacing[4]
+                          }}>
+                            {optimizationResult.optimizedData.tags.map((tag: string, index: number) => (
+                              <span
+                                key={index}
+                                style={{
+                                  padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                                  background: tokens.colors.surface,
+                                  border: `1px solid ${tokens.colors.border}`,
+                                  borderRadius: tokens.radius.full,
+                                  fontSize: tokens.typography.fontSize.sm,
+                                  color: tokens.colors.text
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                          {optimizationResult.optimizedData.tagsReasoning && (
+                            <div style={{
+                              fontSize: tokens.typography.fontSize.sm,
+                              color: tokens.colors.textMuted,
+                              fontStyle: 'italic'
+                            }}>
+                              {optimizationResult.optimizedData.tagsReasoning}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Optimized Description */}
+                      {optimizationResult.optimizedData.description && (
+                        <div style={{
+                          padding: tokens.spacing[8],
+                          background: tokens.card.background,
+                          border: `1px solid ${tokens.card.border}`,
+                          borderRadius: tokens.card.radius,
+                          boxShadow: tokens.shadows.card,
+                          marginBottom: tokens.spacing[6]
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: tokens.spacing[4]
+                          }}>
+                            <h3 style={{
+                              fontSize: tokens.typography.fontSize['2xl'],
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.text
+                            }}>
+                              📄 Optimized Description
+                            </h3>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(optimizationResult.optimizedData.description);
+                                alert('✅ Description copied to clipboard!');
+                              }}
+                              style={{
+                                padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                                background: tokens.colors.primary,
+                                color: tokens.colors.primaryForeground,
+                                border: 'none',
+                                borderRadius: tokens.radius.md,
+                                fontSize: tokens.typography.fontSize.sm,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              📋 Copy Description
+                            </button>
+                          </div>
+                          <div style={{
+                            padding: tokens.spacing[6],
+                            background: tokens.colors.surface,
+                            border: `1px solid ${tokens.colors.border}`,
+                            borderRadius: tokens.radius.md,
+                            fontSize: tokens.typography.fontSize.base,
+                            color: tokens.colors.text,
+                            lineHeight: tokens.typography.lineHeight.relaxed,
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: 'monospace',
+                            maxHeight: '400px',
+                            overflowY: 'auto'
+                          }}>
+                            {optimizationResult.optimizedData.description}
+                          </div>
+                          {optimizationResult.optimizedData.descriptionImprovements && optimizationResult.optimizedData.descriptionImprovements.length > 0 && (
+                            <div style={{ marginTop: tokens.spacing[4] }}>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.sm,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: tokens.colors.text,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                Improvements Made:
+                              </div>
+                              <ul style={{
+                                fontSize: tokens.typography.fontSize.sm,
+                                color: tokens.colors.textMuted,
+                                paddingLeft: tokens.spacing[6]
+                              }}>
+                                {optimizationResult.optimizedData.descriptionImprovements.map((improvement: string, index: number) => (
+                                  <li key={index} style={{ marginBottom: tokens.spacing[1] }}>{improvement}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
 
                   <Button
                     variant="secondary"
