@@ -6,14 +6,12 @@ import { Container, Card, Button } from '@/components/ui';
 import tokens from '@/design-system/tokens.json';
 
 interface OptimizationResult {
-  // R.A.N.K. Analysis
   overallScore: number;
   totalPoints: number;
   maxPoints: number;
   breakdown: any;
   priorityIssues: string[];
   quickWins: string[];
-  // Optimizations
   optimizedData?: {
     titles: Array<{
       text: string;
@@ -30,21 +28,36 @@ interface OptimizationResult {
 }
 
 export default function OptimizeListingPage() {
-  // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState('');
   const [category, setCategory] = useState('');
   const [price, setPrice] = useState('');
+  const [optimizeEverything, setOptimizeEverything] = useState(true);
+  const [optimizeTitle, setOptimizeTitle] = useState(false);
+  const [optimizeTags, setOptimizeTags] = useState(false);
+  const [optimizeDescription, setOptimizeDescription] = useState(false);
   
-  // UI state
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [progress, setProgress] = useState('');
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
-  // Validation
+  const categories = [
+    'Jewelry & Accessories',
+    'Clothing & Shoes',
+    'Home & Living',
+    'Wedding & Party',
+    'Toys & Entertainment',
+    'Art & Collectibles',
+    'Craft Supplies & Tools',
+    'Gifts',
+    'Vintage',
+    'Other'
+  ];
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     
@@ -75,7 +88,20 @@ export default function OptimizeListingPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Copy to clipboard
+  const handleCheckboxChange = (checkbox: string) => {
+    if (checkbox === 'everything') {
+      setOptimizeEverything(true);
+      setOptimizeTitle(false);
+      setOptimizeTags(false);
+      setOptimizeDescription(false);
+    } else {
+      setOptimizeEverything(false);
+      if (checkbox === 'title') setOptimizeTitle(!optimizeTitle);
+      if (checkbox === 'tags') setOptimizeTags(!optimizeTags);
+      if (checkbox === 'description') setOptimizeDescription(!optimizeDescription);
+    }
+  };
+
   const copyToClipboard = async (text: string, message: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -87,11 +113,46 @@ export default function OptimizeListingPage() {
     }
   };
 
-  // Download as text file
   const downloadAsText = () => {
     if (!optimizationResult?.optimizedData) return;
     
-    const content = `ELITE LISTING AI - OPTIMIZATION RESULTS\nGenerated: ${new Date().toLocaleString()}\n\n═══════════════════════════════════════════════\nOPTIMIZED TITLES\n═══════════════════════════════════════════════\n\n${optimizationResult.optimizedData.titles.map((t, i) => `\nTitle ${i + 1}: ${t.text}\nApproach: ${t.approach}\nKeywords: ${t.keywords.join(', ')}\nReasoning: ${t.reasoning}\n`).join('\n')}\n\n═══════════════════════════════════════════════\nOPTIMIZED TAGS (${optimizationResult.optimizedData.tags.length})\n═══════════════════════════════════════════════\n\n${optimizationResult.optimizedData.tags.join(', ')}\n\nStrategy: ${optimizationResult.optimizedData.tagsReasoning}\n\n═══════════════════════════════════════════════\nOPTIMIZED DESCRIPTION\n═══════════════════════════════════════════════\n\n${optimizationResult.optimizedData.description}\n\nImprovements:\n${optimizationResult.optimizedData.descriptionImprovements.map(imp => `• ${imp}`).join('\n')}\n\nKeyword Density: ${optimizationResult.optimizedData.keywordDensity}\n\n═══════════════════════════════════════════════\nR.A.N.K. 285™ SCORE: ${optimizationResult.totalPoints}/${optimizationResult.maxPoints} (${optimizationResult.overallScore}%)\n═══════════════════════════════════════════════\n`;
+    const content = `ELITE LISTING AI - OPTIMIZATION RESULTS
+Generated: ${new Date().toLocaleString()}
+========================================
+
+ORIGINAL LISTING:
+Title: ${title}
+Description: ${description}
+Tags: ${tags}
+
+R.A.N.K. 285™ SCORE: ${optimizationResult.totalPoints}/${optimizationResult.maxPoints} (${optimizationResult.overallScore}%)
+
+${optimizationResult.optimizedData.titles ? `
+OPTIMIZED TITLES:
+
+Variant 1 (${optimizationResult.optimizedData.titles[0].approach}):
+${optimizationResult.optimizedData.titles[0].text}
+
+Variant 2 (${optimizationResult.optimizedData.titles[1].approach}):
+${optimizationResult.optimizedData.titles[1].text}
+
+Variant 3 (${optimizationResult.optimizedData.titles[2].approach}):
+${optimizationResult.optimizedData.titles[2].text}
+` : ''}
+
+${optimizationResult.optimizedData.tags ? `
+OPTIMIZED TAGS:
+${optimizationResult.optimizedData.tags.join(', ')}
+` : ''}
+
+${optimizationResult.optimizedData.description ? `
+OPTIMIZED DESCRIPTION:
+${optimizationResult.optimizedData.description}
+` : ''}
+
+========================================
+Generated by Elite Listing AI
+https://elitelistingai.com`;
 
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -104,7 +165,6 @@ export default function OptimizeListingPage() {
     URL.revokeObjectURL(url);
   };
 
-  // Handle optimization
   const handleOptimize = async () => {
     if (!validateForm()) return;
     
@@ -112,10 +172,12 @@ export default function OptimizeListingPage() {
     setOptimizationResult(null);
 
     try {
-      // Parse tags
       const tagArray = tags.trim() ? tags.split('\n').filter(t => t.trim()).slice(0, 13) : [];
       
-      // Step 1: Run R.A.N.K. 285™ Analysis
+      setProgress('Analyzing listing data');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setProgress('Running R.A.N.K. 285™ analysis');
       const auditResponse = await fetch('/api/seo/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -135,29 +197,29 @@ export default function OptimizeListingPage() {
         throw new Error('Analysis failed: ' + (auditData.error || 'Unknown error'));
       }
 
-      // Step 2: Generate Optimizations
-      const optimizeResponse = await fetch('/api/optimize/listing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          description,
-          tags: tagArray,
-          category: category || 'General',
-          price: price ? parseFloat(price) : undefined
-        })
-      });
+      const shouldOptimize = optimizeEverything || optimizeTitle || optimizeTags || optimizeDescription;
+      let optimizeData = null;
 
-      const optimizeData = await optimizeResponse.json();
-      
-      if (!optimizeData.success) {
-        console.warn('Optimization generation failed, showing analysis only');
+      if (shouldOptimize) {
+        setProgress('Generating optimized content with AI');
+        const optimizeResponse = await fetch('/api/optimize/listing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            description,
+            tags: tagArray,
+            category: category || 'General',
+            price: price ? parseFloat(price) : undefined
+          })
+        });
+
+        optimizeData = await optimizeResponse.json();
       }
 
-      // Combine results
       setOptimizationResult({
         ...auditData,
-        optimizedData: optimizeData.success ? optimizeData.optimized : null
+        optimizedData: optimizeData?.success ? optimizeData.optimized : null
       });
 
     } catch (error: any) {
@@ -165,8 +227,12 @@ export default function OptimizeListingPage() {
       alert('Failed to optimize listing: ' + error.message);
     } finally {
       setIsOptimizing(false);
+      setProgress('');
     }
   };
+
+  const tagCount = tags.split('\n').filter(t => t.trim()).length;
+  const isFormValid = title.trim() && description.trim() && !errors.title && !errors.description;
 
   return (
     <div style={{ minHeight: '100vh', background: tokens.colors.background }}>
@@ -192,7 +258,7 @@ export default function OptimizeListingPage() {
               marginBottom: tokens.spacing[3],
               lineHeight: tokens.typography.lineHeight.tight
             }}>
-              ⚡ Optimize Your Etsy Listing
+              ⚡ One-Click Listing Optimizer
             </h1>
             <p style={{
               fontSize: 'clamp(1rem, 3vw, 1.125rem)',
@@ -200,21 +266,21 @@ export default function OptimizeListingPage() {
               maxWidth: '600px',
               margin: '0 auto'
             }}>
-              Paste your listing details below and get R.A.N.K. 285™ analysis + AI-optimized content
+              Optimize your Etsy listings with R.A.N.K. 285™ AI
             </p>
           </div>
 
           {/* Input Form */}
           {!optimizationResult && (
             <Card>
-              <div style={{ padding: 'clamp(1rem, 4vw, 2rem)' }}>
+              <div style={{ padding: 'clamp(1.5rem, 4vw, 2rem)' }}>
                 <h2 style={{
                   fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text,
                   marginBottom: tokens.spacing[6]
                 }}>
-                  Enter Listing Details
+                  Enter Your Listing Details
                 </h2>
 
                 {/* Title Input */}
@@ -232,7 +298,8 @@ export default function OptimizeListingPage() {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Handmade Ceramic Coffee Mug | Artisan Pottery"
+                    onBlur={validateForm}
+                    placeholder="Handmade Ceramic Coffee Mug | Artisan Pottery | Blue & White"
                     maxLength={140}
                     style={{
                       width: '100%',
@@ -248,12 +315,11 @@ export default function OptimizeListingPage() {
                       boxSizing: 'border-box'
                     }}
                     onFocus={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
-                    onBlur={(e) => e.currentTarget.style.borderColor = errors.title ? tokens.colors.danger : tokens.colors.border}
                   />
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    marginTop: tokens.spacing[1],
+                    marginTop: tokens.spacing[2],
                     fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
                     flexWrap: 'wrap',
                     gap: tokens.spacing[2]
@@ -281,11 +347,13 @@ export default function OptimizeListingPage() {
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your product in detail..."
+                    onBlur={validateForm}
+                    placeholder="Describe your product in detail... Include materials, dimensions, features, and benefits."
                     maxLength={5000}
-                    rows={6}
+                    rows={8}
                     style={{
                       width: '100%',
+                      minHeight: '200px',
                       padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
                       background: tokens.colors.surface,
                       border: `2px solid ${errors.description ? tokens.colors.danger : tokens.colors.border}`,
@@ -299,12 +367,11 @@ export default function OptimizeListingPage() {
                       boxSizing: 'border-box'
                     }}
                     onFocus={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
-                    onBlur={(e) => e.currentTarget.style.borderColor = errors.description ? tokens.colors.danger : tokens.colors.border}
                   />
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    marginTop: tokens.spacing[1],
+                    marginTop: tokens.spacing[2],
                     fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
                     flexWrap: 'wrap',
                     gap: tokens.spacing[2]
@@ -327,13 +394,13 @@ export default function OptimizeListingPage() {
                     color: tokens.colors.text,
                     marginBottom: tokens.spacing[2]
                   }}>
-                    Tags (Optional)
+                    Tags (one per line, max 13)
                   </label>
                   <textarea
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
-                    placeholder={'Enter tags, one per line\n(max 13 tags)\n\nExample:\nhandmade mug\npottery\nceramic cup'}
-                    rows={4}
+                    placeholder={'handmade jewelry\nsterling silver\nboho earrings\nhandcrafted\nartisan jewelry'}
+                    rows={5}
                     style={{
                       width: '100%',
                       padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
@@ -349,12 +416,11 @@ export default function OptimizeListingPage() {
                       boxSizing: 'border-box'
                     }}
                     onFocus={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
-                    onBlur={(e) => e.currentTarget.style.borderColor = errors.tags ? tokens.colors.danger : tokens.colors.border}
                   />
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    marginTop: tokens.spacing[1],
+                    marginTop: tokens.spacing[2],
                     fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
                     flexWrap: 'wrap',
                     gap: tokens.spacing[2]
@@ -362,8 +428,8 @@ export default function OptimizeListingPage() {
                     <span style={{ color: errors.tags ? tokens.colors.danger : tokens.colors.textMuted }}>
                       {errors.tags || 'One tag per line, max 13'}
                     </span>
-                    <span style={{ color: tokens.colors.textMuted }}>
-                      {tags.split('\n').filter(t => t.trim()).length}/13 tags
+                    <span style={{ color: tagCount > 13 ? tokens.colors.danger : tokens.colors.textMuted }}>
+                      {tagCount}/13 tags
                     </span>
                   </div>
                 </div>
@@ -373,9 +439,8 @@ export default function OptimizeListingPage() {
                   display: 'grid',
                   gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: tokens.spacing[4],
-                  marginBottom: tokens.spacing[8]
+                  marginBottom: tokens.spacing[6]
                 }}>
-                  {/* Category */}
                   <div>
                     <label style={{
                       display: 'block',
@@ -384,7 +449,7 @@ export default function OptimizeListingPage() {
                       color: tokens.colors.text,
                       marginBottom: tokens.spacing[2]
                     }}>
-                      Category (Optional)
+                      Category (optional)
                     </label>
                     <select
                       value={category}
@@ -399,24 +464,17 @@ export default function OptimizeListingPage() {
                         color: tokens.colors.text,
                         fontSize: 'max(16px, 1rem)',
                         outline: 'none',
-                        transition: `all ${tokens.motion.duration.fast}`,
                         cursor: 'pointer',
                         boxSizing: 'border-box'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
-                      onBlur={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
                     >
                       <option value="">Select category</option>
-                      <option value="Home & Living">Home & Living</option>
-                      <option value="Jewelry">Jewelry</option>
-                      <option value="Clothing">Clothing</option>
-                      <option value="Art & Collectibles">Art & Collectibles</option>
-                      <option value="Craft Supplies">Craft Supplies</option>
-                      <option value="Accessories">Accessories</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
 
-                  {/* Price */}
                   <div>
                     <label style={{
                       display: 'block',
@@ -425,7 +483,7 @@ export default function OptimizeListingPage() {
                       color: tokens.colors.text,
                       marginBottom: tokens.spacing[2]
                     }}>
-                      Price (Optional)
+                      Price (optional)
                     </label>
                     <input
                       type="number"
@@ -444,12 +502,107 @@ export default function OptimizeListingPage() {
                         color: tokens.colors.text,
                         fontSize: 'max(16px, 1rem)',
                         outline: 'none',
-                        transition: `all ${tokens.motion.duration.fast}`,
                         boxSizing: 'border-box'
                       }}
-                      onFocus={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
-                      onBlur={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
                     />
+                  </div>
+                </div>
+
+                {/* Optimization Options */}
+                <div style={{ marginBottom: tokens.spacing[8] }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                    fontWeight: tokens.typography.fontWeight.medium,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[3]
+                  }}>
+                    What would you like to optimize?
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[3] }}>
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[3],
+                      cursor: 'pointer',
+                      minHeight: '44px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={optimizeEverything}
+                        onChange={() => handleCheckboxChange('everything')}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                      />
+                      <span style={{
+                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                        color: tokens.colors.text
+                      }}>
+                        Optimize Everything (recommended)
+                      </span>
+                    </label>
+                    
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[3],
+                      cursor: 'pointer',
+                      minHeight: '44px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={optimizeTitle}
+                        onChange={() => handleCheckboxChange('title')}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                      />
+                      <span style={{
+                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                        color: tokens.colors.text
+                      }}>
+                        Optimize Title Only
+                      </span>
+                    </label>
+                    
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[3],
+                      cursor: 'pointer',
+                      minHeight: '44px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={optimizeTags}
+                        onChange={() => handleCheckboxChange('tags')}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                      />
+                      <span style={{
+                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                        color: tokens.colors.text
+                      }}>
+                        Optimize Tags Only
+                      </span>
+                    </label>
+                    
+                    <label style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: tokens.spacing[3],
+                      cursor: 'pointer',
+                      minHeight: '44px'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={optimizeDescription}
+                        onChange={() => handleCheckboxChange('description')}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                      />
+                      <span style={{
+                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                        color: tokens.colors.text
+                      }}>
+                        Optimize Description Only
+                      </span>
+                    </label>
                   </div>
                 </div>
 
@@ -459,7 +612,7 @@ export default function OptimizeListingPage() {
                   size="lg"
                   fullWidth
                   onClick={handleOptimize}
-                  disabled={isOptimizing || !title.trim() || !description.trim()}
+                  disabled={isOptimizing || !isFormValid}
                   style={{
                     minHeight: '56px',
                     fontSize: 'clamp(1rem, 3vw, 1.125rem)',
@@ -472,13 +625,10 @@ export default function OptimizeListingPage() {
             </Card>
           )}
 
-          {/* Loading State */}
+          {/* Loading State - PART 1/3 */}
           {isOptimizing && (
             <Card>
-              <div style={{ 
-                padding: 'clamp(2rem, 6vw, 3rem)', 
-                textAlign: 'center' 
-              }}>
+              <div style={{ padding: 'clamp(2rem, 6vw, 3rem)', textAlign: 'center' }}>
                 <div style={{
                   width: 'clamp(60px, 15vw, 80px)',
                   height: 'clamp(60px, 15vw, 80px)',
@@ -486,47 +636,55 @@ export default function OptimizeListingPage() {
                   borderTopColor: tokens.colors.primary,
                   borderRadius: tokens.radius.full,
                   animation: 'spin 1s linear infinite',
-                  margin: `0 auto ${tokens.spacing[8]}`
+                  margin: `0 auto ${tokens.spacing[6]}`
                 }} />
-                <div style={{
+                
+                <h2 style={{
                   fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
                   fontWeight: tokens.typography.fontWeight.bold,
                   color: tokens.colors.text,
                   marginBottom: tokens.spacing[4]
                 }}>
                   ⚡ Optimizing Your Listing
-                </div>
-                <div style={{
+                </h2>
+                
+                <p style={{
                   fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
                   color: tokens.colors.textMuted,
-                  marginBottom: tokens.spacing[6],
-                  padding: `0 ${tokens.spacing[4]}`
+                  marginBottom: tokens.spacing[6]
                 }}>
-                  Running R.A.N.K. 285™ analysis and generating AI-optimized content...
-                </div>
+                  Running R.A.N.K. 285™ analysis and generating optimized content...
+                </p>
+                
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
                   gap: tokens.spacing[3],
                   alignItems: 'center',
                   fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-                  color: tokens.colors.textMuted,
                   maxWidth: '400px',
                   margin: '0 auto'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                    <span style={{ color: tokens.colors.primary }}>⟳</span>
-                    <span>Analyzing with R.A.N.K. 285™...</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], width: '100%' }}>
+                    <span style={{ color: progress.includes('Analyzing') ? tokens.colors.primary : tokens.colors.success }}>
+                      {progress.includes('Analyzing') ? '⏳' : '✓'}
+                    </span>
+                    <span style={{ color: tokens.colors.textMuted }}>Analyzing listing data</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                    <span style={{ color: tokens.colors.primary }}>⟳</span>
-                    <span>Generating optimizations with GPT-4o...</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], width: '100%' }}>
+                    <span style={{ color: progress.includes('R.A.N.K') ? tokens.colors.primary : progress.includes('Generating') || progress === '' ? tokens.colors.textMuted : tokens.colors.success }}>
+                      {progress.includes('R.A.N.K') ? '⏳' : progress.includes('Generating') || progress === '' ? '○' : '✓'}
+                    </span>
+                    <span style={{ color: tokens.colors.textMuted }}>Running R.A.N.K. 285™ analysis</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
-                    <span style={{ color: tokens.colors.textMuted }}>○</span>
-                    <span>Almost done...</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2], width: '100%' }}>
+                    <span style={{ color: progress.includes('Generating') ? tokens.colors.primary : tokens.colors.textMuted }}>
+                      {progress.includes('Generating') ? '⏳' : '○'}
+                    </span>
+                    <span style={{ color: tokens.colors.textMuted }}>Generating optimized content with AI</span>
                   </div>
                 </div>
+                
                 <style jsx>{`
                   @keyframes spin {
                     from { transform: rotate(0deg); }
@@ -537,46 +695,523 @@ export default function OptimizeListingPage() {
             </Card>
           )}
 
-          {/* Results Display */}
+          {/* Results Display - PART 2/3 */}
           {optimizationResult && !isOptimizing && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[6] }}>
-              {/* NOTE: Due to file length limits, showing structure. Full implementation includes:
-                  - R.A.N.K. Score Card with breakdown, priority issues, quick wins
-                  - Optimized Titles (3 variants with copy buttons)
-                  - Optimized Tags (13 tags with copy all button)
-                  - Optimized Description (with improvements list)
-                  - Export buttons (Download as text, Start new) */}
-              
+              {/* R.A.N.K. Score Card */}
               <Card>
-                <div style={{ padding: 'clamp(1rem, 4vw, 2rem)', textAlign: 'center' }}>
+                <div style={{ padding: 'clamp(1.5rem, 4vw, 2rem)' }}>
+                  <h2 style={{
+                    fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
+                    fontWeight: tokens.typography.fontWeight.bold,
+                    color: tokens.colors.text,
+                    marginBottom: tokens.spacing[6]
+                  }}>
+                    📊 R.A.N.K. 285™ Analysis
+                  </h2>
+
                   <div style={{
-                    fontSize: 'clamp(1.5rem, 5vw, 2rem)',
-                    color: tokens.colors.success,
-                    marginBottom: tokens.spacing[4]
+                    textAlign: 'center',
+                    marginBottom: tokens.spacing[8],
+                    padding: 'clamp(1rem, 3vw, 1.5rem)',
+                    background: `linear-gradient(135deg, ${tokens.colors.primary}15, ${tokens.colors.success}15)`,
+                    borderRadius: tokens.radius.lg,
+                    border: `1px solid ${tokens.colors.border}`
                   }}>
-                    🎉 Optimization Complete!
+                    <div style={{
+                      fontSize: 'clamp(2.5rem, 8vw, 3.75rem)',
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      color: tokens.colors.primary,
+                      marginBottom: tokens.spacing[2]
+                    }}>
+                      {optimizationResult.totalPoints}/{optimizationResult.maxPoints}
+                    </div>
+                    <div style={{
+                      fontSize: 'clamp(1rem, 3vw, 1.25rem)',
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[4]
+                    }}>
+                      Overall Score: {optimizationResult.overallScore}%
+                    </div>
+                    <div style={{
+                      width: '100%',
+                      height: '12px',
+                      background: tokens.colors.surface2,
+                      borderRadius: tokens.radius.full,
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${optimizationResult.overallScore}%`,
+                        height: '100%',
+                        background: `linear-gradient(90deg, 
+                          ${optimizationResult.overallScore < 50 ? tokens.colors.danger : optimizationResult.overallScore < 70 ? tokens.colors.warning : tokens.colors.success}, 
+                          ${tokens.colors.primary})`,
+                        transition: 'width 1s ease-out'
+                      }} />
+                    </div>
                   </div>
-                  <p style={{
-                    fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                    color: tokens.colors.textMuted
+
+                  {optimizationResult.breakdown && (
+                    <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <h3 style={{
+                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.text,
+                        marginBottom: tokens.spacing[4]
+                      }}>
+                        Component Breakdown
+                      </h3>
+                      {Object.entries(optimizationResult.breakdown).map(([component, data]: [string, any]) => {
+                        const icons: Record<string, string> = {
+                          title: '📝',
+                          tags: '🏷️',
+                          description: '📄',
+                          photos: '📸',
+                          attributes: '🎯',
+                          category: '📁'
+                        };
+                        const color = data.percentage >= 70 ? tokens.colors.success : 
+                                     data.percentage >= 50 ? tokens.colors.warning : tokens.colors.danger;
+                        
+                        return (
+                          <div key={component} style={{ marginBottom: tokens.spacing[4] }}>
+                            <div style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              marginBottom: tokens.spacing[2],
+                              flexWrap: 'wrap',
+                              gap: tokens.spacing[2]
+                            }}>
+                              <span style={{
+                                fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                                color: tokens.colors.text,
+                                fontWeight: tokens.typography.fontWeight.medium
+                              }}>
+                                {icons[component]} {component.charAt(0).toUpperCase() + component.slice(1)}
+                              </span>
+                              <span style={{
+                                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                                color: color,
+                                fontWeight: tokens.typography.fontWeight.bold
+                              }}>
+                                {data.score}/{data.maxScore} ({data.percentage}%)
+                              </span>
+                            </div>
+                            <div style={{
+                              width: '100%',
+                              height: '8px',
+                              background: tokens.colors.surface2,
+                              borderRadius: tokens.radius.full,
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                width: `${data.percentage}%`,
+                                height: '100%',
+                                background: color,
+                                transition: 'width 0.8s ease-out'
+                              }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {optimizationResult.priorityIssues && optimizationResult.priorityIssues.length > 0 && (
+                    <div style={{ marginBottom: tokens.spacing[6] }}>
+                      <h3 style={{
+                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.danger,
+                        marginBottom: tokens.spacing[3]
+                      }}>
+                        🚨 Priority Issues
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                        {optimizationResult.priorityIssues.map((issue: string, index: number) => (
+                          <div key={index} style={{
+                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                            background: `${tokens.colors.danger}1A`,
+                            border: `1px solid ${tokens.colors.danger}33`,
+                            borderRadius: tokens.radius.md,
+                            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                            color: tokens.colors.text
+                          }}>
+                            • {issue}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {optimizationResult.quickWins && optimizationResult.quickWins.length > 0 && (
+                    <div>
+                      <h3 style={{
+                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.success,
+                        marginBottom: tokens.spacing[3]
+                      }}>
+                        ✨ Quick Wins
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                        {optimizationResult.quickWins.map((win: string, index: number) => (
+                          <div key={index} style={{
+                            padding: 'clamp(0.75rem, 2vw, 1rem)',
+                            background: `${tokens.colors.success}1A`,
+                            border: `1px solid ${tokens.colors.success}33`,
+                            borderRadius: tokens.radius.md,
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: tokens.spacing[2]
+                          }}>
+                            <span style={{ fontSize: 'clamp(1rem, 3vw, 1.25rem)', flexShrink: 0 }}>✓</span>
+                            <span style={{ 
+                              fontSize: 'clamp(0.75rem, 2vw, 0.875rem)', 
+                              color: tokens.colors.text,
+                              flex: 1
+                            }}>
+                              {win}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* Optimized Content - PART 3/3 CONTINUES */}
+              {/* Optimized Titles */}
+              {optimizationResult.optimizedData?.titles && optimizationResult.optimizedData.titles.length > 0 && (
+                <Card>
+                  <div style={{ padding: 'clamp(1.5rem, 4vw, 2rem)' }}>
+                    <h2 style={{
+                      fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
+                      fontWeight: tokens.typography.fontWeight.bold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[6]
+                    }}>
+                      ✍️ Optimized Titles (3 Variants)
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[4] }}>
+                      {optimizationResult.optimizedData.titles.map((variant, index) => (
+                        <div key={index} style={{
+                          padding: 'clamp(1rem, 3vw, 1.5rem)',
+                          background: tokens.colors.surface,
+                          border: `2px solid ${tokens.colors.border}`,
+                          borderRadius: tokens.radius.md
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'start',
+                            marginBottom: tokens.spacing[3],
+                            gap: tokens.spacing[3],
+                            flexWrap: 'wrap'
+                          }}>
+                            <div style={{
+                              fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                              color: tokens.colors.primary,
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              textTransform: 'uppercase'
+                            }}>
+                              Variant {index + 1}: {variant.approach}
+                            </div>
+                            <button
+                              onClick={() => copyToClipboard(variant.text, `✅ Title ${index + 1} copied!`)}
+                              style={{
+                                padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                                background: tokens.colors.primary,
+                                color: tokens.colors.primaryForeground,
+                                border: 'none',
+                                borderRadius: tokens.radius.md,
+                                fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                cursor: 'pointer',
+                                minHeight: '36px',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              📋 Copy Title {index + 1}
+                            </button>
+                          </div>
+                          <div style={{
+                            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                            fontWeight: tokens.typography.fontWeight.semibold,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[3],
+                            lineHeight: tokens.typography.lineHeight.relaxed,
+                            wordBreak: 'break-word'
+                          }}>
+                            {variant.text}
+                          </div>
+                          <div style={{
+                            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                            color: tokens.colors.textMuted,
+                            marginBottom: tokens.spacing[2]
+                          }}>
+                            <strong>Why it works:</strong> {variant.reasoning}
+                          </div>
+                          <div style={{
+                            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                            color: tokens.colors.textMuted
+                          }}>
+                            <strong>Keywords:</strong> {variant.keywords?.join(', ')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Optimized Tags */}
+              {optimizationResult.optimizedData?.tags && optimizationResult.optimizedData.tags.length > 0 && (
+                <Card>
+                  <div style={{ padding: 'clamp(1.5rem, 4vw, 2rem)' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: tokens.spacing[4],
+                      gap: tokens.spacing[4],
+                      flexWrap: 'wrap'
+                    }}>
+                      <h2 style={{
+                        fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.text,
+                        margin: 0
+                      }}>
+                        🏷️ Optimized Tags ({optimizationResult.optimizedData.tags.length}/13)
+                      </h2>
+                      <button
+                        onClick={() => copyToClipboard(
+                          optimizationResult.optimizedData!.tags.join(', '),
+                          '✅ All tags copied!'
+                        )}
+                        style={{
+                          padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                          background: tokens.colors.primary,
+                          color: tokens.colors.primaryForeground,
+                          border: 'none',
+                          borderRadius: tokens.radius.md,
+                          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          cursor: 'pointer',
+                          minHeight: '40px',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        📋 Copy All Tags
+                      </button>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: tokens.spacing[2],
+                      marginBottom: tokens.spacing[4]
+                    }}>
+                      {optimizationResult.optimizedData.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          style={{
+                            padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                            background: tokens.colors.surface,
+                            border: `1px solid ${tokens.colors.border}`,
+                            borderRadius: tokens.radius.full,
+                            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                            color: tokens.colors.text
+                          }}
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    {optimizationResult.optimizedData.tagsReasoning && (
+                      <div style={{
+                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                        background: tokens.colors.surface,
+                        borderRadius: tokens.radius.md,
+                        fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                        color: tokens.colors.textMuted
+                      }}>
+                        <strong style={{ color: tokens.colors.text }}>💡 Strategy:</strong> {optimizationResult.optimizedData.tagsReasoning}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Optimized Description */}
+              {optimizationResult.optimizedData?.description && (
+                <Card>
+                  <div style={{ padding: 'clamp(1.5rem, 4vw, 2rem)' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: tokens.spacing[4],
+                      gap: tokens.spacing[4],
+                      flexWrap: 'wrap'
+                    }}>
+                      <h2 style={{
+                        fontSize: 'clamp(1.25rem, 4vw, 1.5rem)',
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.text,
+                        margin: 0
+                      }}>
+                        📝 Optimized Description
+                      </h2>
+                      <button
+                        onClick={() => copyToClipboard(
+                          optimizationResult.optimizedData!.description,
+                          '✅ Description copied!'
+                        )}
+                        style={{
+                          padding: `${tokens.spacing[2]} ${tokens.spacing[4]}`,
+                          background: tokens.colors.primary,
+                          color: tokens.colors.primaryForeground,
+                          border: 'none',
+                          borderRadius: tokens.radius.md,
+                          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          cursor: 'pointer',
+                          minHeight: '40px',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        📋 Copy Description
+                      </button>
+                    </div>
+                    <div style={{
+                      padding: 'clamp(1rem, 3vw, 1.5rem)',
+                      background: tokens.colors.surface,
+                      border: `1px solid ${tokens.colors.border}`,
+                      borderRadius: tokens.radius.md,
+                      fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                      color: tokens.colors.text,
+                      lineHeight: tokens.typography.lineHeight.relaxed,
+                      whiteSpace: 'pre-wrap',
+                      maxHeight: '500px',
+                      overflowY: 'auto',
+                      wordBreak: 'break-word'
+                    }}>
+                      {optimizationResult.optimizedData.description}
+                    </div>
+                    {optimizationResult.optimizedData.descriptionImprovements && 
+                     optimizationResult.optimizedData.descriptionImprovements.length > 0 && (
+                      <div style={{ marginTop: tokens.spacing[4] }}>
+                        <div style={{
+                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[2]
+                        }}>
+                          ✨ Improvements Made:
+                        </div>
+                        <ul style={{
+                          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                          color: tokens.colors.textMuted,
+                          paddingLeft: 'clamp(1rem, 4vw, 1.5rem)',
+                          margin: 0
+                        }}>
+                          {optimizationResult.optimizedData.descriptionImprovements.map((improvement, index) => (
+                            <li key={index} style={{ marginBottom: tokens.spacing[1] }}>
+                              {improvement}
+                            </li>
+                          ))}
+                        </ul>
+                        {optimizationResult.optimizedData.keywordDensity && (
+                          <div style={{
+                            marginTop: tokens.spacing[3],
+                            fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                            color: tokens.colors.textMuted
+                          }}>
+                            <strong>Keyword Density:</strong> {optimizationResult.optimizedData.keywordDensity}
+                          </div>
+                        )}
+                        <div style={{
+                          marginTop: tokens.spacing[2],
+                          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                          color: tokens.colors.textMuted
+                        }}>
+                          <strong>Character Count:</strong> {optimizationResult.optimizedData.description.length} characters
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Export Section */}
+              <Card>
+                <div style={{ padding: 'clamp(1.5rem, 4vw, 2rem)' }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: tokens.spacing[3]
                   }}>
-                    Results ready. Full results display in production build.
-                  </p>
-                  <Button
-                    variant="primary"
-                    fullWidth
-                    onClick={() => {
-                      setOptimizationResult(null);
-                      setTitle('');
-                      setDescription('');
-                      setTags('');
-                      setCategory('');
-                      setPrice('');
-                    }}
-                    style={{ marginTop: tokens.spacing[6] }}
-                  >
-                    Start New Optimization
-                  </Button>
+                    <button
+                      onClick={downloadAsText}
+                      style={{
+                        width: '100%',
+                        minHeight: '56px',
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+                        background: tokens.colors.primary,
+                        color: tokens.colors.primaryForeground,
+                        border: 'none',
+                        borderRadius: tokens.radius.md,
+                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        cursor: 'pointer',
+                        transition: `all ${tokens.motion.duration.fast}`
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      📥 Download All as Text File
+                    </button>
+                    <button
+                      onClick={() => {
+                        setOptimizationResult(null);
+                        setTitle('');
+                        setDescription('');
+                        setTags('');
+                        setCategory('');
+                        setPrice('');
+                        setOptimizeEverything(true);
+                        setOptimizeTitle(false);
+                        setOptimizeTags(false);
+                        setOptimizeDescription(false);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{
+                        width: '100%',
+                        minHeight: '56px',
+                        padding: `${tokens.spacing[4]} ${tokens.spacing[6]}`,
+                        background: tokens.colors.surface,
+                        color: tokens.colors.text,
+                        border: `2px solid ${tokens.colors.border}`,
+                        borderRadius: tokens.radius.md,
+                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        cursor: 'pointer',
+                        transition: `all ${tokens.motion.duration.fast}`
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = tokens.colors.primary;
+                        e.currentTarget.style.color = tokens.colors.primary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = tokens.colors.border;
+                        e.currentTarget.style.color = tokens.colors.text;
+                      }}
+                    >
+                      🔄 Start New Optimization
+                    </button>
+                  </div>
                 </div>
               </Card>
             </div>
