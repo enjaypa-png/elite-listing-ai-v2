@@ -195,17 +195,33 @@ export default function OptimizeListingPage() {
                   type="text"
                   value={listingUrl}
                   onChange={(e) => setListingUrl(e.target.value)}
-                  placeholder="https://www.etsy.com/listing/..."
+                  placeholder="https://www.etsy.com/listing/123456789/product-name"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !isOptimizing) {
+                      handleOptimize();
+                    }
+                  }}
                   style={{
                     width: '100%',
-                    padding: tokens.spacing[3],
+                    padding: `${tokens.spacing[4]} ${tokens.spacing[4]}`,
                     background: tokens.colors.surface,
-                    border: `1px solid ${tokens.colors.border}`,
+                    border: `2px solid ${listingUrl ? tokens.colors.primary : tokens.colors.border}`,
                     borderRadius: tokens.radius.md,
                     color: tokens.colors.text,
-                    fontSize: tokens.typography.fontSize.base
+                    fontSize: tokens.typography.fontSize.base,
+                    outline: 'none',
+                    transition: `all ${tokens.motion.duration.fast}`
                   }}
+                  onFocus={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
+                  onBlur={(e) => e.currentTarget.style.borderColor = listingUrl ? tokens.colors.primary : tokens.colors.border}
                 />
+                <div style={{
+                  fontSize: tokens.typography.fontSize.xs,
+                  color: tokens.colors.textMuted,
+                  marginTop: tokens.spacing[2]
+                }}>
+                  💡 Paste any Etsy listing URL and press Enter or click the button below
+                </div>
               </div>
 
               <div style={{ marginBottom: tokens.spacing[8] }}>
@@ -683,6 +699,72 @@ export default function OptimizeListingPage() {
                           )}
                         </div>
                       )}
+
+                      {/* Copy Everything Button */}
+                      {optimizationResult.optimizedData && (
+                        <div style={{
+                          padding: tokens.spacing[8],
+                          background: `${tokens.colors.primary}15`,
+                          border: `2px solid ${tokens.colors.primary}`,
+                          borderRadius: tokens.card.radius,
+                          textAlign: 'center',
+                          marginBottom: tokens.spacing[6]
+                        }}>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.xl,
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[3]
+                          }}>
+                            🎉 Optimization Complete!
+                          </div>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.base,
+                            color: tokens.colors.textMuted,
+                            marginBottom: tokens.spacing[6]
+                          }}>
+                            Your listing has been optimized. Copy the content and paste it into your Etsy listing.
+                          </div>
+                          <button
+                            onClick={() => {
+                              const allContent = `
+=== OPTIMIZED TITLES ===
+${optimizationResult.optimizedData.titles.map((t: any, i: number) => `${i + 1}. ${t.text}`).join('\n')}
+
+=== OPTIMIZED TAGS (${optimizationResult.optimizedData.tags.length}) ===
+${optimizationResult.optimizedData.tags.join(', ')}
+
+=== OPTIMIZED DESCRIPTION ===
+${optimizationResult.optimizedData.description}
+                              `.trim();
+                              navigator.clipboard.writeText(allContent);
+                              alert('✅ All optimized content copied to clipboard!');
+                            }}
+                            style={{
+                              padding: `${tokens.spacing[4]} ${tokens.spacing[8]}`,
+                              background: tokens.colors.primary,
+                              color: tokens.colors.primaryForeground,
+                              border: 'none',
+                              borderRadius: tokens.radius.md,
+                              fontSize: tokens.typography.fontSize.lg,
+                              fontWeight: tokens.typography.fontWeight.bold,
+                              cursor: 'pointer',
+                              boxShadow: `0 4px 12px ${tokens.colors.primary}40`,
+                              transition: `all ${tokens.motion.duration.fast}`
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.transform = 'translateY(-2px)';
+                              e.currentTarget.style.boxShadow = `0 6px 16px ${tokens.colors.primary}60`;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.transform = 'translateY(0)';
+                              e.currentTarget.style.boxShadow = `0 4px 12px ${tokens.colors.primary}40`;
+                            }}
+                          >
+                            📋 Copy Everything to Clipboard
+                          </button>
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -703,17 +785,52 @@ export default function OptimizeListingPage() {
 
           {isOptimizing && (
             <Card>
-              <div style={{ padding: tokens.spacing[8], textAlign: 'center' }}>
+              <div style={{ padding: tokens.spacing[12], textAlign: 'center' }}>
                 <div style={{
-                  width: tokens.spacing[16],
-                  height: tokens.spacing[16],
-                  border: `4px solid ${tokens.colors.surface2}`,
+                  width: '80px',
+                  height: '80px',
+                  border: `6px solid ${tokens.colors.surface2}`,
                   borderTopColor: tokens.colors.primary,
                   borderRadius: tokens.radius.full,
                   animation: 'spin 1s linear infinite',
-                  margin: `0 auto ${tokens.spacing[6]}`
+                  margin: `0 auto ${tokens.spacing[8]}`
                 }} />
-                <p style={{ color: tokens.colors.textMuted }}>Optimizing your listing...</p>
+                <div style={{
+                  fontSize: tokens.typography.fontSize['2xl'],
+                  fontWeight: tokens.typography.fontWeight.bold,
+                  color: tokens.colors.text,
+                  marginBottom: tokens.spacing[4]
+                }}>
+                  ⚡ Optimizing Your Listing
+                </div>
+                <div style={{
+                  fontSize: tokens.typography.fontSize.base,
+                  color: tokens.colors.textMuted,
+                  marginBottom: tokens.spacing[6]
+                }}>
+                  Running R.A.N.K. 285™ analysis and generating optimized content...
+                </div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: tokens.spacing[3],
+                  alignItems: 'center',
+                  fontSize: tokens.typography.fontSize.sm,
+                  color: tokens.colors.textMuted
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <span style={{ color: tokens.colors.success }}>✓</span>
+                    <span>Fetching listing data from Etsy</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <span style={{ color: tokens.colors.primary }}>⟳</span>
+                    <span>Running R.A.N.K. 285™ analysis</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[2] }}>
+                    <span style={{ color: tokens.colors.textMuted }}>○</span>
+                    <span>Generating optimized content with AI</span>
+                  </div>
+                </div>
                 <style jsx>{`
                   @keyframes spin {
                     from { transform: rotate(0deg); }
