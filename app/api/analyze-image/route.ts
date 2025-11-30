@@ -1,6 +1,6 @@
-export const runtime = 'nodejs';
-export const preferredRegion = 'iad1';
-export const maxDuration = 60;
+export const runtime = 'nodejs'; // Force Node.js runtime for sharp
+export const preferredRegion = 'iad1'; // Stable region
+export const maxDuration = 60; // 60 second timeout
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
