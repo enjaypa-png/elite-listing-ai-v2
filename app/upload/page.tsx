@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Button, Card } from '@/components/ui';
 import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
@@ -8,61 +8,73 @@ import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 
 // Helper function to compress image before upload
-async function compressImage(file: File, maxSizeMB = 3, maxWidthOrHeight = 2048): Promise<File> {
+async function compressImage(file: File, maxWidthOrHeight = 2048): Promise<File> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+    // Create object URL from blob (no base64)
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    
+    img.onload = () => {
+      // Clean up object URL
+      URL.revokeObjectURL(objectUrl);
+      
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
 
-        // Calculate new dimensions while maintaining aspect ratio
-        if (width > height) {
-          if (width > maxWidthOrHeight) {
-            height = (height * maxWidthOrHeight) / width;
-            width = maxWidthOrHeight;
-          }
-        } else {
-          if (height > maxWidthOrHeight) {
-            width = (width * maxWidthOrHeight) / height;
-            height = maxWidthOrHeight;
-          }
+      // Calculate new dimensions while maintaining aspect ratio
+      if (width > height) {
+        if (width > maxWidthOrHeight) {
+          height = (height * maxWidthOrHeight) / width;
+          width = maxWidthOrHeight;
         }
+      } else {
+        if (height > maxWidthOrHeight) {
+          width = (width * maxWidthOrHeight) / height;
+          height = maxWidthOrHeight;
+        }
+      }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+      
+      ctx.drawImage(img, 0, 0, width, height);
 
-        // Convert to blob with quality adjustment (0.80 for better compression)
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              const compressedFile = new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              console.log('[Image Compression]', {
-                original: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-                compressed: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
-                reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
-              });
-              resolve(compressedFile);
-            } else {
-              reject(new Error('Failed to compress image'));
-            }
-          },
-          'image/jpeg',
-          0.80 // Quality (0.80 to ensure under 1MB for most images)
-        );
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
+      // Convert to blob with quality 0.78 for <900KB target
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            console.log('[Image Compression]', {
+              original: `${(file.size / 1024).toFixed(0)}KB`,
+              compressed: `${(compressedFile.size / 1024).toFixed(0)}KB`,
+              reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
+            });
+            resolve(compressedFile);
+          } else {
+            reject(new Error('Failed to compress image'));
+          }
+        },
+        'image/jpeg',
+        0.78 // Quality for <900KB target
+      );
     };
-    reader.onerror = () => reject(new Error('Failed to read file'));
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image'));
+    };
+    
+    img.src = objectUrl;
   });
 }
 
@@ -76,17 +88,28 @@ export default function UploadPage() {
   const [optimizedPhoto, setOptimizedPhoto] = useState<any>(null);
   const [optimizedScore, setOptimizedScore] = useState<number | null>(null);
 
+  // Cleanup preview URL on unmount
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Cleanup old preview URL
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+      
       setSelectedFile(file);
       
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      // Create preview using URL.createObjectURL (no base64)
+      const objectUrl = URL.createObjectURL(file);
+      setPreview(objectUrl);
     }
   };
 
