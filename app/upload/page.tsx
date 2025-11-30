@@ -37,55 +37,23 @@ export default function UploadPage() {
     setIsAnalyzing(true);
 
     try {
-      // Create optimization ID
-      const optimizationId = `opt_${Date.now()}`;
-      
-      // Step 1: Upload file to storage
+      // Analyze image directly with new endpoint
       const formData = new FormData();
       formData.append('image', selectedFile);
 
-      const uploadResponse = await fetch('/api/upload/image', {
+      const analyzeResponse = await fetch('/api/analyze-image', {
         method: 'POST',
         body: formData
       });
 
       // Handle non-JSON responses (like 413 Payload Too Large)
-      const contentType = uploadResponse.headers.get('content-type');
-      if (!uploadResponse.ok) {
+      const contentType = analyzeResponse.headers.get('content-type');
+      if (!analyzeResponse.ok) {
         if (contentType && contentType.includes('application/json')) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error?.message || 'Upload failed');
+          const errorData = await analyzeResponse.json();
+          throw new Error(errorData.error || 'Analysis failed');
         } else {
           // Non-JSON error (likely HTML error page)
-          const errorText = await uploadResponse.text();
-          if (uploadResponse.status === 413) {
-            throw new Error('Image is too large. Please try a smaller image (max 10MB).');
-          }
-          throw new Error(`Upload failed (${uploadResponse.status}): ${errorText.substring(0, 100)}`);
-        }
-      }
-
-      const uploadData = await uploadResponse.json();
-      const imageUrl = uploadData.imageUrl;
-
-      // Step 2: Analyze the uploaded image
-      const analyzeResponse = await fetch('/api/optimize/image/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: imageUrl,
-          platform: 'etsy'
-        })
-      });
-
-      // Handle non-JSON responses
-      const analyzeContentType = analyzeResponse.headers.get('content-type');
-      if (!analyzeResponse.ok) {
-        if (analyzeContentType && analyzeContentType.includes('application/json')) {
-          const errorData = await analyzeResponse.json();
-          throw new Error(errorData.error?.message || 'Analysis failed');
-        } else {
-          // Non-JSON error
           const errorText = await analyzeResponse.text();
           if (analyzeResponse.status === 413) {
             throw new Error('Image analysis payload too large. Please contact support.');

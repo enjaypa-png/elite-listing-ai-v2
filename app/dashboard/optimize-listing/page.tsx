@@ -109,13 +109,15 @@ export default function OptimizeListingPage() {
       let optimizedData = null;
       
       if (optimizeTitle || optimizeTags || optimizeDescription || seoBoost) {
-        const optimizeResponse = await fetch('/api/optimize/listing', {
+        const optimizeResponse = await fetch('/api/optimize-modular', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: listingData.title,
             description: listingData.description,
             tags: listingData.tags,
+            category: listingData.category,
+            price: listingData.price,
             modules: {
               title: optimizeTitle,
               tags: optimizeTags,
