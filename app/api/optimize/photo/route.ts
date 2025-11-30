@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@supabase/supabase-js';
 
+// Route segment config for Next.js 15
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 

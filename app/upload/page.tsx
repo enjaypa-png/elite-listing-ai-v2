@@ -38,7 +38,7 @@ async function compressImage(file: File, maxSizeMB = 3, maxWidthOrHeight = 2048)
         const ctx = canvas.getContext('2d');
         ctx?.drawImage(img, 0, 0, width, height);
 
-        // Convert to blob with quality adjustment
+        // Convert to blob with quality adjustment (0.80 for better compression)
         canvas.toBlob(
           (blob) => {
             if (blob) {
@@ -57,7 +57,7 @@ async function compressImage(file: File, maxSizeMB = 3, maxWidthOrHeight = 2048)
             }
           },
           'image/jpeg',
-          0.85 // Quality
+          0.80 // Quality (0.80 to ensure under 1MB for most images)
         );
       };
       img.onerror = () => reject(new Error('Failed to load image'));
@@ -99,6 +99,14 @@ export default function UploadPage() {
       // Compress image before upload (especially important for iPhone photos)
       console.log('[Upload] Original file size:', (selectedFile.size / 1024 / 1024).toFixed(2), 'MB');
       const compressedFile = await compressImage(selectedFile);
+      
+      // Verify compressed size is reasonable
+      const compressedSizeMB = compressedFile.size / 1024 / 1024;
+      console.log('[Upload] Compressed file size:', compressedSizeMB.toFixed(2), 'MB');
+      
+      if (compressedSizeMB > 4) {
+        throw new Error('Compressed image is still too large. Please use a smaller photo.');
+      }
       
       // Analyze image directly with new endpoint
       const formData = new FormData();
