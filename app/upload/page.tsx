@@ -8,7 +8,7 @@ import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 
 // Helper function to compress image before upload
-async function compressImage(file: File, maxWidthOrHeight = 2048): Promise<File> {
+async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File> {
   return new Promise((resolve, reject) => {
     // Create object URL from blob (no base64)
     const objectUrl = URL.createObjectURL(file);
@@ -46,7 +46,7 @@ async function compressImage(file: File, maxWidthOrHeight = 2048): Promise<File>
       
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to blob with quality 0.78 for <900KB target
+      // Convert to blob with quality 0.70 for <900KB target
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -65,7 +65,7 @@ async function compressImage(file: File, maxWidthOrHeight = 2048): Promise<File>
           }
         },
         'image/jpeg',
-        0.78 // Quality for <900KB target
+        0.70 // Quality reduced to 0.70 for <900KB target
       );
     };
     
@@ -339,19 +339,31 @@ export default function UploadPage() {
               ) : (
                 <div>
                   {/* Preview */}
-                  <div style={{
-                    marginBottom: tokens.spacing[6],
-                    position: 'relative'
-                  }}>
+                  <div 
+                    contentEditable={false}
+                    tabIndex={-1}
+                    style={{
+                      marginBottom: tokens.spacing[6],
+                      position: 'relative',
+                      caretColor: 'transparent',
+                      cursor: 'default',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none'
+                    }}>
                     <img
                       src={preview}
                       alt="Product preview"
+                      draggable={false}
                       style={{
                         width: '100%',
                         maxHeight: '400px',
                         objectFit: 'contain',
                         borderRadius: tokens.radius.lg,
-                        background: tokens.colors.background
+                        background: tokens.colors.background,
+                        display: 'block',
+                        pointerEvents: 'none'
                       }}
                     />
                     <button
