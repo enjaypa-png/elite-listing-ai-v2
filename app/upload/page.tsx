@@ -7,6 +7,65 @@ import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflo
 import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 
+// Helper function to compress image before upload
+async function compressImage(file: File, maxSizeMB = 3, maxWidthOrHeight = 2048): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions while maintaining aspect ratio
+        if (width > height) {
+          if (width > maxWidthOrHeight) {
+            height = (height * maxWidthOrHeight) / width;
+            width = maxWidthOrHeight;
+          }
+        } else {
+          if (height > maxWidthOrHeight) {
+            width = (width * maxWidthOrHeight) / height;
+            height = maxWidthOrHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Convert to blob with quality adjustment
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              console.log('[Image Compression]', {
+                original: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+                compressed: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
+                reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
+              });
+              resolve(compressedFile);
+            } else {
+              reject(new Error('Failed to compress image'));
+            }
+          },
+          'image/jpeg',
+          0.85 // Quality
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+  });
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -37,9 +96,13 @@ export default function UploadPage() {
     setIsAnalyzing(true);
 
     try {
+      // Compress image before upload (especially important for iPhone photos)
+      console.log('[Upload] Original file size:', (selectedFile.size / 1024 / 1024).toFixed(2), 'MB');
+      const compressedFile = await compressImage(selectedFile);
+      
       // Analyze image directly with new endpoint
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      formData.append('image', compressedFile);
 
       const analyzeResponse = await fetch('/api/analyze-image', {
         method: 'POST',
@@ -56,7 +119,7 @@ export default function UploadPage() {
           // Non-JSON error (likely HTML error page)
           const errorText = await analyzeResponse.text();
           if (analyzeResponse.status === 413) {
-            throw new Error('Image analysis payload too large. Please contact support.');
+            throw new Error('Image still too large after compression. Please use a smaller image.');
           }
           throw new Error(`Analysis failed (${analyzeResponse.status}): ${errorText.substring(0, 100)}`);
         }

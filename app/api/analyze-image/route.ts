@@ -3,14 +3,9 @@ import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 
-// Increase body size limit for image uploads
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
-};
+// Route segment config for Next.js 15
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds timeout
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
