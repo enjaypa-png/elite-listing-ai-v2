@@ -1,14 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
-import { createClient } from '@supabase/supabase-js';
-
-// Route segment config for Next.js 15
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds timeout
+export const preferredRegion = 'iad1';
+export const maxDuration = 60;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { calculateDeterministicScore } from '@/lib/photoScoring';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -51,64 +47,22 @@ export async function POST(request: NextRequest) {
     const imageUrl = urlData.publicUrl;
     console.log('[Analyze Image] Uploaded to:', imageUrl);
 
-    // Client already compressed the image, use the uploaded URL directly
-    // No need to resize again - client sent us a <900KB JPEG at 2048px max dimension
-    console.log('[Analyze Image] Using client-compressed image:', buffer.length, 'bytes');
-
-    // Use the public URL for OpenAI analysis
-    // Analyze image with OpenAI Vision
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert Etsy product photography analyzer. Analyze product photos for:
-- Overall quality (composition, lighting, clarity)
-- Specific issues (background, shadows, angles, etc.)
-- Actionable suggestions for improvement
-- Score out of 100
-
-Return JSON format:
-{
-  "score": 75,
-  "overallAssessment": "brief assessment",
-  "strengths": ["strength1", "strength2"],
-  "issues": ["issue1", "issue2"],
-  "suggestions": ["suggestion1", "suggestion2", "suggestion3"]
-}`
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Analyze this Etsy product photo and provide a detailed quality assessment with score and suggestions.'
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageUrl
-              }
-            }
-          ]
-        }
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 1000
-    });
-
-    const analysis = JSON.parse(response.choices[0].message.content || '{}');
+    // Calculate deterministic R.A.N.K. 285™ score
+    console.log('[Analyze Image] Calculating deterministic score...');
+    const photoAnalysis = await calculateDeterministicScore(buffer);
     
-    console.log('[Analyze Image] Score:', analysis.score);
+    console.log('[Analyze Image] Deterministic Score:', photoAnalysis.score);
+    console.log('[Analyze Image] Metrics:', photoAnalysis.metrics);
 
     return NextResponse.json({
       success: true,
       imageUrl: imageUrl,
-      score: analysis.score || 0,
-      overallAssessment: analysis.overallAssessment || 'Analysis complete',
-      strengths: analysis.strengths || [],
-      issues: analysis.issues || [],
-      suggestions: analysis.suggestions || []
+      score: photoAnalysis.score,
+      metrics: photoAnalysis.metrics,
+      overallAssessment: `Photo scored ${photoAnalysis.score}/100 using R.A.N.K. 285™ deterministic analysis`,
+      strengths: photoAnalysis.score >= 80 ? ['High quality image', 'Professional presentation'] : [],
+      issues: photoAnalysis.suggestions.length > 0 ? ['See suggestions for improvements'] : [],
+      suggestions: photoAnalysis.suggestions
     });
 
   } catch (error: any) {
@@ -128,8 +82,8 @@ export async function GET() {
     ok: true,
     endpoint: '/api/analyze-image',
     method: 'POST',
-    description: 'Analyzes product photos using OpenAI Vision',
+    description: 'Analyzes product photos using R.A.N.K. 285™ deterministic scoring',
     accepts: 'multipart/form-data with "image" field',
-    hasApiKey: !!process.env.OPENAI_API_KEY
+    scoring: 'Deterministic 10-metric weighted analysis'
   });
 }
