@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
+
+// Increase body size limit for image uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+};
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -47,10 +57,21 @@ export async function POST(request: NextRequest) {
     const imageUrl = urlData.publicUrl;
     console.log('[Analyze Image] Uploaded to:', imageUrl);
 
-    // Convert image to base64 for analysis
-    const base64Image = buffer.toString('base64');
-    const mimeType = imageFile.type || 'image/jpeg';
-    const dataUrl = `data:${mimeType};base64,${base64Image}`;
+    // Resize image for OpenAI analysis (reduce payload size & cost)
+    // Max dimension 2000px is plenty for analysis
+    const resizedBuffer = await sharp(buffer)
+      .resize(2000, 2000, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+
+    const base64Image = resizedBuffer.toString('base64');
+    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
+    
+    console.log('[Analyze Image] Original size:', buffer.length, 'bytes');
+    console.log('[Analyze Image] Resized for analysis:', resizedBuffer.length, 'bytes');
 
     // Analyze image with OpenAI Vision
     const response = await openai.chat.completions.create({
