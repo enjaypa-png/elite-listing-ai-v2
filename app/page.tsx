@@ -52,7 +52,7 @@ export default function HomePage() {
                 size="xl" 
                 onClick={() => router.push('/upload')}
               >
-                📸 Optimize a Listing
+                Optimize a Listing
               </Button>
             </div>
 

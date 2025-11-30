@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui';
+import { Button, AppLogo } from '@/components/ui';
 import tokens from '@/design-system/tokens.json';
 
 export function TopNav() {
@@ -38,23 +38,12 @@ export function TopNav() {
         justifyContent: 'space-between'
       }}>
         {/* Logo */}
-        <Link 
-          href="/dashboard"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: tokens.spacing[3],
-            textDecoration: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <div style={{
-            fontSize: tokens.typography.fontSize['2xl'],
-            fontWeight: tokens.typography.fontWeight.bold,
-            color: tokens.colors.text
-          }}>
-            Elite Listing AI
-          </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: tokens.spacing[3]
+        }}>
+          <AppLogo size="lg" href="/dashboard" />
           <div style={{
             padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
             background: tokens.colors.primary,
@@ -65,7 +54,7 @@ export function TopNav() {
           }}>
             R.A.N.K. 285™
           </div>
-        </Link>
+        </div>
 
         {/* Desktop Navigation */}
         <div style={{

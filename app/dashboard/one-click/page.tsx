@@ -113,7 +113,7 @@ export default function OneClickPage() {
               color: tokens.colors.text,
               marginBottom: tokens.spacing[3]
             }}>
-              ⚡ One-Click Full Optimization
+              One-Click Full Optimization
             </h1>
             <p style={{
               fontSize: tokens.typography.fontSize.lg,
@@ -190,7 +190,7 @@ export default function OneClickPage() {
                         color: tokens.colors.text,
                         marginBottom: tokens.spacing[4]
                       }}>
-                        ✨ What Gets Optimized:
+                        What Gets Optimized:
                       </h3>
                       <div style={{
                         display: 'grid',
@@ -277,7 +277,7 @@ export default function OneClickPage() {
                           Running Full Optimization...
                         </>
                       ) : (
-                        '⚡ Run One-Click Optimization'
+                        'Run One-Click Optimization'
                       )}
                     </Button>
                   </>
@@ -326,7 +326,7 @@ export default function OneClickPage() {
                   color: tokens.colors.success,
                   marginBottom: tokens.spacing[4]
                 }}>
-                  🎉 Full Optimization Complete!
+                  Full Optimization Complete
                 </h2>
                 <p style={{
                   fontSize: tokens.typography.fontSize.lg,

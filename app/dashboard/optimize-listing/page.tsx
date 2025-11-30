@@ -169,7 +169,7 @@ export default function OptimizeListingPage() {
               color: tokens.colors.text,
               marginBottom: tokens.spacing[3]
             }}>
-              ⚡ One-Click Listing Optimizer
+              Listing Optimization Hub
             </h1>
             <p style={{
               fontSize: tokens.typography.fontSize.lg,
@@ -408,7 +408,7 @@ export default function OptimizeListingPage() {
                         color: tokens.colors.text,
                         fontWeight: tokens.typography.fontWeight.medium
                       }}>
-                        ✅ Optimize Title
+                        Optimize Title
                       </span>
                     </label>
 
@@ -435,7 +435,7 @@ export default function OptimizeListingPage() {
                         color: tokens.colors.text,
                         fontWeight: tokens.typography.fontWeight.medium
                       }}>
-                        🏷️ Optimize Tags
+                        Optimize Tags
                       </span>
                     </label>
 
@@ -462,7 +462,7 @@ export default function OptimizeListingPage() {
                         color: tokens.colors.text,
                         fontWeight: tokens.typography.fontWeight.medium
                       }}>
-                        📄 Optimize Description
+                        Optimize Description
                       </span>
                     </label>
 
@@ -489,7 +489,7 @@ export default function OptimizeListingPage() {
                         color: tokens.colors.text,
                         fontWeight: tokens.typography.fontWeight.medium
                       }}>
-                        📊 SEO Boost
+                        SEO Boost
                       </span>
                     </label>
                   </div>
@@ -508,7 +508,7 @@ export default function OptimizeListingPage() {
                     fontWeight: tokens.typography.fontWeight.bold
                   }}
                 >
-                  {isOptimizing ? 'Optimizing...' : '⚡ Optimize Listing'}
+                  {isOptimizing ? 'Optimizing...' : 'Optimize Listing'}
                 </Button>
               </div>
             </Card>
@@ -523,7 +523,7 @@ export default function OptimizeListingPage() {
                   color: tokens.colors.success,
                   marginBottom: tokens.spacing[4]
                 }}>
-                  ✅ Optimization Complete
+                  Optimization Complete
                 </h2>
                 <p style={{ color: tokens.colors.textMuted, marginBottom: tokens.spacing[6] }}>
                   Your listing has been optimized. Results ready for review.

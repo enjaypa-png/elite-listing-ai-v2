@@ -199,7 +199,6 @@ export default function UploadPage() {
       <StepLayout
       header={
         <>
-          <ProgressIndicator currentStep={1} />
           <h1 style={{
             fontSize: tokens.typography.fontSize['3xl'],
             fontWeight: tokens.typography.fontWeight.bold,
@@ -210,7 +209,7 @@ export default function UploadPage() {
             justifyContent: 'center',
             gap: tokens.spacing[3]
           }}>
-            Step 1: Upload Your Product Photo
+            Photo Analysis
             <InfoTooltip text="Upload a photo of your product so we can analyze it" />
           </h1>
           <p style={{
@@ -458,7 +457,7 @@ export default function UploadPage() {
                       color: tokens.colors.text,
                       marginBottom: tokens.spacing[3]
                     }}>
-                      ✨ AI Photo Optimization
+                      AI Photo Optimization
                     </h3>
                     <p style={{
                       fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
@@ -494,7 +493,7 @@ export default function UploadPage() {
                           Optimizing Photo...
                         </>
                       ) : (
-                        '✨ Optimize My Photo with AI'
+                        'Optimize My Photo with AI'
                       )}
                     </Button>
                   </div>
@@ -509,7 +508,7 @@ export default function UploadPage() {
                       marginBottom: tokens.spacing[4],
                       textAlign: 'center'
                     }}>
-                      🎉 Photo Optimized Successfully!
+                      Photo Optimized Successfully
                     </h3>
                     
                     {/* Before/After Comparison */}
@@ -588,7 +587,7 @@ export default function UploadPage() {
                         color: tokens.colors.text,
                         marginBottom: tokens.spacing[3]
                       }}>
-                        ✨ Improvements Applied:
+                        Improvements Applied:
                       </h4>
                       <ul style={{
                         margin: 0,
