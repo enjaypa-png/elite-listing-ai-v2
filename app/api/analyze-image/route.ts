@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import sharp from 'sharp';
 
 // Route segment config for Next.js 15
 export const runtime = 'nodejs';
@@ -52,22 +51,11 @@ export async function POST(request: NextRequest) {
     const imageUrl = urlData.publicUrl;
     console.log('[Analyze Image] Uploaded to:', imageUrl);
 
-    // Resize image for OpenAI analysis (reduce payload size & cost)
-    // Max dimension 2000px is plenty for analysis
-    const resizedBuffer = await sharp(buffer)
-      .resize(2000, 2000, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      .jpeg({ quality: 85 })
-      .toBuffer();
+    // Client already compressed the image, use the uploaded URL directly
+    // No need to resize again - client sent us a <900KB JPEG at 2048px max dimension
+    console.log('[Analyze Image] Using client-compressed image:', buffer.length, 'bytes');
 
-    const base64Image = resizedBuffer.toString('base64');
-    const dataUrl = `data:image/jpeg;base64,${base64Image}`;
-    
-    console.log('[Analyze Image] Original size:', buffer.length, 'bytes');
-    console.log('[Analyze Image] Resized for analysis:', resizedBuffer.length, 'bytes');
-
+    // Use the public URL for OpenAI analysis
     // Analyze image with OpenAI Vision
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -99,7 +87,7 @@ Return JSON format:
             {
               type: 'image_url',
               image_url: {
-                url: dataUrl
+                url: imageUrl
               }
             }
           ]
