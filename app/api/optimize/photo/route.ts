@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Route segment config for Next.js 15
 export const runtime = 'nodejs';
+export const preferredRegion = 'iad1';
 export const maxDuration = 60;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
