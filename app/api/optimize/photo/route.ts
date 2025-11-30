@@ -1,5 +1,5 @@
-export const runtime = 'nodejs';
-export const preferredRegion = 'iad1';
+export const runtime = "nodejs"; // REQUIRED for sharp
+export const preferredRegion = "iad1"; // stable Node region
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
