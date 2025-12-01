@@ -199,7 +199,9 @@ export default function UploadPage() {
       if (data.success) {
         setOptimizedPhoto({
           url: data.optimizedUrl,
-          improvements: data.improvements
+          improvements: data.improvements,
+          alreadyOptimized: data.alreadyOptimized || false,
+          scoreImprovement: data.scoreImprovement || 0
         });
         
         console.log('[Photo Optimizer] Optimization complete, re-analyzing...');
@@ -582,8 +584,21 @@ export default function UploadPage() {
                       marginBottom: tokens.spacing[4],
                       textAlign: 'center'
                     }}>
-                      Photo Optimized Successfully
+                      {optimizedPhoto.alreadyOptimized 
+                        ? 'Image Fully Optimized' 
+                        : 'Photo Optimized Successfully'}
                     </h3>
+                    
+                    {optimizedPhoto.alreadyOptimized && (
+                      <p style={{
+                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                        color: tokens.colors.textMuted,
+                        textAlign: 'center',
+                        marginBottom: tokens.spacing[6]
+                      }}>
+                        This image is optimized to the maximum quality achievable.
+                      </p>
+                    )}
                     
                     {/* Before/After Comparison */}
                     <div style={{

@@ -63,12 +63,12 @@ async function analyzeLighting(buffer: Buffer): Promise<{ score: number; issues:
   const underExposureRatio = underExposed / pixelCount;
   
   // RECALIBRATED: Less harsh penalties
-  const glarePenalty = overExposureRatio > 0.15 ? 6 : 0;
-  const darkPenalty = underExposureRatio > 0.25 ? 4 : 0;
+  const glarePenalty = overExposureRatio > 0.2 ? 4 : 0;
+  const darkPenalty = underExposureRatio > 0.3 ? 3 : 0;
   
   // More generous base score
-  let score = 20 - (brightnessDiff / 8) - glarePenalty - darkPenalty;
-  score = clamp(score, 8, 20); // Minimum 8 for any image
+  let score = 20 - (brightnessDiff / 10) - glarePenalty - darkPenalty;
+  score = clamp(score, 12, 20); // Minimum 12 for any image
 
   const issues: string[] = [];
   if (glarePenalty > 0) issues.push('lighting');
@@ -106,14 +106,14 @@ async function analyzeSharpness(buffer: Buffer): Promise<{ score: number; issues
 
   const laplacianVariance = laplacianSum / (info.width * info.height);
   
-  // RECALIBRATED: Lower thresholds for realistic photos
+  // RECALIBRATED: Even more generous for quality product photos
   let score: number;
-  if (laplacianVariance > 1000) score = 20;  // Good sharp images
-  else if (laplacianVariance > 600) score = 18;
-  else if (laplacianVariance > 400) score = 15;
-  else if (laplacianVariance > 200) score = 12;
-  else if (laplacianVariance > 100) score = 8;
-  else score = 5;
+  if (laplacianVariance > 500) score = 20;  // Sharp product photos
+  else if (laplacianVariance > 300) score = 18;
+  else if (laplacianVariance > 200) score = 16;
+  else if (laplacianVariance > 100) score = 14;
+  else if (laplacianVariance > 50) score = 10;
+  else score = 6;
 
   const issues: string[] = [];
   if (score < 12) issues.push('clarity');
