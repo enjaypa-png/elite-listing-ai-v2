@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       .from('product-images')
       .upload(filename, optimizedBuffer, {
         contentType: 'image/jpeg',
-        cacheControl: '3600',
+        cacheControl: 'no-cache',
         upsert: false
       });
     

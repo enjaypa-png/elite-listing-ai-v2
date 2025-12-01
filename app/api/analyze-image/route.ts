@@ -5,6 +5,7 @@ export const maxDuration = 60; // 60 second timeout
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { calculateDeterministicScore } from '@/lib/photoScoring';
+import { randomUUID } from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -27,13 +28,14 @@ export async function POST(request: NextRequest) {
     // Upload to Supabase first
     const bytes = await imageFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const filename = `analysis-${Date.now()}-${imageFile.name}`;
+    const uniqueId = randomUUID();
+    const filename = `analysis-${uniqueId}-${Date.now()}.jpg`;
     
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('product-images')
       .upload(filename, buffer, {
-        contentType: imageFile.type,
-        cacheControl: '3600'
+        contentType: 'image/jpeg',
+        cacheControl: 'no-cache'
       });
 
     if (uploadError) {
