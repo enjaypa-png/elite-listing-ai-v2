@@ -53,71 +53,53 @@ export async function POST(request: NextRequest) {
     console.log(`[${requestId}] Original Score:`, originalScore);
     console.log(`[${requestId}] Subscores:`, JSON.stringify(subscores));
     
-    // Determine which optimizations to apply based on weak subscores
+    // Apply ALL optimizations to make changes visible
     const improvements: string[] = [];
-    let needsOptimization = false;
     
     // Create a NEW sharp instance with a COPY of the buffer
     let optimizedImage = sharp(Buffer.from(originalBuffer));
     
-    // 1. Crop/Resize (if crop score < 4)
-    if (subscores.crop < 4) {
-      console.log(`[${requestId}] Applying crop optimization (score: ${subscores.crop})`);
-      optimizedImage = optimizedImage.resize(1000, 1000, {
-        fit: 'cover',
-        position: 'center'
-      });
-      improvements.push('Cropped to 1:1 aspect ratio (1000x1000px)');
-      needsOptimization = true;
-    }
+    // ALWAYS resize to 1:1 (1000x1000) for Etsy
+    console.log(`[${requestId}] Applying crop to 1:1 ratio`);
+    optimizedImage = optimizedImage.resize(1000, 1000, {
+      fit: 'cover',
+      position: 'center'
+    });
+    improvements.push('Cropped to 1:1 aspect ratio (1000x1000px)');
     
-    // 2. Lighting (if lighting score < 12)
-    if (subscores.lighting < 12) {
-      console.log(`[${requestId}] Applying lighting optimization (score: ${subscores.lighting})`);
+    // ALWAYS apply sharpening
+    console.log(`[${requestId}] Applying sharpening`);
+    optimizedImage = optimizedImage.sharpen({
+      sigma: 2.0,
+      m1: 1.2,
+      m2: 0.7
+    });
+    improvements.push('Applied sharpening filter for better clarity');
+    
+    // Apply lighting if needed
+    if (subscores.lighting < 15) {
+      console.log(`[${requestId}] Applying lighting enhancement (score: ${subscores.lighting})`);
       optimizedImage = optimizedImage.modulate({
-        brightness: 1.15,
-        saturation: 1.08
-      }).gamma(1.1);
-      improvements.push('Enhanced brightness and lighting');
-      needsOptimization = true;
+        brightness: 1.2,
+        saturation: 1.12
+      }).gamma(1.15);
+      improvements.push('Enhanced brightness and color saturation');
     }
     
-    // 3. Sharpness (if sharpness score < 14)
-    if (subscores.sharpness < 14) {
-      console.log(`[${requestId}] Applying sharpness optimization (score: ${subscores.sharpness})`);
-      optimizedImage = optimizedImage.sharpen({
-        sigma: 1.5,
-        m1: 1.0,
-        m2: 0.5
-      });
-      improvements.push('Applied sharpening filter for better clarity');
-      needsOptimization = true;
-    }
-    
-    // 4. Noise (if noise score < 3)
-    if (subscores.noise < 3) {
-      console.log(`[${requestId}] Applying noise reduction (score: ${subscores.noise})`);
-      optimizedImage = optimizedImage.median(3);
-      improvements.push('Reduced image noise');
-      needsOptimization = true;
-    }
-    
-    // 5. Color (if color score < 7)
-    if (subscores.color < 7) {
+    // Apply color boost if needed
+    if (subscores.color < 8) {
       console.log(`[${requestId}] Applying color correction (score: ${subscores.color})`);
       optimizedImage = optimizedImage.modulate({
-        saturation: 1.15
+        saturation: 1.2
       });
       improvements.push('Enhanced color balance and vibrance');
-      needsOptimization = true;
     }
     
-    // 6. Contrast (if contrast score < 3)
-    if (subscores.contrast < 3) {
+    // Apply contrast if needed
+    if (subscores.contrast < 4) {
       console.log(`[${requestId}] Applying contrast enhancement (score: ${subscores.contrast})`);
-      optimizedImage = optimizedImage.linear(1.2, 0);
+      optimizedImage = optimizedImage.linear(1.3, -10);
       improvements.push('Increased contrast for better depth');
-      needsOptimization = true;
     }
     
     // ALWAYS apply final JPEG optimization (even if no filters were applied)
