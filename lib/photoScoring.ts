@@ -270,7 +270,7 @@ export async function calculateDeterministicScore(buffer: Buffer): Promise<Photo
   };
 
   // Weighted final score
-  const finalScore = Math.round(
+  const weightedScore = 
     metrics.lighting * 0.20 +
     metrics.sharpness * 0.20 +
     metrics.centering * 0.10 +
@@ -280,8 +280,13 @@ export async function calculateDeterministicScore(buffer: Buffer): Promise<Photo
     metrics.contrast * 0.05 +
     metrics.noise * 0.05 +
     metrics.crop * 0.05 +
-    metrics.presentation * 0.05
-  );
+    metrics.presentation * 0.05;
+  
+  // Scale to 0-100 range
+  const finalDisplayScore = Math.round(weightedScore * 5);
+  
+  console.log('[Deterministic Scoring] Weighted score:', weightedScore.toFixed(2));
+  console.log('[Deterministic Scoring] Display score (x5):', finalDisplayScore);
 
   // Collect all issues for suggestions
   const allIssues = [
@@ -294,7 +299,7 @@ export async function calculateDeterministicScore(buffer: Buffer): Promise<Photo
   const suggestions = generateSuggestions(allIssues, metrics);
 
   return {
-    score: finalScore,
+    score: finalDisplayScore,
     metrics,
     suggestions,
   };

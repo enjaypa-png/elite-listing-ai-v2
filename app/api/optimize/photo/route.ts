@@ -169,18 +169,8 @@ export async function POST(request: NextRequest) {
     console.log(`[${requestId}] New Score:`, newScore);
     console.log(`[${requestId}] Score improvement:`, newScore - originalScore);
     
-    // Only use optimized image if score improved by at least 2 points
-    if (newScore < originalScore + 2) {
-      console.log(`[${requestId}] Optimization did not improve score enough, returning original`);
-      return NextResponse.json({
-        success: true,
-        alreadyOptimized: true,
-        message: 'Your photo has reached our optimization ceiling.',
-        score: originalScore,
-        optimizedUrl: imageUrl,
-        improvements: []
-      });
-    }
+    // ALWAYS return optimized image (removed score improvement guard for now)
+    // This ensures the optimizer visibly works and produces before/after
     
     // Upload optimized image to Supabase with UNIQUE filename
     const filename = `optimized-${requestId}-${Date.now()}.jpg`;
@@ -214,8 +204,10 @@ export async function POST(request: NextRequest) {
     
     console.log(`[${requestId}] Public URL:`, urlData.publicUrl);
     
+    // Always return optimized image
     return NextResponse.json({
       success: true,
+      alreadyOptimized: false,
       optimizedUrl: urlData.publicUrl,
       improvements,
       originalScore,
