@@ -120,26 +120,19 @@ export async function POST(request: NextRequest) {
       needsOptimization = true;
     }
     
-    // If no optimizations needed, return original
-    if (!needsOptimization) {
-      console.log(`[${requestId}] Image already optimized, no improvements needed`);
-      return NextResponse.json({
-        success: true,
-        alreadyOptimized: true,
-        message: 'Your photo has reached our optimization ceiling.',
-        score: originalScore,
-        optimizedUrl: imageUrl,
-        improvements: []
-      });
-    }
-    
-    // Always optimize for web
+    // ALWAYS apply final JPEG optimization (even if no filters were applied)
     optimizedImage = optimizedImage.jpeg({ 
       quality: 92,
       progressive: true,
       mozjpeg: true
     });
-    improvements.push('Optimized file size while maintaining quality');
+    
+    // Add default improvement if no specific filters were applied
+    if (improvements.length === 0) {
+      improvements.push('Applied Etsy-standard file optimization');
+    } else {
+      improvements.push('Optimized file size while maintaining quality');
+    }
     
     // Generate NEW buffer from optimization pipeline
     const optimizedBuffer = await optimizedImage.toBuffer();
@@ -204,15 +197,18 @@ export async function POST(request: NextRequest) {
     
     console.log(`[${requestId}] Public URL:`, urlData.publicUrl);
     
-    // Always return optimized image
+    // ALWAYS return optimized image (even if score unchanged)
+    const scoreImprovement = newScore - originalScore;
+    const alreadyOptimized = (scoreImprovement === 0);
+    
     return NextResponse.json({
       success: true,
-      alreadyOptimized: false,
+      alreadyOptimized,
       optimizedUrl: urlData.publicUrl,
       improvements,
       originalScore,
       newScore,
-      scoreImprovement: newScore - originalScore,
+      scoreImprovement,
       subscores: optimizedAnalysis.metrics,
       originalSize: originalBuffer.length,
       optimizedSize: optimizedBuffer.length,
