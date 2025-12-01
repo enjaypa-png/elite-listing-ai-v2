@@ -144,9 +144,22 @@ export async function POST(request: NextRequest) {
     // Generate NEW buffer from optimization pipeline
     const optimizedBuffer = await optimizedImage.toBuffer();
     
+    // CRITICAL DEBUG LOGGING
+    const originalHash = originalBuffer.slice(0, 16).toString('hex');
+    const optimizedHash = optimizedBuffer.slice(0, 16).toString('hex');
+    const buffersEqual = originalBuffer.equals(optimizedBuffer);
+    
+    console.log(`[${requestId}] ===== BUFFER VERIFICATION =====`);
+    console.log(`[${requestId}] Original Buffer Hash:`, originalHash);
+    console.log(`[${requestId}] Optimized Buffer Hash:`, optimizedHash);
+    console.log(`[${requestId}] Are Buffers Equal:`, buffersEqual);
     console.log(`[${requestId}] Original size:`, originalBuffer.length, 'bytes');
     console.log(`[${requestId}] Optimized size:`, optimizedBuffer.length, 'bytes');
-    console.log(`[${requestId}] Optimized buffer hash:`, optimizedBuffer.slice(0, 16).toString('hex'));
+    console.log(`[${requestId}] ==============================`);
+    
+    if (buffersEqual) {
+      console.error(`[${requestId}] ERROR: Buffers are IDENTICAL - optimization did nothing!`);
+    }
     
     // Re-score optimized image using THE NEW BUFFER
     console.log(`[${requestId}] Calculating optimized score with NEW buffer...`);
