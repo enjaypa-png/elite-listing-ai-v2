@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate deterministic R.A.N.K. 285™ score
     console.log('[Analyze Image] Calculating deterministic score...');
+    console.log('[Analyze Image] Buffer hash:', buffer.slice(0, 16).toString('hex'));
     const photoAnalysis = await calculateDeterministicScore(buffer);
     
     console.log('[Analyze Image] Deterministic Score:', photoAnalysis.score);
@@ -58,11 +59,12 @@ export async function POST(request: NextRequest) {
       success: true,
       imageUrl: imageUrl,
       score: photoAnalysis.score,
-      metrics: photoAnalysis.metrics,
+      subscores: photoAnalysis.metrics,
+      suggestions: photoAnalysis.suggestions,
+      canOptimize: true,
       overallAssessment: `Photo scored ${photoAnalysis.score}/100 using R.A.N.K. 285™ deterministic analysis`,
       strengths: photoAnalysis.score >= 80 ? ['High quality image', 'Professional presentation'] : [],
-      issues: photoAnalysis.suggestions.length > 0 ? ['See suggestions for improvements'] : [],
-      suggestions: photoAnalysis.suggestions
+      issues: photoAnalysis.suggestions.length > 0 ? ['See suggestions for improvements'] : []
     });
 
   } catch (error: any) {

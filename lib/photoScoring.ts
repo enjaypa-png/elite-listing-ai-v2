@@ -240,6 +240,11 @@ function analyzePresentation(): { score: number; issues: string[] } {
  * Main scoring function
  */
 export async function calculateDeterministicScore(buffer: Buffer): Promise<PhotoAnalysis> {
+  // Log buffer hash for debugging
+  const bufferHash = buffer.slice(0, 16).toString('hex');
+  console.log('[Deterministic Scoring] Analyzing buffer hash:', bufferHash);
+  console.log('[Deterministic Scoring] Buffer size:', buffer.length, 'bytes');
+  
   const lighting = await analyzeLighting(buffer);
   const sharpness = await analyzeSharpness(buffer);
   const centering = analyzeSubjectCentering();
