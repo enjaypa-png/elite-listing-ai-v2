@@ -83,12 +83,12 @@ async function analyzePresentationQuality(buffer: Buffer, category: string): Pro
   const stats = await sharp(buffer).stats();
   const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   
-  let score = 75; // Base presentation score
+  let score = 62; // Base presentation score
   
   // For wall art/home decor: natural backgrounds are GOOD
   if (category === 'wall_art' || category === 'home_decor') {
     if (avgVariance > 40 && avgVariance < 150) {
-      score += 15; // Lifestyle staging bonus
+      score += 13; // Lifestyle staging bonus
     }
   }
   
@@ -101,7 +101,7 @@ async function analyzePresentationQuality(buffer: Buffer, category: string): Pro
     }
   }
   
-  score = clamp(score, 60, 100);
+  score = clamp(score, 55, 85); // Max 85
   console.log('[Presentation] Score:', score, '(variance:', avgVariance.toFixed(1), ')');
   
   return Math.round(score);
@@ -115,14 +115,14 @@ async function analyzeCompositionQuality(buffer: Buffer, category: string): Prom
   const metadata = await sharp(buffer).metadata();
   const aspectRatio = (metadata.width || 1) / (metadata.height || 1);
   
-  let score = 75; // Base composition score
+  let score = 70; // Base composition score (reduced from 75)
   
   // Aspect ratio scoring by category
   if (category === 'wall_art') {
     if (aspectRatio > 1.2 && aspectRatio < 2.5) {
-      score += 10; // Perfect landscape for wall art
+      score += 15; // Perfect landscape for wall art (increased from 10)
     } else if (aspectRatio > 0.8 && aspectRatio < 1.2) {
-      score += 5; // Square is acceptable
+      score += 10; // Square is acceptable (increased from 5)
     }
   } else if (category === 'jewelry' || category === 'handmade_small') {
     if (Math.abs(aspectRatio - 1.0) < 0.15) {
@@ -130,7 +130,7 @@ async function analyzeCompositionQuality(buffer: Buffer, category: string): Prom
     }
   }
   
-  score = clamp(score, 70, 100);
+  score = clamp(score, 65, 90);
   console.log('[Composition] Score:', score, '(aspect:', aspectRatio.toFixed(2), ')');
   
   return Math.round(score);
