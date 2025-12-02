@@ -79,7 +79,7 @@ export async function scorePhoto(
   const composition = scoreComposition(aspectRatio, category);
   
   // Get category-specific weights
-  const weights = CATEGORY_WEIGHTS[category];
+  const weights = CATEGORY_WEIGHTS[category as Category] || CATEGORY_WEIGHTS.small_crafts;
   
   // Calculate final weighted score
   const finalScore = Math.round(

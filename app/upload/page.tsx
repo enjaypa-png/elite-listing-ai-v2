@@ -82,7 +82,7 @@ export default function UploadPage() {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('wall_art'); // Default for testing
+  const [selectedCategory, setSelectedCategory] = useState<string>('home_decor_wall_art'); // Default for testing
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
