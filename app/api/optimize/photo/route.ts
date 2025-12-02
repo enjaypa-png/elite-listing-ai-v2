@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
     
     // Calculate original deterministic score with THIS buffer
     console.log(`[${requestId}] Calculating original score...`);
-    const originalAnalysis = await calculateDeterministicScore(originalBuffer);
+    const originalAnalysis = await calculateDeterministicScore(originalBuffer, undefined, 'default');
     const originalScore = originalAnalysis.score;
-    const subscores = originalAnalysis.metrics;
+    const components = originalAnalysis.components;
     
     console.log(`[${requestId}] Original Score:`, originalScore);
-    console.log(`[${requestId}] Subscores:`, JSON.stringify(subscores));
+    console.log(`[${requestId}] Components:`, JSON.stringify(components));
     
     // Apply ALL optimizations to make changes visible
     const improvements: string[] = [];
@@ -76,9 +76,9 @@ export async function POST(request: NextRequest) {
     });
     improvements.push('Applied sharpening filter for better clarity');
     
-    // Apply lighting if needed
-    if (subscores.lighting < 15) {
-      console.log(`[${requestId}] Applying lighting enhancement (score: ${subscores.lighting})`);
+    // Apply lighting if technical quality is low
+    if (components.technical < 80) {
+      console.log(`[${requestId}] Applying lighting enhancement (technical: ${components.technical})`);
       optimizedImage = optimizedImage.modulate({
         brightness: 1.2,
         saturation: 1.12
@@ -86,18 +86,18 @@ export async function POST(request: NextRequest) {
       improvements.push('Enhanced brightness and color saturation');
     }
     
-    // Apply color boost if needed
-    if (subscores.color < 8) {
-      console.log(`[${requestId}] Applying color correction (score: ${subscores.color})`);
+    // Apply color boost if technical quality needs it
+    if (components.technical < 85) {
+      console.log(`[${requestId}] Applying color correction`);
       optimizedImage = optimizedImage.modulate({
-        saturation: 1.2
+        saturation: 1.15
       });
       improvements.push('Enhanced color balance and vibrance');
     }
     
     // Apply contrast if needed
-    if (subscores.contrast < 4) {
-      console.log(`[${requestId}] Applying contrast enhancement (score: ${subscores.contrast})`);
+    if (components.technical < 80) {
+      console.log(`[${requestId}] Applying contrast enhancement`);
       optimizedImage = optimizedImage.linear(1.3, -10);
       improvements.push('Increased contrast for better depth');
     }
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       originalScore,
       newScore,
       scoreImprovement,
-      subscores: optimizedAnalysis.metrics,
+      components: optimizedAnalysis.components,
       originalSize: originalBuffer.length,
       optimizedSize: optimizedBuffer.length,
       compressionRatio: ((1 - optimizedBuffer.length / originalBuffer.length) * 100).toFixed(1) + '%'

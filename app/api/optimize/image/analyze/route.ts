@@ -47,20 +47,14 @@ export async function POST(request: NextRequest) {
     const photoAnalysis = await calculateDeterministicScore(imageBuffer);
     
     console.log('[Image Analyze] Deterministic Score:', photoAnalysis.score);
-    console.log('[Image Analyze] Metrics:', photoAnalysis.metrics);
+    console.log('[Image Analyze] Components:', photoAnalysis.components);
 
     return NextResponse.json({
       ok: true,
       success: true,
       score: photoAnalysis.score,
-      metrics: photoAnalysis.metrics,
+      components: photoAnalysis.components,
       suggestions: photoAnalysis.suggestions,
-      
-      // Legacy compatibility fields
-      lighting: photoAnalysis.metrics.lighting,
-      composition: photoAnalysis.metrics.centering,
-      clarity: photoAnalysis.metrics.sharpness,
-      appeal: photoAnalysis.metrics.presentation,
       feedback: `Deterministic R.A.N.K. 285™ score: ${photoAnalysis.score}/100`
     });
 

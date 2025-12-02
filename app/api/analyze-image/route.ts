@@ -57,13 +57,15 @@ export async function POST(request: NextRequest) {
     const photoAnalysis = await calculateDeterministicScore(buffer, undefined, userCategory);
     
     console.log('[Analyze Image] Deterministic Score:', photoAnalysis.score);
-    console.log('[Analyze Image] Metrics:', photoAnalysis.metrics);
+    console.log('[Analyze Image] Components:', photoAnalysis.components);
+    console.log('[Analyze Image] Category:', photoAnalysis.category);
 
     return NextResponse.json({
       success: true,
       imageUrl: imageUrl,
       score: photoAnalysis.score,
-      subscores: photoAnalysis.metrics,
+      components: photoAnalysis.components,
+      category: photoAnalysis.category,
       suggestions: photoAnalysis.suggestions,
       canOptimize: true,
       overallAssessment: `Photo scored ${photoAnalysis.score}/100 using R.A.N.K. 285™ deterministic analysis`,
