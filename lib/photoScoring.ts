@@ -1,28 +1,15 @@
 import sharp from 'sharp';
-import { detectCategory, getWeightsByCategory, applyBonusesAndPenalties } from './categoryScoring';
+import { detectCategory, getWeightsByCategory } from './categoryScoring';
 
-/**
- * R.A.N.K. 285™ DETERMINISTIC PHOTO SCORING SYSTEM
- * 10 sub-scores with weighted average = final 100-point score
- */
-
-interface PhotoMetrics {
-  lighting: number;
-  sharpness: number;
-  centering: number;
-  alignment: number;
-  background: number;
-  color: number;
-  contrast: number;
-  noise: number;
-  crop: number;
-  presentation: number;
-}
-
-interface PhotoAnalysis {
+export interface PhotoAnalysis {
   score: number;
-  metrics: PhotoMetrics;
+  components: {
+    technical: number;
+    presentation: number;
+    composition: number;
+  };
   suggestions: string[];
+  category: string;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -30,337 +17,174 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
- * 1️⃣ Lighting Quality (0-20 points)
+ * TECHNICAL QUALITY (0-100)
+ * Lighting + Sharpness + Color
  */
-async function analyzeLighting(buffer: Buffer): Promise<{ score: number; issues: string[] }> {
-  const { data, info } = await sharp(buffer)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  let totalBrightness = 0;
-  let overExposed = 0;
-  let underExposed = 0;
-  const pixelCount = info.width * info.height;
-
-  // Calculate mean brightness and exposure issues
-  for (let i = 0; i < data.length; i += info.channels) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    
-    // Y channel brightness (perceived luminance)
-    const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-    totalBrightness += brightness;
-
-    if (brightness > 204) overExposed++; // >80% of 255
-    if (brightness < 51) underExposed++; // <20% of 255
-  }
-
-  const meanBrightness = (totalBrightness / pixelCount) / 255 * 100;
-  const idealBrightness = 55;
-  const brightnessDiff = Math.abs(meanBrightness - idealBrightness);
+async function analyzeTechnicalQuality(buffer: Buffer): Promise<number> {
+  const stats = await sharp(buffer).stats();
+  const metadata = await sharp(buffer).metadata();
   
-  const overExposureRatio = overExposed / pixelCount;
-  const underExposureRatio = underExposed / pixelCount;
+  // Lighting (0-40)
+  const [r, g, b] = stats.channels.map(ch => ch.mean);
+  const avgBrightness = (r + g + b) / 3;
+  const brightness = (avgBrightness / 255) * 100;
   
-  // RECALIBRATED: Very generous for professional product photos
-  const glarePenalty = overExposureRatio > 0.3 ? 2 : 0;
-  const darkPenalty = underExposureRatio > 0.4 ? 1 : 0;
+  let lightingScore = 40;
+  const brightnessDiff = Math.abs(brightness - 55);
+  lightingScore -= brightnessDiff / 5;
+  lightingScore = clamp(lightingScore, 30, 40);
   
-  // RECALIBRATED: High baseline for quality product photos
-  let score = 20 - (brightnessDiff / 30) - glarePenalty - darkPenalty;
-  score = clamp(score, 18, 20); // Minimum 18/20 (90%)
-
-  const issues: string[] = [];
-  if (glarePenalty > 0) issues.push('lighting');
-  if (darkPenalty > 0) issues.push('brightness');
-  
-  return { score: Math.round(score), issues };
-}
-
-/**
- * 2️⃣ Sharpness & Clarity (0-20 points)
- */
-async function analyzeSharpness(buffer: Buffer): Promise<{ score: number; issues: string[] }> {
-  const { data, info } = await sharp(buffer)
-    .greyscale()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-
-  // Calculate Laplacian variance (edge detection)
+  // Sharpness (0-35)
+  const { data, info } = await sharp(buffer).greyscale().raw().toBuffer({ resolveWithObject: true });
   let laplacianSum = 0;
-  const width = info.width;
   
   for (let y = 1; y < info.height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
+    for (let x = 1; x < info.width - 1; x++) {
+      const idx = y * info.width + x;
       const center = data[idx];
       const neighbors = [
         data[idx - 1], data[idx + 1],
-        data[idx - width], data[idx + width]
+        data[idx - info.width], data[idx + info.width]
       ];
-      
       const laplacian = Math.abs(4 * center - neighbors.reduce((a, b) => a + b, 0));
       laplacianSum += laplacian * laplacian;
     }
   }
-
+  
   const laplacianVariance = laplacianSum / (info.width * info.height);
+  let sharpnessScore = 35;
+  if (laplacianVariance > 150) sharpnessScore = 35;
+  else if (laplacianVariance > 100) sharpnessScore = 33;
+  else if (laplacianVariance > 70) sharpnessScore = 31;
+  else if (laplacianVariance > 40) sharpnessScore = 28;
+  else sharpnessScore = 25;
   
-  // RECALIBRATED: High baseline - most photos are adequately sharp
-  let score: number;
-  if (laplacianVariance > 150) score = 20;
-  else if (laplacianVariance > 100) score = 19;
-  else if (laplacianVariance > 70) score = 18;
-  else if (laplacianVariance > 40) score = 17;
-  else if (laplacianVariance > 20) score = 16;
-  else score = 15;
-
-  const issues: string[] = [];
-  if (score < 16) issues.push('clarity');
-  
-  return { score, issues };
-}
-
-/**
- * 3️⃣ Subject Centering (0-10 points)
- */
-function analyzeSubjectCentering(): { score: number; issues: string[] } {
-  // Default to good centering for product photos
-  return { score: 9, issues: [] };
-}
-
-/**
- * 4️⃣ Horizon Alignment (0-10 points)
- */
-function analyzeAlignment(): { score: number; issues: string[] } {
-  // Default to good alignment
-  return { score: 9, issues: [] };
-}
-
-/**
- * 5️⃣ Background Cleanliness (0-10 points)
- */
-async function analyzeBackground(buffer: Buffer): Promise<{ score: number; issues: string[] }> {
-  const stats = await sharp(buffer).stats();
-  
-  // Check color variance - clean backgrounds have low variance
-  const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
-  
-  // RECALIBRATED: High baseline for backgrounds
-  let score: number;
-  if (avgVariance < 80) score = 10;
-  else if (avgVariance < 120) score = 9;
-  else if (avgVariance < 150) score = 8;
-  else score = 7;
-
-  const issues: string[] = [];
-  if (score < 6) issues.push('background');
-  
-  return { score, issues };
-}
-
-/**
- * 6️⃣ Color Accuracy (0-10 points)
- */
-async function analyzeColor(buffer: Buffer): Promise<{ score: number; issues: string[] }> {
-  const stats = await sharp(buffer).stats();
-  
-  // Check color balance (RGB channel balance)
-  const [r, g, b] = stats.channels.map(ch => ch.mean);
-  const avgMean = (r + g + b) / 3;
+  // Color (0-25)
   const colorDeviation = Math.max(
-    Math.abs(r - avgMean),
-    Math.abs(g - avgMean),
-    Math.abs(b - avgMean)
+    Math.abs(r - avgBrightness),
+    Math.abs(g - avgBrightness),
+    Math.abs(b - avgBrightness)
   );
   
-  // RECALIBRATED: Very generous for professional photos
-  let score = 10 - (colorDeviation / 60); // Very forgiving
-  score = clamp(score, 9, 10); // Minimum 9
+  let colorScore = 25 - (colorDeviation / 10);
+  colorScore = clamp(colorScore, 20, 25);
   
-  return { score: Math.round(score), issues: [] };
+  const total = lightingScore + sharpnessScore + colorScore;
+  console.log('[Technical] Lighting:', lightingScore.toFixed(1), 'Sharpness:', sharpnessScore.toFixed(1), 'Color:', colorScore.toFixed(1), 'Total:', total.toFixed(1));
+  
+  return Math.round(total);
 }
 
 /**
- * 7️⃣ Contrast & Depth (0-5 points)
+ * PRESENTATION QUALITY (0-100)
+ * Lifestyle context + staging + appeal
  */
-async function analyzeContrast(buffer: Buffer): Promise<{ score: number; issues: string[] }> {
+async function analyzePresentationQuality(buffer: Buffer, category: string): Promise<number> {
   const stats = await sharp(buffer).stats();
+  const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   
-  // Calculate overall contrast from standard deviation
-  const avgStdev = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
-  const contrastLevel = avgStdev / 128; // Normalize to 0-1 range
+  let score = 75; // Base presentation score
   
-  // RECALIBRATED: Wide range for acceptable contrast
-  let score: number;
-  if (contrastLevel >= 0.25 && contrastLevel <= 0.9) {
-    score = 5;
-  } else if (contrastLevel >= 0.15) {
-    score = 4;
-  } else {
-    score = 3;
+  // For wall art/home decor: natural backgrounds are GOOD
+  if (category === 'wall_art' || category === 'home_decor') {
+    if (avgVariance > 40 && avgVariance < 150) {
+      score += 15; // Lifestyle staging bonus
+    }
   }
   
-  return { score, issues: [] };
+  // For jewelry/handmade: clean backgrounds are GOOD
+  if (category === 'jewelry' || category === 'handmade_small') {
+    if (avgVariance < 40) {
+      score += 15; // Clean product shot bonus
+    } else {
+      score -= 10; // Cluttered background penalty
+    }
+  }
+  
+  score = clamp(score, 60, 100);
+  console.log('[Presentation] Score:', score, '(variance:', avgVariance.toFixed(1), ')');
+  
+  return Math.round(score);
 }
 
 /**
- * 8️⃣ Noise Level (0-5 points)
+ * COMPOSITION QUALITY (0-100)
+ * Framing + background appropriateness + aspect ratio
  */
-function analyzeNoise(): { score: number; issues: string[] } {
-  // Default to low noise for decent photos
-  return { score: 5, issues: [] };
-}
-
-/**
- * 9️⃣ Cropping Ratio (0-5 points)
- */
-async function analyzeCropRatio(buffer: Buffer): Promise<{ score: number; issues: string[] }> {
+async function analyzeCompositionQuality(buffer: Buffer, category: string): Promise<number> {
   const metadata = await sharp(buffer).metadata();
-  const actualRatio = (metadata.width || 1) / (metadata.height || 1);
-  const ratioDeviation = Math.abs(actualRatio - 1.0);
+  const aspectRatio = (metadata.width || 1) / (metadata.height || 1);
   
-  let score = 5 - (ratioDeviation * 10);
-  score = clamp(score, 0, 5);
+  let score = 75; // Base composition score
   
-  const issues: string[] = [];
-  if (score < 3) issues.push('aspect ratio');
+  // Aspect ratio scoring by category
+  if (category === 'wall_art') {
+    if (aspectRatio > 1.2 && aspectRatio < 2.5) {
+      score += 10; // Perfect landscape for wall art
+    } else if (aspectRatio > 0.8 && aspectRatio < 1.2) {
+      score += 5; // Square is acceptable
+    }
+  } else if (category === 'jewelry' || category === 'handmade_small') {
+    if (Math.abs(aspectRatio - 1.0) < 0.15) {
+      score += 10; // Perfect square for products
+    }
+  }
   
-  return { score: Math.round(score), issues };
+  score = clamp(score, 70, 100);
+  console.log('[Composition] Score:', score, '(aspect:', aspectRatio.toFixed(2), ')');
+  
+  return Math.round(score);
 }
 
 /**
- * 🔟 Presentation Quality (0-5 points)
- */
-function analyzePresentation(): { score: number; issues: string[] } {
-  // Default to good presentation for clean photos
-  return { score: 5, issues: [] };
-}
-
-/**
- * Main scoring function with category awareness
+ * MAIN SCORING FUNCTION - SIMPLIFIED 3-COMPONENT SYSTEM
  */
 export async function calculateDeterministicScore(
-  buffer: Buffer, 
-  listingTitle?: string, 
+  buffer: Buffer,
+  listingTitle?: string,
   userCategory?: string
 ): Promise<PhotoAnalysis> {
-  // Log buffer hash for debugging
-  const bufferHash = buffer.slice(0, 16).toString('hex');
-  console.log('[Deterministic Scoring] Analyzing buffer hash:', bufferHash);
-  console.log('[Deterministic Scoring] Buffer size:', buffer.length, 'bytes');
+  console.log('[Scoring] Starting analysis...');
   
   // Detect category
   const category = detectCategory(listingTitle, userCategory);
-  console.log('[Deterministic Scoring] Detected category:', category);
+  console.log('[Scoring] Category:', category);
   
-  const lighting = await analyzeLighting(buffer);
-  const sharpness = await analyzeSharpness(buffer);
-  const centering = analyzeSubjectCentering();
-  const alignment = analyzeAlignment();
-  const background = await analyzeBackground(buffer);
-  const color = await analyzeColor(buffer);
-  const contrast = await analyzeContrast(buffer);
-  const noise = analyzeNoise();
-  const crop = await analyzeCropRatio(buffer);
-  const presentation = analyzePresentation();
-
-  const metrics: PhotoMetrics = {
-    lighting: lighting.score,
-    sharpness: sharpness.score,
-    centering: centering.score,
-    alignment: alignment.score,
-    background: background.score,
-    color: color.score,
-    contrast: contrast.score,
-    noise: noise.score,
-    crop: crop.score,
-    presentation: presentation.score,
-  };
-
+  // Calculate 3 main components
+  const technical = await analyzeTechnicalQuality(buffer);
+  const presentation = await analyzePresentationQuality(buffer, category);
+  const composition = await analyzeCompositionQuality(buffer, category);
+  
   // Get category-specific weights
-  const weights = getWeightsByCategory(category);
-  console.log('[Deterministic Scoring] Using weights for:', category);
-
-  // Calculate weighted score with category-specific weights
-  const weightedScore = 
-    metrics.lighting * weights.lighting +
-    metrics.sharpness * weights.sharpness +
-    metrics.centering * weights.centering +
-    metrics.alignment * weights.alignment +
-    metrics.background * weights.background +
-    metrics.color * weights.color +
-    metrics.contrast * weights.contrast +
-    metrics.noise * weights.noise +
-    metrics.crop * weights.crop +
-    metrics.presentation * weights.presentation;
+  let weights;
+  if (category === 'wall_art') {
+    weights = { technical: 0.40, presentation: 0.35, composition: 0.25 };
+  } else if (category === 'jewelry') {
+    weights = { technical: 0.60, presentation: 0.25, composition: 0.15 };
+  } else {
+    weights = { technical: 0.50, presentation: 0.30, composition: 0.20 };
+  }
   
-  // Scale to 0-100 range
-  const baseScore = Math.round(weightedScore * 5);
+  // Calculate final weighted score
+  const finalScore = Math.round(
+    technical * weights.technical +
+    presentation * weights.presentation +
+    composition * weights.composition
+  );
   
-  // Get metadata for bonus/penalty system
-  const metadata = await sharp(buffer).metadata();
-  const aspectRatio = (metadata.width || 1) / (metadata.height || 1);
-  const stats = await sharp(buffer).stats();
-  const backgroundVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
+  console.log('[Scoring] Technical:', technical, 'Presentation:', presentation, 'Composition:', composition);
+  console.log('[Scoring] Final:', finalScore, '/100');
   
-  const enrichedMetrics = {
-    ...metrics,
-    aspectRatio,
-    backgroundVariance,
-  };
+  // Generate simple suggestions
+  const suggestions: string[] = [];
+  if (technical < 80) suggestions.push('Improve lighting and camera focus');
+  if (presentation < 75) suggestions.push('Consider lifestyle staging or cleaner background');
+  if (composition < 75) suggestions.push('Adjust framing and composition');
   
-  // Apply category-specific bonuses and penalties
-  const { finalScore, adjustments } = applyBonusesAndPenalties(baseScore, enrichedMetrics, category);
-  
-  console.log('[Deterministic Scoring] Base score:', baseScore);
-  console.log('[Deterministic Scoring] Adjustments:', adjustments);
-  console.log('[Deterministic Scoring] Final score:', finalScore);
-
-  // Collect all issues for suggestions
-  const allIssues = [
-    ...lighting.issues,
-    ...sharpness.issues,
-    ...background.issues,
-    ...crop.issues
-  ];
-
-  const suggestions = generateSuggestions(allIssues, metrics);
-
   return {
     score: finalScore,
-    metrics,
+    components: { technical, presentation, composition },
     suggestions,
+    category
   };
-}
-
-function generateSuggestions(issues: string[], metrics: PhotoMetrics): string[] {
-  const suggestions: string[] = [];
-
-  if (issues.includes('lighting')) {
-    suggestions.push('Use diffused lighting to reduce glare');
-  }
-  if (issues.includes('brightness')) {
-    suggestions.push('Increase overall brightness - image appears too dark');
-  }
-  if (issues.includes('clarity')) {
-    suggestions.push('Ensure camera is focused and stable to improve sharpness');
-  }
-  if (issues.includes('background')) {
-    suggestions.push('Use a cleaner, less cluttered background');
-  }
-  if (issues.includes('aspect ratio')) {
-    suggestions.push('Crop image to 1:1 aspect ratio for optimal Etsy display');
-  }
-
-  // Add general suggestions based on scores
-  if (metrics.color < 7) {
-    suggestions.push('Adjust white balance for more accurate colors');
-  }
-  if (metrics.contrast < 3) {
-    suggestions.push('Increase contrast to add depth and visual interest');
-  }
-
-  return suggestions;
 }
