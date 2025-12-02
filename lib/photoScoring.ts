@@ -161,6 +161,12 @@ export async function calculateDeterministicScore(
     weights = { technical: 0.40, presentation: 0.35, composition: 0.25 };
   } else if (category === 'jewelry') {
     weights = { technical: 0.60, presentation: 0.25, composition: 0.15 };
+  } else if (category === 'clothing') {
+    weights = { technical: 0.45, presentation: 0.35, composition: 0.20 };
+  } else if (category === 'home_decor') {
+    weights = { technical: 0.45, presentation: 0.35, composition: 0.20 };
+  } else if (category === 'digital') {
+    weights = { technical: 0.50, presentation: 0.25, composition: 0.25 };
   } else {
     weights = { technical: 0.50, presentation: 0.30, composition: 0.20 };
   }
