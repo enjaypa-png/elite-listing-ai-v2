@@ -82,6 +82,7 @@ export default function UploadPage() {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('wall_art'); // Default for testing
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -134,6 +135,7 @@ export default function UploadPage() {
       // Analyze image directly with new endpoint
       const formData = new FormData();
       formData.append('image', compressedFile);
+      formData.append('category', selectedCategory);
 
       const analyzeResponse = await fetch('/api/analyze-image', {
         method: 'POST',
@@ -287,6 +289,42 @@ export default function UploadPage() {
     >
       <Container>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          {/* Category Selector */}
+          <Card>
+            <div style={{ padding: tokens.spacing[6], marginBottom: tokens.spacing[4] }}>
+              <label style={{
+                display: 'block',
+                fontSize: tokens.typography.fontSize.sm,
+                fontWeight: tokens.typography.fontWeight.semibold,
+                color: tokens.colors.text,
+                marginBottom: tokens.spacing[2]
+              }}>
+                Product Category
+              </label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: tokens.spacing[3],
+                  fontSize: tokens.typography.fontSize.base,
+                  color: tokens.colors.text,
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: tokens.radius.md,
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="wall_art">Wall Art & Canvas Prints</option>
+                <option value="jewelry">Jewelry & Accessories</option>
+                <option value="home_decor">Home Decor & Furniture</option>
+                <option value="clothing">Clothing & Apparel</option>
+                <option value="handmade_small">Handmade Crafts</option>
+                <option value="default">Other</option>
+              </select>
+            </div>
+          </Card>
+          
           {/* Upload Area */}
           <Card>
             <div style={{ padding: tokens.spacing[12] }}>

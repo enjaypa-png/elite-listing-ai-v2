@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
+    const userCategory = (formData.get('category') as string) || 'default';
     
     if (!imageFile) {
       return NextResponse.json(
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[Analyze Image] Processing:', imageFile.name, imageFile.size, 'bytes');
+    console.log('[Analyze Image] User selected category:', userCategory);
 
     // Upload to Supabase first
     const bytes = await imageFile.arrayBuffer();
@@ -49,10 +51,10 @@ export async function POST(request: NextRequest) {
     const imageUrl = urlData.publicUrl;
     console.log('[Analyze Image] Uploaded to:', imageUrl);
 
-    // Calculate deterministic R.A.N.K. 285™ score
+    // Calculate deterministic R.A.N.K. 285™ score with user-selected category
     console.log('[Analyze Image] Calculating deterministic score...');
     console.log('[Analyze Image] Buffer hash:', buffer.slice(0, 16).toString('hex'));
-    const photoAnalysis = await calculateDeterministicScore(buffer);
+    const photoAnalysis = await calculateDeterministicScore(buffer, undefined, userCategory);
     
     console.log('[Analyze Image] Deterministic Score:', photoAnalysis.score);
     console.log('[Analyze Image] Metrics:', photoAnalysis.metrics);
