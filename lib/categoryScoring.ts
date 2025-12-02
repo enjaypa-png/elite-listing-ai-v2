@@ -178,15 +178,21 @@ export function applyBonusesAndPenalties(
   const bonusRules: BonusRule[] = [
     {
       condition: (m, cat) => 
-        (cat === 'wall_art' || cat === 'home_decor') && m.backgroundVariance > 100 && m.backgroundVariance < 200,
-      points: 10,
-      reason: 'Natural background texture (wall/room setting)',
+        (cat === 'wall_art' || cat === 'home_decor') && m.backgroundVariance > 40,
+      points: 12,
+      reason: 'Natural background texture (contextual staging)',
     },
     {
       condition: (m, cat) => 
-        cat === 'wall_art' && m.aspectRatio > 1.2 && m.aspectRatio < 2.5,
+        cat === 'wall_art' && m.aspectRatio > 0.8 && m.aspectRatio < 2.5,
+      points: 10,
+      reason: 'Appropriate orientation for wall art',
+    },
+    {
+      condition: (m) => 
+        m.aspectRatio > 0.8 && m.aspectRatio < 1.3 && m.backgroundVariance > 40,
       points: 8,
-      reason: 'Landscape orientation ideal for canvas prints',
+      reason: 'Lifestyle staging context detected',
     },
     {
       condition: (m, cat) => 
@@ -201,9 +207,14 @@ export function applyBonusesAndPenalties(
       reason: 'Square format optimal for product shots',
     },
     {
-      condition: (m) => m.lighting > 17 && m.contrast > 4,
-      points: 5,
+      condition: (m) => m.lighting >= 17 && m.contrast >= 4,
+      points: 6,
       reason: 'Professional lighting setup',
+    },
+    {
+      condition: (m) => m.sharpness >= 18 && m.color >= 8,
+      points: 5,
+      reason: 'Excellent image quality',
     },
   ];
 
