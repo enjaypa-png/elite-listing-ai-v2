@@ -591,10 +591,13 @@ export default function UploadPage() {
                     
                     {optimizedPhoto.alreadyOptimized && (
                       <p style={{
-                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
                         color: tokens.colors.textMuted,
                         textAlign: 'center',
-                        marginBottom: tokens.spacing[6]
+                        marginBottom: tokens.spacing[6],
+                        padding: tokens.spacing[4],
+                        background: `${tokens.colors.primary}15`,
+                        borderRadius: tokens.radius.md
                       }}>
                         This image is optimized to the maximum quality achievable.
                       </p>
@@ -662,35 +665,37 @@ export default function UploadPage() {
                       </div>
                     </div>
                     
-                    {/* Improvements List */}
-                    <div style={{
-                      padding: 'clamp(1rem, 3vw, 1.5rem)',
-                      background: `${tokens.colors.success}1A`,
-                      border: `1px solid ${tokens.colors.success}33`,
-                      borderRadius: tokens.radius.md,
-                      marginBottom: tokens.spacing[6]
-                    }}>
-                      <h4 style={{
-                        fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                        fontWeight: tokens.typography.fontWeight.semibold,
-                        color: tokens.colors.text,
-                        marginBottom: tokens.spacing[3]
+                    {/* Improvements List - only show if improvements were actually made */}
+                    {optimizedPhoto.improvements && optimizedPhoto.improvements.length > 0 && !optimizedPhoto.alreadyOptimized && (
+                      <div style={{
+                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                        background: `${tokens.colors.success}1A`,
+                        border: `1px solid ${tokens.colors.success}33`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[6]
                       }}>
-                        Improvements Applied:
-                      </h4>
-                      <ul style={{
-                        margin: 0,
-                        paddingLeft: 'clamp(1rem, 4vw, 1.5rem)',
-                        fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-                        color: tokens.colors.textMuted
-                      }}>
-                        {optimizedPhoto.improvements.map((imp: string, i: number) => (
-                          <li key={i} style={{ marginBottom: tokens.spacing[2] }}>
-                            {imp}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                        <h4 style={{
+                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          Improvements Applied:
+                        </h4>
+                        <ul style={{
+                          margin: 0,
+                          paddingLeft: 'clamp(1rem, 4vw, 1.5rem)',
+                          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                          color: tokens.colors.textMuted
+                        }}>
+                          {optimizedPhoto.improvements.map((imp: string, i: number) => (
+                            <li key={i} style={{ marginBottom: tokens.spacing[2] }}>
+                              {imp}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     
                     {/* Action Buttons */}
                     <div style={{

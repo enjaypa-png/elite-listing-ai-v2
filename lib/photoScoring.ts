@@ -62,13 +62,13 @@ async function analyzeLighting(buffer: Buffer): Promise<{ score: number; issues:
   const overExposureRatio = overExposed / pixelCount;
   const underExposureRatio = underExposed / pixelCount;
   
-  // RECALIBRATED: Less harsh penalties
-  const glarePenalty = overExposureRatio > 0.2 ? 4 : 0;
-  const darkPenalty = underExposureRatio > 0.3 ? 3 : 0;
+  // RECALIBRATED: Even less harsh penalties for professional photos
+  const glarePenalty = overExposureRatio > 0.25 ? 3 : 0;
+  const darkPenalty = underExposureRatio > 0.35 ? 2 : 0;
   
   // More generous base score
-  let score = 20 - (brightnessDiff / 10) - glarePenalty - darkPenalty;
-  score = clamp(score, 12, 20); // Minimum 12 for any image
+  let score = 20 - (brightnessDiff / 15) - glarePenalty - darkPenalty;
+  score = clamp(score, 15, 20); // Minimum 15 for decent photos
 
   const issues: string[] = [];
   if (glarePenalty > 0) issues.push('lighting');
@@ -106,17 +106,17 @@ async function analyzeSharpness(buffer: Buffer): Promise<{ score: number; issues
 
   const laplacianVariance = laplacianSum / (info.width * info.height);
   
-  // RECALIBRATED: Even more generous for quality product photos
+  // RECALIBRATED: Very generous for quality product photos
   let score: number;
-  if (laplacianVariance > 500) score = 20;  // Sharp product photos
-  else if (laplacianVariance > 300) score = 18;
-  else if (laplacianVariance > 200) score = 16;
-  else if (laplacianVariance > 100) score = 14;
-  else if (laplacianVariance > 50) score = 10;
-  else score = 6;
+  if (laplacianVariance > 300) score = 20;  // Sharp product photos
+  else if (laplacianVariance > 200) score = 19;
+  else if (laplacianVariance > 150) score = 18;
+  else if (laplacianVariance > 100) score = 16;
+  else if (laplacianVariance > 50) score = 13;
+  else score = 10;
 
   const issues: string[] = [];
-  if (score < 12) issues.push('clarity');
+  if (score < 14) issues.push('clarity');
   
   return { score, issues };
 }
@@ -146,12 +146,12 @@ async function analyzeBackground(buffer: Buffer): Promise<{ score: number; issue
   // Check color variance - clean backgrounds have low variance
   const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   
-  // RECALIBRATED: More generous scoring for clean backgrounds
+  // RECALIBRATED: Very generous for clean product backgrounds
   let score: number;
-  if (avgVariance < 40) score = 10; // Very clean
-  else if (avgVariance < 60) score = 8; // Clean
-  else if (avgVariance < 80) score = 6; // Medium clutter
-  else score = 4; // High clutter
+  if (avgVariance < 50) score = 10; // Very clean
+  else if (avgVariance < 70) score = 9; // Clean
+  else if (avgVariance < 90) score = 7; // Decent
+  else score = 5; // Cluttered
 
   const issues: string[] = [];
   if (score < 6) issues.push('background');
@@ -174,9 +174,9 @@ async function analyzeColor(buffer: Buffer): Promise<{ score: number; issues: st
     Math.abs(b - avgMean)
   );
   
-  // RECALIBRATED: More generous color scoring
-  let score = 10 - (colorDeviation / 25); // Was /15, now /25
-  score = clamp(score, 5, 10); // Minimum 5
+  // RECALIBRATED: Very generous color scoring for professional photos
+  let score = 10 - (colorDeviation / 35); // Was /25, now /35
+  score = clamp(score, 7, 10); // Minimum 7
   
   return { score: Math.round(score), issues: [] };
 }
