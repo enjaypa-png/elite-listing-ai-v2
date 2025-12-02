@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const photoAnalysis = await scorePhoto(imageBuffer, 'small_crafts');
     
     console.log('[Image Analyze] Deterministic Score:', photoAnalysis.score);
-    console.log('[Image Analyze] Components:', photoAnalysis.components);
+    console.log('[Image Analyze] Breakdown:', photoAnalysis.breakdown);
 
     return NextResponse.json({
       ok: true,
