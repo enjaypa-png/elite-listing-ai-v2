@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import { detectCategory, getWeightsByCategory, applyBonusesAndPenalties } from './categoryScoring';
 
 /**
  * R.A.N.K. 285™ DETERMINISTIC PHOTO SCORING SYSTEM
@@ -238,13 +239,21 @@ function analyzePresentation(): { score: number; issues: string[] } {
 }
 
 /**
- * Main scoring function
+ * Main scoring function with category awareness
  */
-export async function calculateDeterministicScore(buffer: Buffer): Promise<PhotoAnalysis> {
+export async function calculateDeterministicScore(
+  buffer: Buffer, 
+  listingTitle?: string, 
+  userCategory?: string
+): Promise<PhotoAnalysis> {
   // Log buffer hash for debugging
   const bufferHash = buffer.slice(0, 16).toString('hex');
   console.log('[Deterministic Scoring] Analyzing buffer hash:', bufferHash);
   console.log('[Deterministic Scoring] Buffer size:', buffer.length, 'bytes');
+  
+  // Detect category
+  const category = detectCategory(listingTitle, userCategory);
+  console.log('[Deterministic Scoring] Detected category:', category);
   
   const lighting = await analyzeLighting(buffer);
   const sharpness = await analyzeSharpness(buffer);
@@ -270,29 +279,61 @@ export async function calculateDeterministicScore(buffer: Buffer): Promise<Photo
     presentation: presentation.score,
   };
 
-  // Weighted final score
+  // Get category-specific weights
+  const weights = getWeightsByCategory(category);
+  console.log('[Deterministic Scoring] Using weights for:', category);
+
+  // Calculate weighted score with category-specific weights
   const weightedScore = 
-    metrics.lighting * 0.20 +
-    metrics.sharpness * 0.20 +
-    metrics.centering * 0.10 +
-    metrics.alignment * 0.10 +
-    metrics.background * 0.10 +
-    metrics.color * 0.10 +
-    metrics.contrast * 0.05 +
-    metrics.noise * 0.05 +
-    metrics.crop * 0.05 +
-    metrics.presentation * 0.05;
+    metrics.lighting * weights.lighting +
+    metrics.sharpness * weights.sharpness +
+    metrics.centering * weights.centering +
+    metrics.alignment * weights.alignment +
+    metrics.background * weights.background +
+    metrics.color * weights.color +
+    metrics.contrast * weights.contrast +
+    metrics.noise * weights.noise +
+    metrics.crop * weights.crop +
+    metrics.presentation * weights.presentation;
   
   // Scale to 0-100 range
-  const finalDisplayScore = Math.round(weightedScore * 5);
+  const baseScore = Math.round(weightedScore * 5);
   
-  console.log('[Deterministic Scoring] Weighted score:', weightedScore.toFixed(2));
-  console.log('[Deterministic Scoring] Display score (x5):', finalDisplayScore);
+  // Get metadata for bonus/penalty system
+  const metadata = await sharp(buffer).metadata();
+  const aspectRatio = (metadata.width || 1) / (metadata.height || 1);
+  const stats = await sharp(buffer).stats();
+  const backgroundVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
+  
+  const enrichedMetrics = {
+    ...metrics,
+    aspectRatio,
+    backgroundVariance,
+  };
+  
+  // Apply category-specific bonuses and penalties
+  const { finalScore, adjustments } = applyBonusesAndPenalties(baseScore, enrichedMetrics, category);
+  
+  console.log('[Deterministic Scoring] Base score:', baseScore);
+  console.log('[Deterministic Scoring] Adjustments:', adjustments);
+  console.log('[Deterministic Scoring] Final score:', finalScore);
 
   // Collect all issues for suggestions
   const allIssues = [
     ...lighting.issues,
     ...sharpness.issues,
+    ...background.issues,
+    ...crop.issues
+  ];
+
+  const suggestions = generateSuggestions(allIssues, metrics);
+
+  return {
+    score: finalScore,
+    metrics,
+    suggestions,
+  };
+}
     ...background.issues,
     ...crop.issues
   ];
