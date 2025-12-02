@@ -315,12 +315,16 @@ export default function UploadPage() {
                   cursor: 'pointer'
                 }}
               >
-                <option value="wall_art">Wall Art & Canvas</option>
-                <option value="jewelry">Jewelry & Small Items</option>
-                <option value="clothing">Clothing & Apparel</option>
-                <option value="home_decor">Home Decor & Furniture</option>
-                <option value="digital">Digital Products</option>
-                <option value="default">Other/General</option>
+                <option value="small_jewelry">Small Jewelry</option>
+                <option value="flat_artwork">Flat Artwork (Prints/Paintings)</option>
+                <option value="wearables_clothing">Clothing</option>
+                <option value="wearables_accessories">Accessories (Bags/Scarves)</option>
+                <option value="home_decor_wall_art">Home Decor & Wall Art</option>
+                <option value="furniture">Furniture</option>
+                <option value="small_crafts">Small Crafts</option>
+                <option value="craft_supplies">Craft Supplies</option>
+                <option value="vintage_items">Vintage Items</option>
+                <option value="digital_products">Digital Products</option>
               </select>
             </div>
           </Card>

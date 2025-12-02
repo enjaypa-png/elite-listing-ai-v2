@@ -5,7 +5,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { createClient } from '@supabase/supabase-js';
-import { calculateDeterministicScore } from '@/lib/photoScoring';
+import { scorePhoto } from '@/lib/photoScoring_v2';
 import { randomUUID } from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
     
     // Calculate original deterministic score with THIS buffer
     console.log(`[${requestId}] Calculating original score...`);
-    const originalAnalysis = await calculateDeterministicScore(originalBuffer, undefined, 'default');
+    const originalAnalysis = await scorePhoto(originalBuffer, 'small_crafts');
     const originalScore = originalAnalysis.score;
-    const components = originalAnalysis.components;
+    const breakdown = originalAnalysis.breakdown;
     
     console.log(`[${requestId}] Original Score:`, originalScore);
-    console.log(`[${requestId}] Components:`, JSON.stringify(components));
+    console.log(`[${requestId}] Breakdown:`, JSON.stringify(breakdown));
     
     // Apply ALL optimizations to make changes visible
     const improvements: string[] = [];
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
     improvements.push('Applied sharpening filter for better clarity');
     
     // Apply lighting if technical quality is low
-    if (components.technical < 80) {
-      console.log(`[${requestId}] Applying lighting enhancement (technical: ${components.technical})`);
+    if (breakdown.technical < 80) {
+      console.log(`[${requestId}] Applying lighting enhancement (technical: ${breakdown.technical})`);
       optimizedImage = optimizedImage.modulate({
         brightness: 1.2,
         saturation: 1.12
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Apply color boost if technical quality needs it
-    if (components.technical < 85) {
+    if (breakdown.technical < 85) {
       console.log(`[${requestId}] Applying color correction`);
       optimizedImage = optimizedImage.modulate({
         saturation: 1.15
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Apply contrast if needed
-    if (components.technical < 80) {
+    if (breakdown.technical < 80) {
       console.log(`[${requestId}] Applying contrast enhancement`);
       optimizedImage = optimizedImage.linear(1.3, -10);
       improvements.push('Increased contrast for better depth');
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
     
     // Re-score optimized image using THE NEW BUFFER
     console.log(`[${requestId}] Calculating optimized score with NEW buffer...`);
-    const optimizedAnalysis = await calculateDeterministicScore(optimizedBuffer);
+    const optimizedAnalysis = await scorePhoto(optimizedBuffer, 'small_crafts');
     const newScore = optimizedAnalysis.score;
     
     console.log(`[${requestId}] New Score:`, newScore);
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       originalScore,
       newScore,
       scoreImprovement,
-      components: optimizedAnalysis.components,
+      breakdown: optimizedAnalysis.breakdown,
       originalSize: originalBuffer.length,
       optimizedSize: optimizedBuffer.length,
       compressionRatio: ((1 - optimizedBuffer.length / originalBuffer.length) * 100).toFixed(1) + '%'

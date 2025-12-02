@@ -4,7 +4,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { calculateDeterministicScore } from '@/lib/photoScoring';
+import { scorePhoto } from '@/lib/photoScoring_v2';
 
 // Input validation schema
 const AnalyzeImageRequestSchema = z.object({
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     console.log('[Image Analyze] Downloaded:', imageBuffer.length, 'bytes');
 
     // Calculate deterministic score
-    const photoAnalysis = await calculateDeterministicScore(imageBuffer);
+    const photoAnalysis = await scorePhoto(imageBuffer, 'small_crafts');
     
     console.log('[Image Analyze] Deterministic Score:', photoAnalysis.score);
     console.log('[Image Analyze] Components:', photoAnalysis.components);
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       success: true,
       score: photoAnalysis.score,
-      components: photoAnalysis.components,
+      breakdown: photoAnalysis.breakdown,
       suggestions: photoAnalysis.suggestions,
       feedback: `Deterministic R.A.N.K. 285™ score: ${photoAnalysis.score}/100`
     });

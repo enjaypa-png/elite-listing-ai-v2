@@ -4,7 +4,7 @@ export const maxDuration = 60; // 60 second timeout
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { calculateDeterministicScore } from '@/lib/photoScoring';
+import { scorePhoto } from '@/lib/photoScoring_v2';
 import { randomUUID } from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     // Calculate deterministic R.A.N.K. 285™ score with user-selected category
     console.log('[Analyze Image] Calculating deterministic score...');
     console.log('[Analyze Image] Buffer hash:', buffer.slice(0, 16).toString('hex'));
-    const photoAnalysis = await calculateDeterministicScore(buffer, undefined, userCategory);
+    const photoAnalysis = await scorePhoto(buffer, userCategory);
     
     console.log('[Analyze Image] Deterministic Score:', photoAnalysis.score);
     console.log('[Analyze Image] Components:', photoAnalysis.components);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       success: true,
       imageUrl: imageUrl,
       score: photoAnalysis.score,
-      components: photoAnalysis.components,
+      breakdown: photoAnalysis.breakdown,
       category: photoAnalysis.category,
       suggestions: photoAnalysis.suggestions,
       canOptimize: true,
