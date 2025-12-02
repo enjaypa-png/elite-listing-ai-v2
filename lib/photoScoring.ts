@@ -334,18 +334,6 @@ export async function calculateDeterministicScore(
     suggestions,
   };
 }
-    ...background.issues,
-    ...crop.issues
-  ];
-
-  const suggestions = generateSuggestions(allIssues, metrics);
-
-  return {
-    score: finalDisplayScore,
-    metrics,
-    suggestions,
-  };
-}
 
 function generateSuggestions(issues: string[], metrics: PhotoMetrics): string[] {
   const suggestions: string[] = [];
