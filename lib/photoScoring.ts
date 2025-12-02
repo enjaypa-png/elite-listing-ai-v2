@@ -66,9 +66,9 @@ async function analyzeLighting(buffer: Buffer): Promise<{ score: number; issues:
   const glarePenalty = overExposureRatio > 0.3 ? 2 : 0;
   const darkPenalty = underExposureRatio > 0.4 ? 1 : 0;
   
-  // Very generous base score
-  let score = 20 - (brightnessDiff / 20) - glarePenalty - darkPenalty;
-  score = clamp(score, 17, 20); // Minimum 17 for quality photos
+  // RECALIBRATED: High baseline for quality product photos
+  let score = 20 - (brightnessDiff / 30) - glarePenalty - darkPenalty;
+  score = clamp(score, 18, 20); // Minimum 18/20 (90%)
 
   const issues: string[] = [];
   if (glarePenalty > 0) issues.push('lighting');
@@ -106,17 +106,17 @@ async function analyzeSharpness(buffer: Buffer): Promise<{ score: number; issues
 
   const laplacianVariance = laplacianSum / (info.width * info.height);
   
-  // RECALIBRATED: Assume most photos are sharp enough for Etsy
+  // RECALIBRATED: High baseline - most photos are adequately sharp
   let score: number;
   if (laplacianVariance > 150) score = 20;
   else if (laplacianVariance > 100) score = 19;
   else if (laplacianVariance > 70) score = 18;
   else if (laplacianVariance > 40) score = 17;
-  else if (laplacianVariance > 20) score = 15;
-  else score = 13;
+  else if (laplacianVariance > 20) score = 16;
+  else score = 15;
 
   const issues: string[] = [];
-  if (score < 15) issues.push('clarity');
+  if (score < 16) issues.push('clarity');
   
   return { score, issues };
 }
@@ -146,12 +146,12 @@ async function analyzeBackground(buffer: Buffer): Promise<{ score: number; issue
   // Check color variance - clean backgrounds have low variance
   const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   
-  // RECALIBRATED: Very generous for any reasonable background
+  // RECALIBRATED: High baseline for backgrounds
   let score: number;
-  if (avgVariance < 70) score = 10; // Clean
-  else if (avgVariance < 100) score = 9; // Decent
-  else if (avgVariance < 130) score = 8; // Acceptable
-  else score = 6; // Cluttered
+  if (avgVariance < 80) score = 10;
+  else if (avgVariance < 120) score = 9;
+  else if (avgVariance < 150) score = 8;
+  else score = 7;
 
   const issues: string[] = [];
   if (score < 6) issues.push('background');
