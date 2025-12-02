@@ -62,13 +62,13 @@ async function analyzeLighting(buffer: Buffer): Promise<{ score: number; issues:
   const overExposureRatio = overExposed / pixelCount;
   const underExposureRatio = underExposed / pixelCount;
   
-  // RECALIBRATED: Even less harsh penalties for professional photos
-  const glarePenalty = overExposureRatio > 0.25 ? 3 : 0;
-  const darkPenalty = underExposureRatio > 0.35 ? 2 : 0;
+  // RECALIBRATED: Very generous for professional product photos
+  const glarePenalty = overExposureRatio > 0.3 ? 2 : 0;
+  const darkPenalty = underExposureRatio > 0.4 ? 1 : 0;
   
-  // More generous base score
-  let score = 20 - (brightnessDiff / 15) - glarePenalty - darkPenalty;
-  score = clamp(score, 15, 20); // Minimum 15 for decent photos
+  // Very generous base score
+  let score = 20 - (brightnessDiff / 20) - glarePenalty - darkPenalty;
+  score = clamp(score, 17, 20); // Minimum 17 for quality photos
 
   const issues: string[] = [];
   if (glarePenalty > 0) issues.push('lighting');
@@ -106,17 +106,17 @@ async function analyzeSharpness(buffer: Buffer): Promise<{ score: number; issues
 
   const laplacianVariance = laplacianSum / (info.width * info.height);
   
-  // RECALIBRATED: Very generous for quality product photos
+  // RECALIBRATED: Very generous - most product photos are sharp enough
   let score: number;
-  if (laplacianVariance > 300) score = 20;  // Sharp product photos
-  else if (laplacianVariance > 200) score = 19;
-  else if (laplacianVariance > 150) score = 18;
-  else if (laplacianVariance > 100) score = 16;
-  else if (laplacianVariance > 50) score = 13;
-  else score = 10;
+  if (laplacianVariance > 200) score = 20;  // Sharp product photos
+  else if (laplacianVariance > 150) score = 19;
+  else if (laplacianVariance > 100) score = 18;
+  else if (laplacianVariance > 70) score = 17;
+  else if (laplacianVariance > 40) score = 15;
+  else score = 12;
 
   const issues: string[] = [];
-  if (score < 14) issues.push('clarity');
+  if (score < 15) issues.push('clarity');
   
   return { score, issues };
 }
@@ -146,12 +146,12 @@ async function analyzeBackground(buffer: Buffer): Promise<{ score: number; issue
   // Check color variance - clean backgrounds have low variance
   const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   
-  // RECALIBRATED: Very generous for clean product backgrounds
+  // RECALIBRATED: Very generous for clean backgrounds
   let score: number;
-  if (avgVariance < 50) score = 10; // Very clean
-  else if (avgVariance < 70) score = 9; // Clean
-  else if (avgVariance < 90) score = 7; // Decent
-  else score = 5; // Cluttered
+  if (avgVariance < 60) score = 10; // Very clean
+  else if (avgVariance < 80) score = 9; // Clean
+  else if (avgVariance < 100) score = 8; // Decent
+  else score = 6; // Cluttered
 
   const issues: string[] = [];
   if (score < 6) issues.push('background');
@@ -174,9 +174,9 @@ async function analyzeColor(buffer: Buffer): Promise<{ score: number; issues: st
     Math.abs(b - avgMean)
   );
   
-  // RECALIBRATED: Very generous color scoring for professional photos
-  let score = 10 - (colorDeviation / 35); // Was /25, now /35
-  score = clamp(score, 7, 10); // Minimum 7
+  // RECALIBRATED: Very generous for professional photos
+  let score = 10 - (colorDeviation / 50); // Very forgiving
+  score = clamp(score, 8, 10); // Minimum 8
   
   return { score: Math.round(score), issues: [] };
 }
@@ -191,11 +191,11 @@ async function analyzeContrast(buffer: Buffer): Promise<{ score: number; issues:
   const avgStdev = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   const contrastLevel = avgStdev / 128; // Normalize to 0-1 range
   
-  // RECALIBRATED: More generous contrast scoring
+  // RECALIBRATED: Wide range for acceptable contrast
   let score: number;
-  if (contrastLevel >= 0.3 && contrastLevel <= 0.8) {
+  if (contrastLevel >= 0.25 && contrastLevel <= 0.9) {
     score = 5;
-  } else if (contrastLevel >= 0.2 && contrastLevel <= 0.9) {
+  } else if (contrastLevel >= 0.15) {
     score = 4;
   } else {
     score = 3;
