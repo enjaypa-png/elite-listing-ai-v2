@@ -106,14 +106,14 @@ async function analyzeSharpness(buffer: Buffer): Promise<{ score: number; issues
 
   const laplacianVariance = laplacianSum / (info.width * info.height);
   
-  // RECALIBRATED: Very generous - most product photos are sharp enough
+  // RECALIBRATED: Assume most photos are sharp enough for Etsy
   let score: number;
-  if (laplacianVariance > 200) score = 20;  // Sharp product photos
-  else if (laplacianVariance > 150) score = 19;
-  else if (laplacianVariance > 100) score = 18;
-  else if (laplacianVariance > 70) score = 17;
-  else if (laplacianVariance > 40) score = 15;
-  else score = 12;
+  if (laplacianVariance > 150) score = 20;
+  else if (laplacianVariance > 100) score = 19;
+  else if (laplacianVariance > 70) score = 18;
+  else if (laplacianVariance > 40) score = 17;
+  else if (laplacianVariance > 20) score = 15;
+  else score = 13;
 
   const issues: string[] = [];
   if (score < 15) issues.push('clarity');
@@ -146,11 +146,11 @@ async function analyzeBackground(buffer: Buffer): Promise<{ score: number; issue
   // Check color variance - clean backgrounds have low variance
   const avgVariance = stats.channels.reduce((sum, ch) => sum + ch.stdev, 0) / stats.channels.length;
   
-  // RECALIBRATED: Very generous for clean backgrounds
+  // RECALIBRATED: Very generous for any reasonable background
   let score: number;
-  if (avgVariance < 60) score = 10; // Very clean
-  else if (avgVariance < 80) score = 9; // Clean
-  else if (avgVariance < 100) score = 8; // Decent
+  if (avgVariance < 70) score = 10; // Clean
+  else if (avgVariance < 100) score = 9; // Decent
+  else if (avgVariance < 130) score = 8; // Acceptable
   else score = 6; // Cluttered
 
   const issues: string[] = [];
@@ -175,8 +175,8 @@ async function analyzeColor(buffer: Buffer): Promise<{ score: number; issues: st
   );
   
   // RECALIBRATED: Very generous for professional photos
-  let score = 10 - (colorDeviation / 50); // Very forgiving
-  score = clamp(score, 8, 10); // Minimum 8
+  let score = 10 - (colorDeviation / 60); // Very forgiving
+  score = clamp(score, 9, 10); // Minimum 9
   
   return { score: Math.round(score), issues: [] };
 }
