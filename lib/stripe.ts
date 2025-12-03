@@ -1,12 +1,26 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY must be defined');
+// Lazy initialization to avoid build-time errors
+let _stripe: Stripe | null = null;
+
+function getStripeClient(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY must be defined');
+    }
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-12-18.acacia',
+      typescript: true,
+    });
+  }
+  return _stripe;
 }
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia',
-  typescript: true,
+// Proxy for lazy initialization
+export const stripe = new Proxy({} as Stripe, {
+  get(target, prop) {
+    return (getStripeClient() as any)[prop];
+  }
 });
 
 // Helper functions for Stripe operations

@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Lazy initialization to avoid build-time errors
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openai;
+}
+
 interface OptimizationRequest {
   title: string;
   description: string;
@@ -11,11 +26,8 @@ interface OptimizationRequest {
 }
 
 export async function POST(request: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-
   try {
+    const openai = getOpenAI();
     console.log('[Optimize Listing] Processing request...');
     const body: OptimizationRequest = await request.json();
     

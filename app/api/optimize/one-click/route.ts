@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 interface OneClickRequest {
   listingId: string;
@@ -24,10 +35,12 @@ export async function POST(request: NextRequest) {
     console.log('[One-Click] Processing listing:', listingId);
     console.log('[One-Click] Running all 6 modules...');
 
+    const ai = getOpenAI();
+
     // Run all 6 modules in parallel for speed
     const [titleResult, tagsResult, descriptionResult, imagesResult, pricingResult, seoResult] = await Promise.all([
       // 1. Title Optimization
-      openai.chat.completions.create({
+      ai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
@@ -49,7 +62,7 @@ Format as JSON with titles array containing text, approach, keywords, reasoning.
       }),
 
       // 2. Tags Optimization
-      openai.chat.completions.create({
+      ai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
@@ -72,7 +85,7 @@ Format as JSON with tags array and reasoning.`
       }),
 
       // 3. Description Optimization
-      openai.chat.completions.create({
+      ai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
@@ -95,7 +108,7 @@ Format as JSON with description, improvements, keywordDensity.`
       }),
 
       // 4. Image Recommendations
-      openai.chat.completions.create({
+      ai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
@@ -131,7 +144,7 @@ Format as JSON:
       }),
 
       // 5. Pricing Recommendations
-      openai.chat.completions.create({
+      ai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {
@@ -170,7 +183,7 @@ Format as JSON:
       }),
 
       // 6. SEO Boost
-      openai.chat.completions.create({
+      ai.chat.completions.create({
         model: 'gpt-4o',
         messages: [
           {

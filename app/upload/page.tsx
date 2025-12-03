@@ -177,22 +177,12 @@ export default function UploadPage() {
     try {
       console.log('[Photo Optimizer] Starting optimization...');
       
-      // Extract issues from analysis
-      const issues: string[] = [];
-      if (analysisResults.suggestions) {
-        analysisResults.suggestions.forEach((suggestion: string) => {
-          const lower = suggestion.toLowerCase();
-          if (lower.includes('lighting') || lower.includes('bright')) issues.push('lighting');
-          if (lower.includes('clarity') || lower.includes('sharp') || lower.includes('blur')) issues.push('clarity');
-        });
-      }
-      
       const response = await fetch('/api/optimize/photo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: analysisResults.imageUrl,
-          issues
+          category: selectedCategory
         })
       });
       
@@ -201,25 +191,16 @@ export default function UploadPage() {
       if (data.success) {
         setOptimizedPhoto({
           url: data.optimizedUrl,
-          improvements: data.improvements,
+          improvements: data.improvements || [],
           alreadyOptimized: data.alreadyOptimized || false,
-          scoreImprovement: data.scoreImprovement || 0
+          scoreImprovement: data.scoreImprovement || 0,
+          message: data.message || ''
         });
         
-        console.log('[Photo Optimizer] Optimization complete, re-analyzing...');
-        
-        // Re-analyze optimized photo to show improved score
-        const reanalysisResponse = await fetch('/api/optimize/image/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: data.optimizedUrl })
-        });
-        
-        const reanalysisData = await reanalysisResponse.json();
-        if (reanalysisData.success) {
-          setOptimizedScore(reanalysisData.score);
-          console.log('[Photo Optimizer] New score:', reanalysisData.score);
-        }
+        // Use the score returned from the optimizer directly
+        setOptimizedScore(data.newScore);
+        console.log('[Photo Optimizer] Complete - New score:', data.newScore, 
+                   'Improvement:', data.scoreImprovement);
       } else {
         alert('Failed to optimize photo: ' + data.error);
       }

@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazy initialization to avoid build-time errors
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    _openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openai;
+}
 
 interface ModularRequest {
   title: string;
@@ -27,6 +38,7 @@ export async function POST(request: NextRequest) {
     console.log('[Optimize Modular] Modules:', modules);
     console.log('[Optimize Modular] Input:', { title: title.substring(0, 50), tags: tags.length });
 
+    const openai = getOpenAI();
     const results: any = {
       success: true,
       optimized: {}

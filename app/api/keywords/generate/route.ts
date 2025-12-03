@@ -66,25 +66,24 @@ function getCompetitionDensity(competition: 'low' | 'medium' | 'high'): number {
   }
 }
 
-export async function POST(request: NextRequest) {
-  // Check for API key first
-  if (!process.env.OPENAI_API_KEY) {
-    console.error('OPENAI_API_KEY is not set');
-    return NextResponse.json(
-      { 
-        ok: false, 
-        error: 'OpenAI API key not configured',
-        details: 'OPENAI_API_KEY environment variable is missing'
-      },
-      { status: 500 }
-    );
-  }
+// Lazy initialization to avoid build-time errors
+let _openaiKw: OpenAI | null = null;
 
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
-  
+function getOpenAIForKeywords(): OpenAI {
+  if (!_openaiKw) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    _openaiKw = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openaiKw;
+}
+
+export async function POST(request: NextRequest) {
   try {
+    const openai = getOpenAIForKeywords();
     const body = await request.json();
     
     // Log received body for debugging

@@ -187,6 +187,21 @@ Provide JSON:
   }
 }
 
+// Lazy initialization to avoid build-time errors
+let _openaiBatch: OpenAI | null = null;
+
+function getOpenAIForBatch(): OpenAI {
+  if (!_openaiBatch) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    _openaiBatch = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openaiBatch;
+}
+
 // POST /api/optimize/images/batch-analyze - Analyze multiple photos in parallel
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
@@ -194,21 +209,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log(`[${requestId}] Processing batch image analysis request...`);
 
-    // Check if OpenAI is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.error(`[${requestId}] OpenAI API key not configured`);
-      return NextResponse.json(
-        {
-          ok: false,
-          error: {
-            code: 'missing_api_key',
-            message: 'OpenAI API key not configured',
-            requestId,
-          },
-        },
-        { status: 500 }
-      );
-    }
+    const openai = getOpenAIForBatch();
 
     // Parse and validate input
     const body = await request.json();
@@ -216,10 +217,6 @@ export async function POST(request: NextRequest) {
     const { photos, platform } = validatedInput;
 
     console.log(`[${requestId}] Analyzing ${photos.length} photos for ${platform}...`);
-
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
 
     const requirements = PLATFORM_REQUIREMENTS[platform as keyof typeof PLATFORM_REQUIREMENTS] || PLATFORM_REQUIREMENTS.etsy;
 

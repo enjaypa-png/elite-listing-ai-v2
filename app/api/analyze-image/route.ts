@@ -3,19 +3,33 @@ export const preferredRegion = 'iad1'; // Stable region
 export const maxDuration = 60; // 60 second timeout
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { scorePhoto } from '@/lib/photoScoring_v2';
 import { randomUUID } from 'crypto';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+// Lazy initialization to avoid build-time errors
+let _supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase credentials not configured');
+    }
+    _supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  }
+  return _supabaseAdmin;
+}
 
 export async function POST(request: NextRequest) {
+  const requestId = randomUUID();
+  
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
-    const userCategory = (formData.get('category') as string) || 'default';
+    const userCategory = (formData.get('category') as string) || 'small_crafts';
     
     if (!imageFile) {
       return NextResponse.json(
@@ -24,14 +38,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Analyze Image] Processing:', imageFile.name, imageFile.size, 'bytes');
-    console.log('[Analyze Image] User selected category:', userCategory);
+    console.log(`[${requestId}] Analyzing:`, imageFile.name, imageFile.size, 'bytes');
+    console.log(`[${requestId}] Category:`, userCategory);
 
     // Upload to Supabase first
     const bytes = await imageFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const uniqueId = randomUUID();
-    const filename = `analysis-${uniqueId}-${Date.now()}.jpg`;
+    const filename = `analysis-${requestId}-${Date.now()}.jpg`;
     
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
       .from('product-images')
@@ -49,16 +62,59 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(filename);
     
     const imageUrl = urlData.publicUrl;
-    console.log('[Analyze Image] Uploaded to:', imageUrl);
+    console.log(`[${requestId}] Uploaded to:`, imageUrl);
 
-    // Calculate deterministic R.A.N.K. 285™ score with user-selected category
-    console.log('[Analyze Image] Calculating deterministic score...');
-    console.log('[Analyze Image] Buffer hash:', buffer.slice(0, 16).toString('hex'));
+    // Calculate deterministic R.A.N.K. 285™ score
+    console.log(`[${requestId}] Calculating score...`);
     const photoAnalysis = await scorePhoto(buffer, userCategory);
     
-    console.log('[Analyze Image] Deterministic Score:', photoAnalysis.score);
-    console.log('[Analyze Image] Breakdown:', photoAnalysis.breakdown);
-    console.log('[Analyze Image] Category:', photoAnalysis.category);
+    console.log(`[${requestId}] Score:`, photoAnalysis.score);
+    console.log(`[${requestId}] Breakdown:`, photoAnalysis.breakdown);
+    console.log(`[${requestId}] Metadata:`, photoAnalysis.metadata);
+
+    // Determine strengths based on breakdown scores
+    const strengths: string[] = [];
+    if (photoAnalysis.breakdown.technical >= 80) {
+      strengths.push('Good technical quality (lighting, sharpness)');
+    }
+    if (photoAnalysis.breakdown.presentation >= 80) {
+      strengths.push('Professional presentation and staging');
+    }
+    if (photoAnalysis.breakdown.composition >= 80) {
+      strengths.push('Well-composed with ideal aspect ratio');
+    }
+    if (photoAnalysis.score >= 85) {
+      strengths.push('High overall quality for Etsy listing');
+    }
+
+    // Determine issues from metadata analysis
+    const issues: string[] = [];
+    const meta = photoAnalysis.metadata;
+    
+    if (meta.brightness < 50) {
+      issues.push('Low lighting - image appears dark');
+    } else if (meta.brightness > 75) {
+      issues.push('Overexposed - image too bright');
+    }
+    
+    if (meta.sharpness < 65) {
+      issues.push('Image lacks sharpness');
+    }
+    
+    if (Math.abs(meta.aspectRatio - 1.0) > 0.1) {
+      issues.push('Non-square aspect ratio');
+    }
+    
+    if (meta.fileSize / 1024 > 3000) {
+      issues.push('File size too large');
+    } else if (meta.fileSize / 1024 < 200) {
+      issues.push('File may be over-compressed');
+    }
+
+    // Determine if optimization would help
+    const canOptimize = photoAnalysis.score < 90 || 
+                       photoAnalysis.suggestions.length > 0 ||
+                       Math.abs(meta.aspectRatio - 1.0) > 0.05;
 
     return NextResponse.json({
       success: true,
@@ -67,14 +123,15 @@ export async function POST(request: NextRequest) {
       breakdown: photoAnalysis.breakdown,
       category: photoAnalysis.category,
       suggestions: photoAnalysis.suggestions,
-      canOptimize: true,
+      metadata: photoAnalysis.metadata,
+      canOptimize,
       overallAssessment: `Photo scored ${photoAnalysis.score}/100 using R.A.N.K. 285™ deterministic analysis`,
-      strengths: photoAnalysis.score >= 80 ? ['High quality image', 'Professional presentation'] : [],
-      issues: photoAnalysis.suggestions.length > 0 ? ['See suggestions for improvements'] : []
+      strengths,
+      issues
     });
 
   } catch (error: any) {
-    console.error('[Analyze Image] Error:', error);
+    console.error(`[${requestId}] Error:`, error);
     return NextResponse.json(
       { 
         success: false, 
@@ -91,7 +148,11 @@ export async function GET() {
     endpoint: '/api/analyze-image',
     method: 'POST',
     description: 'Analyzes product photos using R.A.N.K. 285™ deterministic scoring',
-    accepts: 'multipart/form-data with "image" field',
-    scoring: 'Deterministic 10-metric weighted analysis'
+    accepts: 'multipart/form-data with "image" and optional "category" fields',
+    categories: [
+      'small_jewelry', 'flat_artwork', 'wearables_clothing', 'wearables_accessories',
+      'home_decor_wall_art', 'furniture', 'small_crafts', 'craft_supplies',
+      'vintage_items', 'digital_products'
+    ]
   });
 }

@@ -1,9 +1,8 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { supabase } from './supabase';
 
 export async function getCurrentUser(request: NextRequest) {
   try {
-    const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session?.user) {

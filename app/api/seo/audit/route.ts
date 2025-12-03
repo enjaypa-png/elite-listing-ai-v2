@@ -504,12 +504,25 @@ function calculateOverallOpportunityScore(
 // ==============================================
 // POST HANDLER - UPGRADED 285-POINT SYSTEM
 // ==============================================
-export async function POST(request: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
 
+// Lazy initialization to avoid build-time errors
+let _openaiAudit: OpenAI | null = null;
+
+function getOpenAIForAudit(): OpenAI {
+  if (!_openaiAudit) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    _openaiAudit = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return _openaiAudit;
+}
+
+export async function POST(request: NextRequest) {
   try {
+    const openai = getOpenAIForAudit();
     console.log('[SEO Audit] Processing request...');
     const body = await request.json();
     console.log('[SEO Audit] Request body:', JSON.stringify(body).substring(0, 200));
