@@ -152,6 +152,16 @@ export async function POST(request: NextRequest) {
             no_watermarks: true,
             professional_appearance: analysis.score >= 75,
           },
+          p_scoring: {
+            overall_score: analysis.score,
+            dimensions_score: analysis.breakdown.dimensions,
+            aspect_ratio_score: analysis.breakdown.aspectRatio,
+            file_size_score: analysis.breakdown.fileSize,
+            lighting_score: analysis.breakdown.lighting,
+            sharpness_score: analysis.breakdown.sharpness,
+            background_score: analysis.breakdown.background,
+          },
+          p_user_id: userId,
         });
         
         if (!rpcError) {
