@@ -6,6 +6,11 @@ import { Container, Button, Card } from '@/components/ui';
 import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflow';
 import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
+import { createClient } from '@supabase/supabase-js';
+
+// Client-side Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Helper function to compress image before upload
 async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File> {
@@ -88,6 +93,38 @@ export default function UploadPage() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizedPhoto, setOptimizedPhoto] = useState<any>(null);
   const [optimizedScore, setOptimizedScore] = useState<number | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Check auth status on mount
+  useEffect(() => {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      setAuthLoading(false);
+      return;
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+      } catch (error) {
+        console.error('[Auth] Error checking session:', error);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    
+    checkAuth();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Cleanup preview URL on unmount
   useEffect(() => {
