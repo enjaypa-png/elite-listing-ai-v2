@@ -4,12 +4,13 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { scorePhoto } from '@/lib/photoScoring_v2';
+import { analyzeImage } from '@/lib/photoScoring';
 
 // Input validation schema
 const AnalyzeImageRequestSchema = z.object({
   imageUrl: z.string().min(1, 'Image URL is required'),
   platform: z.string().default('etsy'),
+  category: z.string().default('craft_supplies'),
   listingId: z.string().optional(),
   userId: z.string().optional(),
   saveToDatabase: z.boolean().default(false),
@@ -19,18 +20,18 @@ const AnalyzeImageRequestSchema = z.object({
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    status: 'R.A.N.K. 285™ deterministic image analysis ready',
-    scoring: 'Deterministic 10-metric weighted analysis'
+    status: 'Etsy Image Analyzer ready',
+    scoring: 'Based on official Etsy image requirements'
   });
 }
 
-// POST /api/optimize/image/analyze - Analyze product image quality with deterministic scoring
+// POST /api/optimize/image/analyze - Analyze product image quality
 export async function POST(request: NextRequest) {
   try {
     // Parse and validate input
     const body = await request.json();
     const validatedInput = AnalyzeImageRequestSchema.parse(body);
-    const { imageUrl } = validatedInput;
+    const { imageUrl, category } = validatedInput;
 
     console.log('[Image Analyze] Fetching image from:', imageUrl);
 
@@ -43,19 +44,22 @@ export async function POST(request: NextRequest) {
     const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
     console.log('[Image Analyze] Downloaded:', imageBuffer.length, 'bytes');
 
-    // Calculate deterministic score
-    const photoAnalysis = await scorePhoto(imageBuffer, 'small_crafts');
+    // Analyze using Etsy standards
+    const analysis = await analyzeImage(imageBuffer, category);
     
-    console.log('[Image Analyze] Deterministic Score:', photoAnalysis.score);
-    console.log('[Image Analyze] Breakdown:', photoAnalysis.breakdown);
+    console.log('[Image Analyze] Score:', analysis.score);
+    console.log('[Image Analyze] Breakdown:', analysis.breakdown);
 
     return NextResponse.json({
       ok: true,
       success: true,
-      score: photoAnalysis.score,
-      breakdown: photoAnalysis.breakdown,
-      suggestions: photoAnalysis.suggestions,
-      feedback: `Deterministic R.A.N.K. 285™ score: ${photoAnalysis.score}/100`
+      score: analysis.score,
+      breakdown: analysis.breakdown,
+      compliance: analysis.compliance,
+      suggestions: analysis.suggestions,
+      metadata: analysis.metadata,
+      categoryRequirements: analysis.categoryRequirements,
+      feedback: `Etsy compliance score: ${analysis.score}/100`
     });
 
   } catch (error: any) {

@@ -1,35 +1,21 @@
-export const runtime = "nodejs"; // REQUIRED for sharp
-export const preferredRegion = "iad1"; // stable Node region
+export const runtime = "nodejs";
+export const preferredRegion = "iad1";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { scorePhoto, isAlreadyOptimal } from '@/lib/photoScoring_v2';
+import { optimizeImage } from '@/lib/photoOptimizer';
 import { randomUUID } from 'crypto';
 
-// Lazy initialization to avoid build-time errors
-let _supabaseAdminPhoto: SupabaseClient | null = null;
-
-function getSupabaseAdminPhoto(): SupabaseClient {
-  if (!_supabaseAdminPhoto) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Supabase credentials not configured');
-    }
-    _supabaseAdminPhoto = createClient(supabaseUrl, supabaseServiceKey);
-  }
-  return _supabaseAdminPhoto;
-}
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   
   try {
-    const supabaseAdmin = getSupabaseAdminPhoto();
     const body = await request.json();
-    const { imageUrl, category = 'small_crafts' } = body;
+    const { imageUrl, category = 'craft_supplies' } = body;
     
     if (!imageUrl) {
       return NextResponse.json(
@@ -38,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    console.log(`[${requestId}] Photo Optimizer - Processing image:`, imageUrl);
+    console.log(`[${requestId}] Optimizing image:`, imageUrl);
     console.log(`[${requestId}] Category:`, category);
     
     // Download original image
@@ -52,184 +38,76 @@ export async function POST(request: NextRequest) {
     }
     
     const originalBuffer = Buffer.from(await imageResponse.arrayBuffer());
-    console.log(`[${requestId}] Downloaded image:`, originalBuffer.length, 'bytes');
+    console.log(`[${requestId}] Downloaded:`, originalBuffer.length, 'bytes');
     
-    // STEP 1: Analyze original image FIRST
-    console.log(`[${requestId}] Analyzing original image...`);
-    const originalAnalysis = await scorePhoto(originalBuffer, category);
-    const originalScore = originalAnalysis.score;
-    const originalMetadata = originalAnalysis.metadata;
+    // Optimize using new Etsy-based optimizer
+    const result = await optimizeImage(originalBuffer, category);
     
-    console.log(`[${requestId}] Original Score:`, originalScore);
-    console.log(`[${requestId}] Original Metadata:`, originalMetadata);
-    
-    // STEP 2: Check if ALREADY OPTIMAL (before doing any work)
-    if (isAlreadyOptimal(originalAnalysis)) {
-      console.log(`[${requestId}] Image is already optimal - skipping processing`);
+    // If already optimized, return original
+    if (result.alreadyOptimized) {
+      console.log(`[${requestId}] Image already meets Etsy standards`);
       return NextResponse.json({
         success: true,
         alreadyOptimized: true,
-        optimizedUrl: imageUrl, // Return ORIGINAL URL
-        improvements: [], // MUST BE EMPTY
-        originalScore,
-        newScore: originalScore,
+        optimizedUrl: imageUrl,
+        improvements: [],
+        originalScore: result.originalScore,
+        newScore: result.newScore,
         scoreImprovement: 0,
-        breakdown: originalAnalysis.breakdown,
-        message: 'Image is fully optimized for Etsy',
-        metadata: originalMetadata
+        breakdown: result.analysis.breakdown,
+        message: result.message,
+        metadata: result.analysis.metadata,
       });
     }
     
-    // STEP 3: Determine what optimizations are NEEDED
-    const needsCrop = Math.abs(originalMetadata.aspectRatio - 1.0) > 0.05;
-    const needsResize = originalMetadata.width < 950 || originalMetadata.width > 1100 ||
-                       originalMetadata.height < 950 || originalMetadata.height > 1100;
-    const needsSharpening = originalMetadata.sharpness < 80;
-    const needsLightingUp = originalMetadata.brightness < 50;
-    const needsLightingDown = originalMetadata.brightness > 75;
-    const needsCompression = originalMetadata.fileSize / 1024 < 400 || originalMetadata.fileSize / 1024 > 2048;
-    
-    console.log(`[${requestId}] Optimization needs:`, {
-      needsCrop,
-      needsResize,
-      needsSharpening,
-      needsLightingUp,
-      needsLightingDown,
-      needsCompression
-    });
-    
-    // STEP 4: Apply ONLY needed optimizations
-    const improvements: string[] = [];
-    let optimizedImage = sharp(Buffer.from(originalBuffer));
-    
-    // Crop/Resize to 1:1 if needed
-    if (needsCrop || needsResize) {
-      console.log(`[${requestId}] Applying crop to 1:1 ratio`);
-      optimizedImage = optimizedImage.resize(1000, 1000, {
-        fit: 'cover',
-        position: 'center'
-      });
-      improvements.push('Cropped to 1:1 aspect ratio (1000x1000px)');
-    }
-    
-    // Sharpening if needed
-    if (needsSharpening) {
-      console.log(`[${requestId}] Applying sharpening (current: ${originalMetadata.sharpness})`);
-      optimizedImage = optimizedImage.sharpen({
-        sigma: 2.0,
-        m1: 1.2,
-        m2: 0.7
-      });
-      improvements.push('Applied sharpening filter for better clarity');
-    }
-    
-    // Lighting adjustment if needed
-    if (needsLightingUp) {
-      console.log(`[${requestId}] Brightening image (current: ${originalMetadata.brightness})`);
-      optimizedImage = optimizedImage
-        .modulate({ brightness: 1.25, saturation: 1.1 })
-        .gamma(1.18);
-      improvements.push('Enhanced brightness and lighting');
-    } else if (needsLightingDown) {
-      console.log(`[${requestId}] Reducing brightness (current: ${originalMetadata.brightness})`);
-      optimizedImage = optimizedImage
-        .modulate({ brightness: 0.88 })
-        .gamma(0.95);
-      improvements.push('Balanced overexposure');
-    }
-    
-    // File size optimization
-    if (needsCompression || improvements.length > 0) {
-      console.log(`[${requestId}] Applying JPEG optimization`);
-      optimizedImage = optimizedImage.jpeg({
-        quality: 92,
-        progressive: true,
-        mozjpeg: true
-      });
-      if (needsCompression) {
-        improvements.push('Optimized file size while maintaining quality');
-      }
-    }
-    
-    // If somehow nothing was needed but we got here, apply basic optimization
-    if (improvements.length === 0) {
-      console.log(`[${requestId}] Applying basic Etsy optimization`);
-      optimizedImage = optimizedImage
-        .resize(1000, 1000, { fit: 'cover', position: 'center' })
-        .jpeg({ quality: 92, progressive: true, mozjpeg: true });
-      improvements.push('Applied Etsy-standard optimization');
-    }
-    
-    // STEP 5: Generate optimized buffer
-    const optimizedBuffer = await optimizedImage.toBuffer();
-    
-    console.log(`[${requestId}] Original size:`, originalBuffer.length, 'bytes');
-    console.log(`[${requestId}] Optimized size:`, optimizedBuffer.length, 'bytes');
-    
-    // STEP 6: Score optimized image
-    console.log(`[${requestId}] Scoring optimized image...`);
-    const optimizedAnalysis = await scorePhoto(optimizedBuffer, category);
-    const newScore = optimizedAnalysis.score;
-    const scoreImprovement = newScore - originalScore;
-    
-    console.log(`[${requestId}] New Score:`, newScore);
-    console.log(`[${requestId}] Score improvement:`, scoreImprovement);
-    
-    // STEP 7: Upload optimized image to Supabase
+    // Upload optimized image to Supabase
     const filename = `optimized-${requestId}-${Date.now()}.jpg`;
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log(`[${requestId}] Uploading to Supabase:`, filename);
+    console.log(`[${requestId}] Uploading optimized image:`, filename);
     
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('product-images')
-      .upload(filename, optimizedBuffer, {
+      .upload(filename, result.buffer, {
         contentType: 'image/jpeg',
         cacheControl: 'no-cache',
         upsert: false
       });
     
     if (uploadError) {
-      console.error(`[${requestId}] Supabase upload error:`, uploadError);
-      throw new Error(`Failed to upload optimized image: ${uploadError.message}`);
+      throw new Error(`Failed to upload: ${uploadError.message}`);
     }
     
     const { data: urlData } = supabaseAdmin.storage
       .from('product-images')
       .getPublicUrl(filename);
     
-    if (!urlData || !urlData.publicUrl) {
-      throw new Error('Failed to generate public URL for optimized image');
-    }
+    console.log(`[${requestId}] Optimization complete`);
+    console.log(`[${requestId}] Score: ${result.originalScore} -> ${result.newScore} (+${result.scoreImprovement})`);
     
-    console.log(`[${requestId}] Success! URL:`, urlData.publicUrl);
-    
-    // STEP 8: Return results
     return NextResponse.json({
       success: true,
       alreadyOptimized: false,
       optimizedUrl: urlData.publicUrl,
-      improvements, // List of actual improvements made
-      originalScore,
-      newScore,
-      scoreImprovement,
-      breakdown: optimizedAnalysis.breakdown,
-      message: scoreImprovement > 0 
-        ? `Photo optimized successfully! Score improved by ${scoreImprovement} points.`
-        : 'Photo optimized for Etsy standards.',
-      metadata: optimizedAnalysis.metadata,
+      improvements: result.improvements,
+      originalScore: result.originalScore,
+      newScore: result.newScore,
+      scoreImprovement: result.scoreImprovement,
+      breakdown: result.analysis.breakdown,
+      compliance: result.analysis.compliance,
+      message: result.message,
+      metadata: result.analysis.metadata,
+      
+      // File size comparison
       originalSize: originalBuffer.length,
-      optimizedSize: optimizedBuffer.length,
-      compressionRatio: ((1 - optimizedBuffer.length / originalBuffer.length) * 100).toFixed(1) + '%'
+      optimizedSize: result.buffer.length,
+      compressionRatio: ((1 - result.buffer.length / originalBuffer.length) * 100).toFixed(1) + '%',
     });
     
   } catch (error: any) {
-    console.error(`[${requestId}] ROUTE ERROR:`, error);
+    console.error(`[${requestId}] Error:`, error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error.message || 'Failed to optimize photo',
-        details: error.stack
-      },
+      { success: false, error: error.message || 'Failed to optimize photo' },
       { status: 500 }
     );
   }
@@ -240,10 +118,17 @@ export async function GET() {
     ok: true,
     endpoint: '/api/optimize/photo',
     method: 'POST',
-    description: 'Adaptive photo optimization driven by R.A.N.K. 285™ subscores',
+    description: 'Optimizes photos to meet official Etsy image requirements',
     requiredFields: ['imageUrl'],
     optionalFields: ['category'],
-    hasSharp: true,
-    hasSupabase: !!process.env.NEXT_PUBLIC_SUPABASE_URL
+    
+    optimizationTargets: {
+      dimensions: '3000x2250 (4:3 ratio)',
+      minShortestSide: '2000px',
+      maxFileSize: '1MB',
+      format: 'JPEG progressive',
+      sharpening: 'Applied if needed',
+      brightness: 'Adjusted if too dark/bright',
+    },
   });
 }

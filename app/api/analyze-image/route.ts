@@ -4,9 +4,9 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { scorePhoto } from '@/lib/photoScoring_v2';
+import { analyzeImage } from '@/lib/photoScoring';
 import { computeContentHash } from '@/lib/hash';
-import { persistImageAnalysis, formatAspectRatio, deriveFlags } from '@/lib/image-analysis-rpc';
+import { ETSY_CATEGORIES, getEtsyCategory } from '@/lib/etsy-image-standards';
 import { randomUUID } from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -20,11 +20,9 @@ async function getAuthenticatedClient(request: NextRequest): Promise<{
   error: string | null;
 }> {
   try {
-    // Check for auth header
     const authHeader = request.headers.get('Authorization');
     const accessToken = authHeader?.replace('Bearer ', '');
     
-    // Check cookies for Supabase auth
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = Object.fromEntries(
       cookieHeader.split('; ').map(c => {
@@ -33,21 +31,17 @@ async function getAuthenticatedClient(request: NextRequest): Promise<{
       })
     );
     
-    // Look for various Supabase cookie formats
     const sbAccessToken = cookies['sb-access-token'] || 
                          cookies[`sb-${supabaseUrl.split('//')[1]?.split('.')[0]}-auth-token`];
     
     const token = accessToken || sbAccessToken;
     
     if (!token) {
-      // For development/testing, allow unauthenticated with service role
-      // In production, you'd want to remove this fallback
-      console.log('[Auth] No token found, using service role for development');
+      console.log('[Auth] No token found, using service role');
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      return { supabase: adminClient, userId: null, error: 'No authentication - using service role' };
+      return { supabase: adminClient, userId: null, error: 'No authentication' };
     }
     
-    // Create client and verify token
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     });
@@ -55,17 +49,13 @@ async function getAuthenticatedClient(request: NextRequest): Promise<{
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
     if (error || !user) {
-      console.log('[Auth] Token validation failed:', error?.message);
-      // Fallback to service role for development
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      return { supabase: adminClient, userId: null, error: 'Invalid token - using service role' };
+      return { supabase: adminClient, userId: null, error: 'Invalid token' };
     }
     
-    console.log('[Auth] Authenticated user:', user.id);
     return { supabase, userId: user.id, error: null };
     
   } catch (error: any) {
-    console.error('[Auth] Error:', error);
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     return { supabase: adminClient, userId: null, error: error.message };
   }
@@ -75,7 +65,6 @@ export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   
   try {
-    // Get authenticated client
     const { supabase, userId, error: authError } = await getAuthenticatedClient(request);
     
     if (!supabase) {
@@ -85,13 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (authError) {
-      console.log(`[${requestId}] Auth note:`, authError);
-    }
-    
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
-    const userCategory = (formData.get('category') as string) || 'small_crafts';
+    const userCategory = (formData.get('category') as string) || 'craft_supplies';
     
     if (!imageFile) {
       return NextResponse.json(
@@ -102,23 +87,19 @@ export async function POST(request: NextRequest) {
 
     console.log(`[${requestId}] Analyzing:`, imageFile.name, imageFile.size, 'bytes');
     console.log(`[${requestId}] Category:`, userCategory);
-    console.log(`[${requestId}] User ID:`, userId || 'anonymous');
 
-    // Get image bytes
     const bytes = await imageFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    // Compute content hash for deduplication
+    // Compute content hash
     const contentHash = await computeContentHash(buffer);
     console.log(`[${requestId}] Content hash:`, contentHash.substring(0, 16) + '...');
     
     // Upload to Supabase Storage
     const filename = `analysis-${requestId}-${Date.now()}.jpg`;
-    
-    // Use service role client for storage upload
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    const { data: uploadData, error: uploadError } = await adminClient.storage
+    const { error: uploadError } = await adminClient.storage
       .from('product-images')
       .upload(filename, buffer, {
         contentType: imageFile.type || 'image/jpeg',
@@ -136,116 +117,96 @@ export async function POST(request: NextRequest) {
     const imageUrl = urlData.publicUrl;
     console.log(`[${requestId}] Uploaded to:`, imageUrl);
 
-    // Calculate R.A.N.K. 285™ score
-    console.log(`[${requestId}] Calculating score...`);
-    const photoAnalysis = await scorePhoto(buffer, userCategory);
+    // Analyze using new Etsy-based scoring system
+    console.log(`[${requestId}] Analyzing with Etsy standards...`);
+    const analysis = await analyzeImage(buffer, userCategory);
     
-    console.log(`[${requestId}] Score:`, photoAnalysis.score);
-    console.log(`[${requestId}] Breakdown:`, photoAnalysis.breakdown);
-    console.log(`[${requestId}] Metadata:`, photoAnalysis.metadata);
+    console.log(`[${requestId}] Score:`, analysis.score);
+    console.log(`[${requestId}] Breakdown:`, analysis.breakdown);
 
-    // Persist to database via RPC (if user is authenticated)
+    // Get category info for response
+    const etsyCategory = getEtsyCategory(userCategory);
+    const categoryInfo = ETSY_CATEGORIES[etsyCategory];
+
+    // Persist to database if authenticated
     let analysisId: string | null = null;
-    let persistError: string | null = null;
     
     if (userId) {
-      // User is authenticated - persist with their ID
-      const flags = deriveFlags(photoAnalysis.metadata, photoAnalysis.breakdown);
-      
-      const { id, error: rpcError } = await persistImageAnalysis(supabase, {
-        profile_name: userCategory,
-        content_hash: contentHash,
-        image_url: imageUrl,
-        width_px: photoAnalysis.metadata.width,
-        height_px: photoAnalysis.metadata.height,
-        file_size_bytes: photoAnalysis.metadata.fileSize,
-        aspect_ratio: formatAspectRatio(photoAnalysis.metadata.aspectRatio),
-        file_type: imageFile.type?.split('/')[1] || 'jpeg',
-        color_profile: 'sRGB', // Canvas always outputs sRGB
-        ppi: 72, // Web standard
-        flags,
-        score: photoAnalysis.score,
-        breakdown: photoAnalysis.breakdown,
-      });
-      
-      analysisId = id;
-      persistError = rpcError;
-      
-      if (rpcError) {
-        console.warn(`[${requestId}] RPC persist warning:`, rpcError);
-      } else {
-        console.log(`[${requestId}] Persisted analysis with ID:`, analysisId);
+      try {
+        const { data, error: rpcError } = await supabase.rpc('f_upsert_image_analysis', {
+          p_profile_name: etsyCategory,
+          p_content_hash: contentHash,
+          p_image_url: imageUrl,
+          p_width_px: analysis.metadata.width,
+          p_height_px: analysis.metadata.height,
+          p_file_size_bytes: analysis.metadata.fileSize,
+          p_aspect_ratio: `${analysis.metadata.width}:${analysis.metadata.height}`,
+          p_file_type: imageFile.type?.split('/')[1] || 'jpeg',
+          p_color_profile: 'sRGB',
+          p_ppi: 72,
+          p_flags: {
+            clean_white_background: analysis.breakdown.background >= 80,
+            product_centered: true,
+            good_light: analysis.breakdown.lighting >= 75,
+            sharp_focus: analysis.breakdown.sharpness >= 75,
+            no_watermarks: true,
+            professional_appearance: analysis.score >= 75,
+          },
+        });
+        
+        if (!rpcError) {
+          analysisId = data;
+          console.log(`[${requestId}] Persisted with ID:`, analysisId);
+        }
+      } catch (e) {
+        console.warn(`[${requestId}] RPC persist warning:`, e);
       }
-    } else {
-      console.log(`[${requestId}] Skipping persistence - user not authenticated`);
     }
-
-    // Build response
-    const meta = photoAnalysis.metadata;
-    
-    // Determine strengths
-    const strengths: string[] = [];
-    if (photoAnalysis.breakdown.technical >= 80) {
-      strengths.push('Good technical quality (lighting, sharpness)');
-    }
-    if (photoAnalysis.breakdown.presentation >= 80) {
-      strengths.push('Professional presentation and staging');
-    }
-    if (photoAnalysis.breakdown.composition >= 80) {
-      strengths.push('Well-composed with ideal aspect ratio');
-    }
-    if (photoAnalysis.score >= 85) {
-      strengths.push('High overall quality for Etsy listing');
-    }
-
-    // Determine issues
-    const issues: string[] = [];
-    if (meta.brightness < 50) {
-      issues.push('Low lighting - image appears dark');
-    } else if (meta.brightness > 75) {
-      issues.push('Overexposed - image too bright');
-    }
-    if (meta.sharpness < 65) {
-      issues.push('Image lacks sharpness');
-    }
-    if (Math.abs(meta.aspectRatio - 1.0) > 0.1) {
-      issues.push('Non-square aspect ratio');
-    }
-    if (meta.fileSize / 1024 > 3000) {
-      issues.push('File size too large');
-    } else if (meta.fileSize / 1024 < 200) {
-      issues.push('File may be over-compressed');
-    }
-
-    const canOptimize = photoAnalysis.score < 90 || 
-                       photoAnalysis.suggestions.length > 0 ||
-                       Math.abs(meta.aspectRatio - 1.0) > 0.05;
 
     return NextResponse.json({
       success: true,
-      analysisId,  // Will be null if not authenticated
+      analysisId,
       contentHash,
       imageUrl,
-      score: photoAnalysis.score,
-      breakdown: photoAnalysis.breakdown,
-      category: photoAnalysis.category,
-      suggestions: photoAnalysis.suggestions,
-      metadata: photoAnalysis.metadata,
-      canOptimize,
-      overallAssessment: `Photo scored ${photoAnalysis.score}/100 using R.A.N.K. 285™ deterministic analysis`,
-      strengths,
-      issues,
+      
+      // Core score
+      score: analysis.score,
+      
+      // Detailed breakdown
+      breakdown: analysis.breakdown,
+      
+      // Compliance with Etsy requirements
+      compliance: analysis.compliance,
+      
+      // Category info
+      category: analysis.category,
+      categoryName: analysis.categoryName,
+      categoryRequirements: analysis.categoryRequirements,
+      
+      // Image metadata
+      metadata: analysis.metadata,
+      
+      // Actionable info
+      suggestions: analysis.suggestions,
+      canOptimize: analysis.optimizationPotential.canImprove,
+      optimizationPotential: analysis.optimizationPotential,
+      
+      // Etsy specs for reference
+      etsySpecs: {
+        recommendedSize: '3000x2250',
+        aspectRatio: '4:3',
+        maxFileSize: '1MB',
+        minWidth: '1000px',
+        qualityBenchmark: 'Shortest side >= 2000px',
+      },
+      
       persisted: !!analysisId,
-      persistError,
     });
 
   } catch (error: any) {
     console.error(`[${requestId}] Error:`, error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error.message || 'Failed to analyze image'
-      },
+      { success: false, error: error.message || 'Failed to analyze image' },
       { status: 500 }
     );
   }
@@ -256,20 +217,24 @@ export async function GET() {
     ok: true,
     endpoint: '/api/analyze-image',
     method: 'POST',
-    description: 'Analyzes product photos using R.A.N.K. 285™ deterministic scoring',
+    description: 'Analyzes product photos against official Etsy image requirements',
     accepts: 'multipart/form-data with "image" and optional "category" fields',
-    categories: [
-      'small_jewelry', 'flat_artwork', 'wearables_clothing', 'wearables_accessories',
-      'home_decor_wall_art', 'furniture', 'small_crafts', 'craft_supplies',
-      'vintage_items', 'digital_products'
-    ],
-    authentication: 'Optional but recommended - results are persisted for authenticated users',
-    returns: {
-      analysisId: 'UUID if persisted',
-      contentHash: 'SHA-256 of image',
-      score: 'Overall score 0-100',
-      breakdown: 'Component scores',
-      metadata: 'Image metrics',
-    }
+    
+    // Official Etsy categories
+    categories: Object.keys(ETSY_CATEGORIES),
+    
+    // Etsy requirements summary
+    etsyRequirements: {
+      recommendedSize: '3000x2250 pixels',
+      aspectRatio: '4:3',
+      minimumWidth: '1000 pixels',
+      qualityBenchmark: 'Shortest side at least 2000 pixels',
+      resolution: '72 PPI',
+      maxFileSize: 'Under 1MB',
+      fileTypes: ['jpg', 'gif', 'png'],
+      colorProfile: 'sRGB',
+      thumbnailCrop: '1:1 square (first photo)',
+      recommendedPhotos: '5-10 per listing',
+    },
   });
 }
