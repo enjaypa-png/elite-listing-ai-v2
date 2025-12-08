@@ -92,18 +92,24 @@ export interface ScoringResult {
 
 export async function fetchScoringRules(supabase: SupabaseClient): Promise<ScoringRules | null> {
   try {
-    // Get active profile
-    const { data: profile, error: profileError } = await supabase
+    // Get active profile - use .limit(1) in case multiple are active
+    const { data: profiles, error: profileError } = await supabase
       .from('scoring_profiles')
       .select('id, name')
       .eq('is_active', true)
-      .single();
+      .limit(1);
     
-    if (profileError || !profile) {
-      console.error('[Scoring] No active profile found:', profileError);
+    if (profileError) {
+      console.error('[Scoring] Error fetching profiles:', profileError);
       return null;
     }
     
+    if (!profiles || profiles.length === 0) {
+      console.error('[Scoring] No active profile found');
+      return null;
+    }
+    
+    const profile = profiles[0];
     const profileId = profile.id;
     console.log('[Scoring] Using profile:', profile.name, '(', profileId, ')');
     
