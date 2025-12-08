@@ -85,11 +85,11 @@ export async function analyzeImageWithVision(
   mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg'
 ): Promise<AIVisionResponse | null> {
   
-  // Check for API key
-  const apiKey = process.env.ANTHROPIC_API_KEY || process.env.EMERGENT_LLM_KEY;
+  // Use ANTHROPIC_API_KEY only
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   
   if (!apiKey) {
-    console.error('[AI Vision] No API key found (ANTHROPIC_API_KEY or EMERGENT_LLM_KEY)');
+    console.error('[AI Vision] ANTHROPIC_API_KEY not found');
     return null;
   }
   
@@ -101,7 +101,7 @@ export async function analyzeImageWithVision(
     });
     
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-sonnet-20241022',  // Latest stable Sonnet with vision
       max_tokens: 1024,
       messages: [
         {
