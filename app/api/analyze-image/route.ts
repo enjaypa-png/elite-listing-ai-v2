@@ -3,19 +3,22 @@ export const preferredRegion = 'iad1';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { analyzeImage } from '@/lib/photoScoring';
+import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
 import { computeContentHash } from '@/lib/hash';
-import { ETSY_CATEGORIES, getEtsyCategory } from '@/lib/etsy-image-standards';
+import { fetchScoringRules, calculateScore, storeImageAnalysis, ImageAttributes } from '@/lib/database-scoring';
+import { analyzeImageWithVision, getDefaultVisionResponse, mergeAttributes } from '@/lib/ai-vision';
 import { randomUUID } from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-// Get authenticated Supabase client from request
+// ===========================================
+// AUTH HELPER
+// ===========================================
 async function getAuthenticatedClient(request: NextRequest): Promise<{
-  supabase: SupabaseClient | null;
+  supabase: ReturnType<typeof createClient> | null;
   userId: string | null;
   error: string | null;
 }> {
@@ -25,19 +28,17 @@ async function getAuthenticatedClient(request: NextRequest): Promise<{
     
     const cookieHeader = request.headers.get('cookie') || '';
     const cookies = Object.fromEntries(
-      cookieHeader.split('; ').map(c => {
+      cookieHeader.split('; ').filter(c => c).map(c => {
         const [key, ...val] = c.split('=');
         return [key, val.join('=')];
       })
     );
     
-    const sbAccessToken = cookies['sb-access-token'] || 
-                         cookies[`sb-${supabaseUrl.split('//')[1]?.split('.')[0]}-auth-token`];
-    
+    const sbAccessToken = cookies['sb-access-token'];
     const token = accessToken || sbAccessToken;
     
     if (!token) {
-      console.log('[Auth] No token found, using service role');
+      // Use service role for unauthenticated requests
       const adminClient = createClient(supabaseUrl, supabaseServiceKey);
       return { supabase: adminClient, userId: null, error: 'No authentication' };
     }
@@ -61,6 +62,46 @@ async function getAuthenticatedClient(request: NextRequest): Promise<{
   }
 }
 
+// ===========================================
+// EXTRACT TECHNICAL ATTRIBUTES FROM IMAGE
+// ===========================================
+async function extractTechnicalAttributes(buffer: Buffer, fileType: string): Promise<{
+  width_px: number;
+  height_px: number;
+  file_size_bytes: number;
+  aspect_ratio: string;
+  file_type: string;
+  color_profile: string;
+  ppi: number;
+}> {
+  const metadata = await sharp(buffer).metadata();
+  
+  const width = metadata.width || 1;
+  const height = metadata.height || 1;
+  const ratio = width / height;
+  
+  // Determine aspect ratio string
+  let aspectRatio = `${width}:${height}`;
+  if (Math.abs(ratio - 4/3) < 0.05) aspectRatio = '4:3';
+  else if (Math.abs(ratio - 3/4) < 0.05) aspectRatio = '3:4';
+  else if (Math.abs(ratio - 1) < 0.05) aspectRatio = '1:1';
+  else if (Math.abs(ratio - 16/9) < 0.05) aspectRatio = '16:9';
+  else if (Math.abs(ratio - 3/2) < 0.05) aspectRatio = '3:2';
+  
+  return {
+    width_px: width,
+    height_px: height,
+    file_size_bytes: buffer.length,
+    aspect_ratio: aspectRatio,
+    file_type: fileType.replace('image/', ''),
+    color_profile: 'sRGB',  // Canvas/web always outputs sRGB
+    ppi: metadata.density || 72,
+  };
+}
+
+// ===========================================
+// POST HANDLER
+// ===========================================
 export async function POST(request: NextRequest) {
   const requestId = randomUUID();
   
@@ -69,14 +110,13 @@ export async function POST(request: NextRequest) {
     
     if (!supabase) {
       return NextResponse.json(
-        { success: false, error: 'Failed to initialize database client' },
+        { success: false, error: 'Database connection failed' },
         { status: 500 }
       );
     }
     
     const formData = await request.formData();
     const imageFile = formData.get('image') as File;
-    const userCategory = (formData.get('category') as string) || 'craft_supplies';
     
     if (!imageFile) {
       return NextResponse.json(
@@ -85,19 +125,71 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[${requestId}] Analyzing:`, imageFile.name, imageFile.size, 'bytes');
-    console.log(`[${requestId}] Category:`, userCategory);
-
+    console.log(`[${requestId}] Analyzing image:`, imageFile.name, imageFile.size, 'bytes');
+    
+    // ===========================================
+    // 1. GET SCORING RULES FROM DATABASE
+    // ===========================================
+    const rules = await fetchScoringRules(supabase);
+    
+    if (!rules) {
+      return NextResponse.json(
+        { success: false, error: 'No active scoring profile found. Please contact support.' },
+        { status: 500 }
+      );
+    }
+    
+    console.log(`[${requestId}] Using scoring profile:`, rules.profileName);
+    console.log(`[${requestId}] Rules loaded:`, {
+      technical: rules.technicalSpecs.length,
+      photoTypes: rules.photoTypes.length,
+      composition: rules.compositionRules.length,
+    });
+    
+    // ===========================================
+    // 2. EXTRACT TECHNICAL ATTRIBUTES
+    // ===========================================
     const bytes = await imageFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    
-    // Compute content hash
     const contentHash = await computeContentHash(buffer);
-    console.log(`[${requestId}] Content hash:`, contentHash.substring(0, 16) + '...');
     
-    // Upload to Supabase Storage
-    const filename = `analysis-${requestId}-${Date.now()}.jpg`;
+    const technicalAttrs = await extractTechnicalAttributes(buffer, imageFile.type || 'image/jpeg');
+    
+    console.log(`[${requestId}] Technical attributes:`, technicalAttrs);
+    
+    // ===========================================
+    // 3. AI VISION ANALYSIS (Binary YES/NO)
+    // ===========================================
+    const imageBase64 = buffer.toString('base64');
+    const mimeType = (imageFile.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+    
+    let visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
+    
+    if (!visionResponse) {
+      console.warn(`[${requestId}] AI Vision failed, using defaults`);
+      visionResponse = getDefaultVisionResponse();
+    }
+    
+    console.log(`[${requestId}] AI Vision results:`, visionResponse);
+    
+    // ===========================================
+    // 4. MERGE ATTRIBUTES
+    // ===========================================
+    const attributes: ImageAttributes = mergeAttributes(technicalAttrs, visionResponse);
+    
+    // ===========================================
+    // 5. CALCULATE SCORE (DETERMINISTIC)
+    // ===========================================
+    const scoring = calculateScore(attributes, rules);
+    
+    console.log(`[${requestId}] Final score:`, scoring.total_score);
+    console.log(`[${requestId}] Already optimized:`, scoring.is_already_optimized);
+    
+    // ===========================================
+    // 6. UPLOAD IMAGE TO STORAGE
+    // ===========================================
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+    const filename = `analysis-${requestId}-${Date.now()}.${technicalAttrs.file_type}`;
     
     const { error: uploadError } = await adminClient.storage
       .from('product-images')
@@ -107,109 +199,98 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      throw new Error(`Upload failed: ${uploadError.message}`);
+      console.error(`[${requestId}] Upload error:`, uploadError);
     }
 
     const { data: urlData } = adminClient.storage
       .from('product-images')
       .getPublicUrl(filename);
     
-    const imageUrl = urlData.publicUrl;
-    console.log(`[${requestId}] Uploaded to:`, imageUrl);
-
-    // Analyze using new Etsy-based scoring system
-    console.log(`[${requestId}] Analyzing with Etsy standards...`);
-    const analysis = await analyzeImage(buffer, userCategory);
+    const imageUrl = urlData?.publicUrl || '';
     
-    console.log(`[${requestId}] Score:`, analysis.score);
-    console.log(`[${requestId}] Breakdown:`, analysis.breakdown);
-
-    // Get category info for response
-    const etsyCategory = getEtsyCategory(userCategory);
-    const categoryInfo = ETSY_CATEGORIES[etsyCategory];
-
-    // Persist to database if authenticated
+    // ===========================================
+    // 7. STORE ANALYSIS IN DATABASE
+    // ===========================================
     let analysisId: string | null = null;
     
     if (userId) {
-      try {
-        const { data, error: rpcError } = await supabase.rpc('f_upsert_image_analysis', {
-          p_profile_name: etsyCategory,
-          p_content_hash: contentHash,
-          p_image_url: imageUrl,
-          p_width_px: analysis.metadata.width,
-          p_height_px: analysis.metadata.height,
-          p_file_size_bytes: analysis.metadata.fileSize,
-          p_aspect_ratio: `${analysis.metadata.width}:${analysis.metadata.height}`,
-          p_file_type: imageFile.type?.split('/')[1] || 'jpeg',
-          p_color_profile: 'sRGB',
-          p_ppi: 72,
-          p_flags: {
-            clean_white_background: analysis.breakdown.background >= 80,
-            product_centered: true,
-            good_light: analysis.breakdown.lighting >= 75,
-            sharp_focus: analysis.breakdown.sharpness >= 75,
-            no_watermarks: true,
-            professional_appearance: analysis.score >= 75,
-          },
-          p_scoring: {
-            overall_score: analysis.score,
-            dimensions_score: analysis.breakdown.dimensions,
-            aspect_ratio_score: analysis.breakdown.aspectRatio,
-            file_size_score: analysis.breakdown.fileSize,
-            lighting_score: analysis.breakdown.lighting,
-            sharpness_score: analysis.breakdown.sharpness,
-            background_score: analysis.breakdown.background,
-          },
-          p_user_id: userId,
-        });
-        
-        if (!rpcError) {
-          analysisId = data;
-          console.log(`[${requestId}] Persisted with ID:`, analysisId);
-        }
-      } catch (e) {
-        console.warn(`[${requestId}] RPC persist warning:`, e);
+      const storeResult = await storeImageAnalysis(
+        supabase,
+        userId,
+        rules.profileId,
+        contentHash,
+        imageUrl,
+        attributes,
+        scoring
+      );
+      
+      analysisId = storeResult.id;
+      
+      if (storeResult.error) {
+        console.warn(`[${requestId}] Store warning:`, storeResult.error);
+      } else {
+        console.log(`[${requestId}] Stored analysis:`, analysisId);
       }
     }
-
+    
+    // ===========================================
+    // 8. BUILD RESPONSE
+    // ===========================================
     return NextResponse.json({
       success: true,
       analysisId,
       contentHash,
       imageUrl,
       
-      // Core score
-      score: analysis.score,
+      // Deterministic score from database rules
+      score: scoring.total_score,
       
-      // Detailed breakdown
-      breakdown: analysis.breakdown,
-      
-      // Compliance with Etsy requirements
-      compliance: analysis.compliance,
-      
-      // Category info
-      category: analysis.category,
-      categoryName: analysis.categoryName,
-      categoryRequirements: analysis.categoryRequirements,
-      
-      // Image metadata
-      metadata: analysis.metadata,
-      
-      // Actionable info
-      suggestions: analysis.suggestions,
-      canOptimize: analysis.optimizationPotential.canImprove,
-      optimizationPotential: analysis.optimizationPotential,
-      
-      // Etsy specs for reference
-      etsySpecs: {
-        recommendedSize: '3000x2250',
-        aspectRatio: '4:3',
-        maxFileSize: '1MB',
-        minWidth: '1000px',
-        qualityBenchmark: 'Shortest side >= 2000px',
+      // Score breakdown
+      breakdown: {
+        technical_points: scoring.technical_points,
+        photo_type_points: scoring.photo_type_points,
+        composition_points: scoring.composition_points,
       },
       
+      // Detailed scoring breakdown
+      scoring_breakdown: scoring.scoring_breakdown,
+      
+      // Already optimized detection
+      is_already_optimized: scoring.is_already_optimized,
+      failed_required_specs: scoring.failed_required_specs,
+      
+      // Technical metadata
+      metadata: {
+        width: attributes.width_px,
+        height: attributes.height_px,
+        fileSize: attributes.file_size_bytes,
+        fileSizeKB: Math.round(attributes.file_size_bytes / 1024),
+        aspectRatio: attributes.aspect_ratio,
+        fileType: attributes.file_type,
+        shortestSide: attributes.shortest_side,
+      },
+      
+      // AI Vision results (binary)
+      vision: {
+        has_clean_white_background: attributes.has_clean_white_background,
+        is_product_centered: attributes.is_product_centered,
+        has_good_lighting: attributes.has_good_lighting,
+        is_sharp_focus: attributes.is_sharp_focus,
+        has_no_watermarks: attributes.has_no_watermarks,
+        professional_appearance: attributes.professional_appearance,
+        detected_photo_type: visionResponse.detected_photo_type,
+      },
+      
+      // Profile used
+      profile: {
+        id: rules.profileId,
+        name: rules.profileName,
+      },
+      
+      // Can optimize?
+      canOptimize: !scoring.is_already_optimized,
+      
+      // Persisted?
       persisted: !!analysisId,
     });
 
@@ -222,29 +303,24 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// ===========================================
+// GET HANDLER - API INFO
+// ===========================================
 export async function GET() {
   return NextResponse.json({
     ok: true,
     endpoint: '/api/analyze-image',
     method: 'POST',
-    description: 'Analyzes product photos against official Etsy image requirements',
-    accepts: 'multipart/form-data with "image" and optional "category" fields',
+    description: 'Analyzes product photos using DETERMINISTIC database-driven scoring',
+    scoring: 'Rules fetched from database - same input = same output',
     
-    // Official Etsy categories
-    categories: Object.keys(ETSY_CATEGORIES),
+    accepts: 'multipart/form-data with "image" field',
     
-    // Etsy requirements summary
-    etsyRequirements: {
-      recommendedSize: '3000x2250 pixels',
-      aspectRatio: '4:3',
-      minimumWidth: '1000 pixels',
-      qualityBenchmark: 'Shortest side at least 2000 pixels',
-      resolution: '72 PPI',
-      maxFileSize: 'Under 1MB',
-      fileTypes: ['jpg', 'gif', 'png'],
-      colorProfile: 'sRGB',
-      thumbnailCrop: '1:1 square (first photo)',
-      recommendedPhotos: '5-10 per listing',
+    response: {
+      score: 'Total score from database rules',
+      breakdown: 'Points by category (technical, photo_type, composition)',
+      is_already_optimized: 'true if score >= 95 and all required specs met',
+      vision: 'Binary YES/NO from AI vision analysis',
     },
   });
 }

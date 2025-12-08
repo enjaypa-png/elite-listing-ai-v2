@@ -13,12 +13,12 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Helper function to compress image before upload
-// IMPORTANT: Keep maxWidthOrHeight high to preserve quality for Etsy (3000x2250 recommended)
-async function compressImage(file: File, maxWidthOrHeight = 4000): Promise<File> {
+// Keep dimensions reasonable for Etsy (3000x2250 recommended max)
+async function compressImage(file: File, maxWidthOrHeight = 3000): Promise<File> {
   return new Promise((resolve, reject) => {
-    // If file is already small enough, skip compression
-    if (file.size < 1.5 * 1024 * 1024) {  // Under 1.5MB
-      console.log('[Image Compression] Skipping - file already small:', (file.size / 1024).toFixed(0) + 'KB');
+    // If file is already under 1MB, skip compression (Etsy limit)
+    if (file.size < 1 * 1024 * 1024) {
+      console.log('[Image Compression] Skipping - already under 1MB:', (file.size / 1024).toFixed(0) + 'KB');
       resolve(file);
       return;
     }
