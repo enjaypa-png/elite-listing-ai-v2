@@ -15,6 +15,9 @@ export interface OptimizationResult {
   // The optimized image buffer
   buffer: Buffer;
   
+  // Output format ('png' for lossless, 'jpeg' if PNG was too large)
+  outputFormat?: 'png' | 'jpeg';
+  
   // What was done
   improvements: string[];
   
@@ -184,47 +187,62 @@ export async function optimizeImage(
   }
   
   // ===========================================
-  // 4. COMPRESSION (always output as JPEG under 1MB)
+  // 4. OUTPUT FORMAT - PNG preferred (lossless), JPEG fallback
   // ===========================================
-  // Start with high quality, reduce if needed
-  let quality = 92;
-  if (needsCompress || meta.fileSizeKB > 800) {
-    quality = 85;
-  }
+  // Etsy accepts: jpg, gif, png (max 1MB)
+  // PNG preserves exact pixels - no quality loss on re-download
+  // JPEG is lossy - degrades on each save cycle
   
-  console.log('[Optimizer] Compressing with quality:', quality);
-  pipeline = pipeline.jpeg({
-    quality,
-    progressive: true,
-    mozjpeg: true,
-  });
+  console.log('[Optimizer] Generating PNG output (lossless)...');
   
-  if (needsCompress) {
-    improvements.push('Optimized file size for Etsy (under 1MB)');
-  }
+  // First try PNG (lossless, preserves exact pixels)
+  let optimizedBuffer = await pipeline
+    .png({ compressionLevel: 9 })  // Max compression for smallest PNG
+    .toBuffer();
   
-  // ===========================================
-  // 5. EXECUTE PIPELINE
-  // ===========================================
-  let optimizedBuffer = await pipeline.toBuffer();
+  let outputFormat = 'png';
   
-  // Check file size and recompress if still over 1MB
+  // If PNG is over 1MB, fall back to high-quality JPEG
   if (optimizedBuffer.length > ETSY_IMAGE_SPECS.maxFileSize) {
-    console.log('[Optimizer] Still over 1MB, recompressing with lower quality');
-    optimizedBuffer = await sharp(optimizedBuffer)
-      .jpeg({ quality: 80, progressive: true, mozjpeg: true })
+    console.log('[Optimizer] PNG too large (' + (optimizedBuffer.length / 1024).toFixed(0) + 'KB), falling back to JPEG');
+    
+    // Try JPEG at 92% quality
+    optimizedBuffer = await sharp(buffer)  // Start fresh from original
+      .resize(targetWidth || meta.width, targetHeight || meta.height, {
+        fit: 'cover',
+        position: 'center',
+      })
+      .sharpen(needsSharpen ? { sigma: 1.5, m1: 1.0, m2: 0.5 } : undefined)
+      .jpeg({ quality: 92, progressive: true, mozjpeg: true })
       .toBuffer();
     
-    // If still over, try even lower
+    outputFormat = 'jpeg';
+    
+    // If still over 1MB, reduce quality
     if (optimizedBuffer.length > ETSY_IMAGE_SPECS.maxFileSize) {
+      console.log('[Optimizer] JPEG 92% still over 1MB, trying 85%');
       optimizedBuffer = await sharp(optimizedBuffer)
-        .jpeg({ quality: 75, progressive: true, mozjpeg: true })
+        .jpeg({ quality: 85, progressive: true, mozjpeg: true })
         .toBuffer();
     }
+    
+    // Last resort: 80% quality
+    if (optimizedBuffer.length > ETSY_IMAGE_SPECS.maxFileSize) {
+      console.log('[Optimizer] JPEG 85% still over 1MB, trying 80%');
+      optimizedBuffer = await sharp(optimizedBuffer)
+        .jpeg({ quality: 80, progressive: true, mozjpeg: true })
+        .toBuffer();
+    }
+    
+    improvements.push('Compressed to JPEG for Etsy file size limit');
+  } else {
+    improvements.push('Saved as PNG (lossless) for maximum quality');
   }
   
+  console.log('[Optimizer] Final format:', outputFormat, '| Size:', (optimizedBuffer.length / 1024).toFixed(0) + 'KB');
+  
   // ===========================================
-  // 6. ANALYZE OPTIMIZED IMAGE
+  // 5. ANALYZE OPTIMIZED IMAGE
   // ===========================================
   const newAnalysis = await analyzeImage(optimizedBuffer, categoryInput);
   const newScore = newAnalysis.score;
@@ -248,6 +266,7 @@ export async function optimizeImage(
     success: true,
     alreadyOptimized: false,
     buffer: optimizedBuffer,
+    outputFormat,  // 'png' or 'jpeg'
     improvements,
     originalScore,
     newScore,

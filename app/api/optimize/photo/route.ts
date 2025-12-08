@@ -61,15 +61,18 @@ export async function POST(request: NextRequest) {
     }
     
     // Upload optimized image to Supabase
-    const filename = `optimized-${requestId}-${Date.now()}.jpg`;
+    // Use correct file extension and content type based on output format
+    const fileExt = result.outputFormat === 'png' ? 'png' : 'jpg';
+    const contentType = result.outputFormat === 'png' ? 'image/png' : 'image/jpeg';
+    const filename = `optimized-${requestId}-${Date.now()}.${fileExt}`;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log(`[${requestId}] Uploading optimized image:`, filename);
+    console.log(`[${requestId}] Uploading optimized image:`, filename, '| Format:', result.outputFormat);
     
     const { error: uploadError } = await supabaseAdmin.storage
       .from('product-images')
       .upload(filename, result.buffer, {
-        contentType: 'image/jpeg',
+        contentType,
         cacheControl: 'no-cache',
         upsert: false
       });
@@ -83,12 +86,13 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(filename);
     
     console.log(`[${requestId}] Optimization complete`);
-    console.log(`[${requestId}] Score: ${result.originalScore} -> ${result.newScore} (+${result.scoreImprovement})`);
+    console.log(`[${requestId}] Format: ${result.outputFormat?.toUpperCase()} | Score: ${result.originalScore} -> ${result.newScore} (+${result.scoreImprovement})`);
     
     return NextResponse.json({
       success: true,
       alreadyOptimized: false,
       optimizedUrl: urlData.publicUrl,
+      outputFormat: result.outputFormat,  // 'png' or 'jpeg'
       improvements: result.improvements,
       originalScore: result.originalScore,
       newScore: result.newScore,
