@@ -13,8 +13,16 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Helper function to compress image before upload
-async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File> {
+// IMPORTANT: Keep maxWidthOrHeight high to preserve quality for Etsy (3000x2250 recommended)
+async function compressImage(file: File, maxWidthOrHeight = 4000): Promise<File> {
   return new Promise((resolve, reject) => {
+    // If file is already small enough, skip compression
+    if (file.size < 1.5 * 1024 * 1024) {  // Under 1.5MB
+      console.log('[Image Compression] Skipping - file already small:', (file.size / 1024).toFixed(0) + 'KB');
+      resolve(file);
+      return;
+    }
+    
     // Create object URL from blob (no base64)
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
@@ -28,6 +36,7 @@ async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File>
       let height = img.height;
 
       // Calculate new dimensions while maintaining aspect ratio
+      // Only resize if larger than maxWidthOrHeight
       if (width > height) {
         if (width > maxWidthOrHeight) {
           height = (height * maxWidthOrHeight) / width;
@@ -51,7 +60,7 @@ async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File>
       
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to blob with quality 0.70 for <900KB target
+      // Convert to blob with quality 0.85 to preserve detail for Etsy
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -60,8 +69,10 @@ async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File>
               lastModified: Date.now(),
             });
             console.log('[Image Compression]', {
-              original: `${(file.size / 1024).toFixed(0)}KB`,
-              compressed: `${(compressedFile.size / 1024).toFixed(0)}KB`,
+              originalSize: `${(file.size / 1024).toFixed(0)}KB`,
+              compressedSize: `${(compressedFile.size / 1024).toFixed(0)}KB`,
+              originalDimensions: `${img.width}x${img.height}`,
+              newDimensions: `${Math.round(width)}x${Math.round(height)}`,
               reduction: `${(((file.size - compressedFile.size) / file.size) * 100).toFixed(1)}%`
             });
             resolve(compressedFile);
@@ -70,7 +81,7 @@ async function compressImage(file: File, maxWidthOrHeight = 1536): Promise<File>
           }
         },
         'image/jpeg',
-        0.70 // Quality reduced to 0.70 for <900KB target
+        0.85  // Higher quality to preserve detail for Etsy optimization
       );
     };
     
