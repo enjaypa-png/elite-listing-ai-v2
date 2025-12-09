@@ -249,6 +249,20 @@ export function calculateScore(
       case 'color_profile_srgb':
         met = attributes.color_profile?.toLowerCase() === 'srgb';
         break;
+      case 'shortest_side_benchmark':
+        // Check shortest side meets minimum requirement
+        met = attributes.shortest_side >= (rule.metadata?.min_value || 2000);
+        break;
+      case 'color_profile':
+        // Check color profile matches (case-insensitive)
+        const expectedProfile = rule.metadata?.value || 'sRGB';
+        met = attributes.color_profile?.toLowerCase() === expectedProfile.toLowerCase();
+        break;
+      case 'file_types':
+        // Check if file type is in allowed list
+        const allowedFileTypes = rule.metadata?.allowed || ['jpg', 'jpeg', 'png'];
+        met = allowedFileTypes.some(type => type.toLowerCase() === attributes.file_type.toLowerCase());
+        break;
       default:
         // Unknown rule key - check metadata for custom evaluation
         met = false;

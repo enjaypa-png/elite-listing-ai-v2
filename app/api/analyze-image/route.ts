@@ -8,7 +8,6 @@ import sharp from 'sharp';
 import { computeContentHash } from '@/lib/hash';
 import { fetchScoringRules, calculateScore, storeImageAnalysis, ImageAttributes } from '@/lib/database-scoring';
 import { analyzeImageWithVision, getDefaultVisionResponse, mergeAttributes } from '@/lib/ai-vision';
-import { calculateSimpleScore } from '@/lib/simple-scoring';
 import { randomUUID } from 'crypto';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -179,28 +178,11 @@ export async function POST(request: NextRequest) {
     const attributes: ImageAttributes = mergeAttributes(technicalAttrs, visionResponse);
     
     // ===========================================
-    // 5. CALCULATE SCORE - USING SIMPLE HARDCODED VERSION
+    // 5. CALCULATE SCORE (DETERMINISTIC DATABASE-DRIVEN)
     // ===========================================
-    console.log(`[${requestId}] *** USING SIMPLE HARDCODED SCORING - BYPASSING DATABASE ***`);
-    const simpleScore = calculateSimpleScore({
-      width: technicalAttrs.width_px,
-      height: technicalAttrs.height_px,
-      fileSize: technicalAttrs.file_size_bytes
-    });
+    const scoring = calculateScore(attributes, rules);
     
-    // Create a mock scoring result to match the expected structure
-    const scoring = {
-      total_score: simpleScore,
-      is_already_optimized: simpleScore >= 80,
-      breakdown: {
-        technical: [],
-        photo_types: [],
-        composition: []
-      },
-      failed_required: []
-    };
-    
-    console.log(`[${requestId}] Final score (simple):`, scoring.total_score);
+    console.log(`[${requestId}] Final score:`, scoring.total_score);
     console.log(`[${requestId}] Already optimized:`, scoring.is_already_optimized);
     
     // ===========================================
