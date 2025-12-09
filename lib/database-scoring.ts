@@ -217,6 +217,24 @@ export function calculateScore(
       case 'max_file_size':
         met = attributes.file_size_bytes <= (rule.metadata?.max_value || 1000000);
         break;
+      case 'recommended_size':
+        // Check if image matches recommended dimensions
+        const recWidth = rule.metadata?.width;
+        const recHeight = rule.metadata?.height;
+        met = (attributes.width_px === recWidth && attributes.height_px === recHeight);
+        break;
+      case 'aspect_ratio':
+        // Check if image matches the recommended aspect ratio
+        const targetRatio = rule.metadata?.ratio; // e.g., "4:3"
+        if (targetRatio) {
+          const [w, h] = targetRatio.split(':').map(Number);
+          const targetDecimal = w / h;
+          const actualDecimal = attributes.width_px / attributes.height_px;
+          met = Math.abs(actualDecimal - targetDecimal) < 0.05; // 5% tolerance
+        } else {
+          met = false;
+        }
+        break;
       case 'aspect_ratio_4_3':
         met = attributes.aspect_ratio === '4:3' || 
               Math.abs((attributes.width_px / attributes.height_px) - (4/3)) < 0.05;
@@ -271,12 +289,19 @@ export function calculateScore(
   console.log('[DEBUG] Starting photo type evaluation...');
   const photoTypeMap: Record<string, keyof ImageAttributes> = {
     'studio': 'has_studio_shot',
+    'studio_shot': 'has_studio_shot',
     'lifestyle': 'has_lifestyle_shot',
+    'lifestyle_shot': 'has_lifestyle_shot',
     'scale': 'has_scale_shot',
+    'scale_shot': 'has_scale_shot',
     'detail': 'has_detail_shot',
+    'detail_shot': 'has_detail_shot',
     'group': 'has_group_shot',
+    'group_shot': 'has_group_shot',
     'packaging': 'has_packaging_shot',
+    'packaging_shot': 'has_packaging_shot',
     'process': 'has_process_shot',
+    'process_shot': 'has_process_shot',
   };
   
   for (const rule of rules.photoTypes) {
@@ -318,15 +343,22 @@ export function calculateScore(
   console.log('[DEBUG] Starting composition evaluation...');
   const compositionMap: Record<string, keyof ImageAttributes> = {
     'clean_background': 'has_clean_white_background',
+    'clean_white_background': 'has_clean_white_background',
+    'has_clean_white_background': 'has_clean_white_background',
     'product_centered': 'is_product_centered',
+    'is_product_centered': 'is_product_centered',
     'good_lighting': 'has_good_lighting',
+    'has_good_lighting': 'has_good_lighting',
     'sharp_focus': 'is_sharp_focus',
+    'is_sharp_focus': 'is_sharp_focus',
     'no_watermarks': 'has_no_watermarks',
+    'has_no_watermarks': 'has_no_watermarks',
     'professional_appearance': 'professional_appearance',
+    'home_living_guidance': 'has_clean_white_background', // Fallback for category-specific rules
   };
   
   for (const rule of rules.compositionRules) {
-    const attrKey = compositionMap[rule.key];
+    const attrKey = compositionMap[rule.key.toLowerCase()];
     const met = attrKey ? (attributes[attrKey] as boolean) : false;
     
     if (met) {
