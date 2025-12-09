@@ -139,6 +139,16 @@ export async function fetchScoringRules(supabase: SupabaseClient): Promise<Scori
       console.error('[Scoring] Error fetching composition_rules:', compositionResult.error);
     }
     
+    // DEBUG: Log all fetched rules
+    console.log('[DEBUG] Rules fetched from database:', {
+      technical: technicalResult.data?.length || 0,
+      photoTypes: photoTypesResult.data?.length || 0,
+      composition: compositionResult.data?.length || 0,
+      technicalRules: technicalResult.data,
+      photoTypesRules: photoTypesResult.data,
+      compositionRules: compositionResult.data
+    });
+    
     return {
       profileId,
       profileName: profile.name,
@@ -162,6 +172,22 @@ export function calculateScore(
   rules: ScoringRules
 ): ScoringResult {
   
+  // DEBUG: Log input attributes
+  console.log('[DEBUG] calculateScore called with attributes:', {
+    width_px: attributes.width_px,
+    height_px: attributes.height_px,
+    file_size_bytes: attributes.file_size_bytes,
+    aspect_ratio: attributes.aspect_ratio,
+    file_type: attributes.file_type,
+    shortest_side: attributes.shortest_side,
+    has_clean_white_background: attributes.has_clean_white_background,
+    is_product_centered: attributes.is_product_centered,
+    has_good_lighting: attributes.has_good_lighting,
+    is_sharp_focus: attributes.is_sharp_focus,
+    has_no_watermarks: attributes.has_no_watermarks,
+    professional_appearance: attributes.professional_appearance,
+  });
+  
   const breakdown = {
     technical: [] as { rule: string; points: number; met: boolean }[],
     photo_types: [] as { type: string; points: number; detected: boolean }[],
@@ -176,6 +202,7 @@ export function calculateScore(
   // ===========================================
   // 1. TECHNICAL SPECS SCORING
   // ===========================================
+  console.log('[DEBUG] Starting technical specs evaluation...');
   for (const rule of rules.technicalSpecs) {
     let met = false;
     
@@ -212,6 +239,18 @@ export function calculateScore(
     const points = met ? rule.points_if_met : rule.points_if_not_met;
     technicalPoints += points;
     
+    // DEBUG: Log each technical rule evaluation
+    console.log('[DEBUG] Technical rule evaluated:', {
+      rule: rule.key,
+      description: rule.description,
+      metadata: rule.metadata,
+      met: met,
+      points_if_met: rule.points_if_met,
+      points_if_not_met: rule.points_if_not_met,
+      points_awarded: points,
+      running_total: technicalPoints
+    });
+    
     breakdown.technical.push({
       rule: rule.key,
       points,
@@ -224,9 +263,12 @@ export function calculateScore(
     }
   }
   
+  console.log('[DEBUG] Technical specs complete. Total technical points:', technicalPoints);
+  
   // ===========================================
   // 2. PHOTO TYPE SCORING
   // ===========================================
+  console.log('[DEBUG] Starting photo type evaluation...');
   const photoTypeMap: Record<string, keyof ImageAttributes> = {
     'studio': 'has_studio_shot',
     'lifestyle': 'has_lifestyle_shot',
@@ -245,6 +287,17 @@ export function calculateScore(
       photoTypePoints += rule.points;
     }
     
+    // DEBUG: Log each photo type rule evaluation
+    console.log('[DEBUG] Photo type rule evaluated:', {
+      rule: rule.name,
+      description: rule.description,
+      attrKey: attrKey,
+      detected: detected,
+      points: rule.points,
+      points_awarded: detected ? rule.points : 0,
+      running_total: photoTypePoints
+    });
+    
     breakdown.photo_types.push({
       type: rule.name,
       points: detected ? rule.points : 0,
@@ -257,9 +310,12 @@ export function calculateScore(
     }
   }
   
+  console.log('[DEBUG] Photo types complete. Total photo type points:', photoTypePoints);
+  
   // ===========================================
   // 3. COMPOSITION SCORING
   // ===========================================
+  console.log('[DEBUG] Starting composition evaluation...');
   const compositionMap: Record<string, keyof ImageAttributes> = {
     'clean_background': 'has_clean_white_background',
     'product_centered': 'is_product_centered',
@@ -277,6 +333,18 @@ export function calculateScore(
       compositionPoints += rule.points;
     }
     
+    // DEBUG: Log each composition rule evaluation
+    console.log('[DEBUG] Composition rule evaluated:', {
+      rule: rule.key,
+      description: rule.description,
+      attrKey: attrKey,
+      ai_value: attrKey ? attributes[attrKey] : undefined,
+      met: met,
+      points: rule.points,
+      points_awarded: met ? rule.points : 0,
+      running_total: compositionPoints
+    });
+    
     breakdown.composition.push({
       rule: rule.key,
       points: met ? rule.points : 0,
@@ -284,10 +352,21 @@ export function calculateScore(
     });
   }
   
+  console.log('[DEBUG] Composition complete. Total composition points:', compositionPoints);
+  
   // ===========================================
   // 4. CALCULATE TOTAL SCORE
   // ===========================================
   const totalScore = technicalPoints + photoTypePoints + compositionPoints;
+  
+  // DEBUG: Log final calculation
+  console.log('[DEBUG] Final score calculation:', {
+    technicalPoints: technicalPoints,
+    photoTypePoints: photoTypePoints,
+    compositionPoints: compositionPoints,
+    totalScore: totalScore,
+    failedRequiredSpecs: failedRequiredSpecs
+  });
   
   // ===========================================
   // 5. CHECK IF ALREADY OPTIMIZED
