@@ -101,7 +101,7 @@ export async function analyzeImageWithVision(
     });
     
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',  // Latest stable Sonnet with vision
+      model: 'claude-3-5-sonnet-20240620',
       max_tokens: 1024,
       messages: [
         {
