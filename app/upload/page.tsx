@@ -737,6 +737,34 @@ export default function UploadPage() {
                       </>
                     )}
                     
+                    {/* Score Improvement Badge - show score change for non-perfect images */}
+                    {!optimizedPhoto.alreadyOptimized && analysisResults.score !== optimizedScore && (
+                      <div style={{
+                        padding: tokens.spacing[4],
+                        background: `${tokens.colors.primary}15`,
+                        border: `1px solid ${tokens.colors.primary}33`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[4],
+                        textAlign: 'center'
+                      }}>
+                        <div style={{
+                          fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          color: tokens.colors.primary,
+                          marginBottom: tokens.spacing[2]
+                        }}>
+                          📈 Score: {analysisResults.score} → {optimizedScore}
+                        </div>
+                        <p style={{
+                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                          color: tokens.colors.textMuted,
+                          margin: 0
+                        }}>
+                          {optimizedPhoto.message || 'Your image has been improved.'}
+                        </p>
+                      </div>
+                    )}
+                    
                     {/* Improvements List - only show if improvements were actually made */}
                     {optimizedPhoto.improvements && optimizedPhoto.improvements.length > 0 && !optimizedPhoto.alreadyOptimized && (
                       <div style={{
@@ -766,6 +794,56 @@ export default function UploadPage() {
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                    
+                    {/* Reshoot Tips - show when source photo quality is poor */}
+                    {optimizedPhoto.showReshootTips && (
+                      <div style={{
+                        padding: tokens.spacing[5],
+                        background: `${tokens.colors.warning}10`,
+                        border: `2px solid ${tokens.colors.warning}`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[6]
+                      }}>
+                        <div style={{
+                          fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                          marginBottom: tokens.spacing[3],
+                          textAlign: 'center'
+                        }}>
+                          💡
+                        </div>
+                        <h4 style={{
+                          fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3],
+                          textAlign: 'center'
+                        }}>
+                          Reshoot Tips
+                        </h4>
+                        <ul style={{
+                          margin: 0,
+                          paddingLeft: tokens.spacing[5],
+                          fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                          color: tokens.colors.textMuted,
+                          lineHeight: 1.6
+                        }}>
+                          <li style={{ marginBottom: tokens.spacing[2] }}>☀️ Natural light near a window</li>
+                          <li style={{ marginBottom: tokens.spacing[2] }}>🧹 Plain background</li>
+                          <li style={{ marginBottom: tokens.spacing[2] }}>📏 Product fills the frame</li>
+                          <li style={{ marginBottom: tokens.spacing[2] }}>📱 Highest camera resolution</li>
+                        </ul>
+                        <p style={{
+                          fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                          color: tokens.colors.text,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          marginTop: tokens.spacing[4],
+                          marginBottom: 0,
+                          textAlign: 'center'
+                        }}>
+                          A 5-minute reshoot could double your score.
+                        </p>
                       </div>
                     )}
                     

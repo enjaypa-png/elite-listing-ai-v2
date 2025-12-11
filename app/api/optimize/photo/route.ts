@@ -165,19 +165,19 @@ export async function POST(request: NextRequest) {
         position: 'center',
       });
       
-      improvements.push(`Resized to ${targetWidth}x${targetHeight} (4:3 ratio)`);
+      improvements.push('✅ Optimized for Etsy search');
     }
     
     // Apply sharpening if needed
     if (!originalAttributes.is_sharp_focus) {
       pipeline = pipeline.sharpen({ sigma: 1.2 });
-      improvements.push('Applied sharpening');
+      improvements.push('✅ Professional polish applied');
     }
     
     // Adjust brightness if needed
     if (!originalAttributes.has_good_lighting) {
       pipeline = pipeline.modulate({ brightness: 1.1 });
-      improvements.push('Enhanced lighting');
+      improvements.push('✅ Lighting enhanced');
     }
     
     // ===========================================
@@ -204,7 +204,8 @@ export async function POST(request: NextRequest) {
         .toBuffer();
     }
     
-    improvements.push(`Compressed to JPEG (${quality}% quality, ${(optimizedBuffer.length / 1024).toFixed(0)}KB)`);
+    improvements.push('✅ Fast mobile loading');
+    improvements.push('✅ Matched to Etsy\'s preferred file format');
     
     console.log(`[${requestId}] Optimized size:`, optimizedBuffer.length, 'bytes');
     
@@ -252,7 +253,39 @@ export async function POST(request: NextRequest) {
       .getPublicUrl(filename);
     
     // ===========================================
-    // 9. RETURN RESPONSE
+    // 9. DETERMINE RESHOOT TIPS LOGIC
+    // ===========================================
+    const showReshootTips = 
+      newScore < 60 || 
+      (scoreImprovement < 20 && newScore < 70) ||
+      originalAttributes.width_px < 1500 ||
+      !originalAttributes.has_clean_white_background ||
+      !originalAttributes.has_good_lighting;
+    
+    // Determine message based on score outcome
+    let message = '';
+    let scoreCategory = '';
+    
+    if (originalScore >= 85 && newScore >= 85) {
+      // Scenario A: Already Perfect
+      scoreCategory = 'already_perfect';
+      message = 'Your photo meets top-seller standards. Ready to list.';
+    } else if (newScore >= 85) {
+      // Scenario B: Good Improvement
+      scoreCategory = 'good_improvement';
+      message = `Your image now meets top-seller standards.`;
+    } else if (newScore < 60) {
+      // Scenario C: Limited Improvement - Bad Source Photo
+      scoreCategory = 'limited_improvement';
+      message = `We improved what we could. A 5-minute reshoot could double your score.`;
+    } else {
+      // Default: Some improvement but not perfect
+      scoreCategory = 'moderate_improvement';
+      message = `Photo improved. Consider additional enhancements for top-seller status.`;
+    }
+    
+    // ===========================================
+    // 10. RETURN RESPONSE
     // ===========================================
     return NextResponse.json({
       success: true,
@@ -262,6 +295,9 @@ export async function POST(request: NextRequest) {
       originalScore,
       newScore,
       scoreImprovement,
+      showReshootTips,
+      scoreCategory,
+      sourceImageTooSmall: originalAttributes.width_px < 1500,
       
       breakdown: {
         technical_points: optimizedScoring.technical_points,
@@ -269,9 +305,7 @@ export async function POST(request: NextRequest) {
         composition_points: optimizedScoring.composition_points,
       },
       
-      message: scoreImprovement > 0
-        ? `Photo optimized! Score improved from ${originalScore} to ${newScore} (+${scoreImprovement} points).`
-        : `Photo optimized to meet Etsy standards.`,
+      message,
       
       metadata: {
         width: optimizedAttributes.width_px,
