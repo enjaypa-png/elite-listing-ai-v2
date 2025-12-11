@@ -98,7 +98,6 @@ export default function UploadPage() {
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('home_decor_wall_art'); // Default for testing
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -183,7 +182,7 @@ export default function UploadPage() {
       // Analyze image directly with new endpoint
       const formData = new FormData();
       formData.append('image', compressedFile);
-      formData.append('category', selectedCategory);
+      formData.append('category', 'single_image_scoring'); // Use default profile for all images
 
       const analyzeResponse = await fetch('/api/analyze-image', {
         method: 'POST',
@@ -230,7 +229,7 @@ export default function UploadPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrl: analysisResults.imageUrl,
-          category: selectedCategory
+          category: 'single_image_scoring' // Use default profile for all images
         })
       });
       
@@ -318,45 +317,6 @@ export default function UploadPage() {
     >
       <Container>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          {/* Category Selector */}
-          <Card>
-            <div style={{ padding: tokens.spacing[6], marginBottom: tokens.spacing[4] }}>
-              <label style={{
-                display: 'block',
-                fontSize: tokens.typography.fontSize.sm,
-                fontWeight: tokens.typography.fontWeight.semibold,
-                color: tokens.colors.text,
-                marginBottom: tokens.spacing[2]
-              }}>
-                Product Category
-              </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: tokens.spacing[3],
-                  fontSize: tokens.typography.fontSize.base,
-                  color: tokens.colors.text,
-                  background: tokens.colors.surface,
-                  border: `1px solid ${tokens.colors.border}`,
-                  borderRadius: tokens.radius.md,
-                  cursor: 'pointer'
-                }}
-              >
-                <option value="small_jewelry">Small Jewelry</option>
-                <option value="flat_artwork">Flat Artwork (Prints/Paintings)</option>
-                <option value="wearables_clothing">Clothing</option>
-                <option value="wearables_accessories">Accessories (Bags/Scarves)</option>
-                <option value="home_decor_wall_art">Home Decor & Wall Art</option>
-                <option value="furniture">Furniture</option>
-                <option value="small_crafts">Small Crafts</option>
-                <option value="craft_supplies">Craft Supplies</option>
-                <option value="vintage_items">Vintage Items</option>
-                <option value="digital_products">Digital Products</option>
-              </select>
-            </div>
-          </Card>
           
           {/* Upload Area */}
           <Card>
@@ -660,81 +620,122 @@ export default function UploadPage() {
                         : 'Photo Optimized Successfully'}
                     </h3>
                     
-                    {optimizedPhoto.alreadyOptimized && (
-                      <p style={{
-                        fontSize: 'clamp(1rem, 3vw, 1.125rem)',
-                        color: tokens.colors.textMuted,
-                        textAlign: 'center',
-                        marginBottom: tokens.spacing[6],
-                        padding: tokens.spacing[4],
-                        background: `${tokens.colors.primary}15`,
-                        borderRadius: tokens.radius.md
-                      }}>
-                        This image is optimized to the maximum quality achievable.
-                      </p>
+                    {/* Conditional Display: Single Image for Already-Optimized OR Before/After Comparison */}
+                    {(optimizedPhoto.alreadyOptimized || analysisResults.score === optimizedScore) ? (
+                      <>
+                        {/* Already Optimized - Single Image Display */}
+                        <div style={{
+                          padding: tokens.spacing[6],
+                          background: `${tokens.colors.success}1A`,
+                          border: `2px solid ${tokens.colors.success}`,
+                          borderRadius: tokens.radius.lg,
+                          marginBottom: tokens.spacing[6],
+                          textAlign: 'center'
+                        }}>
+                          <div style={{
+                            fontSize: 'clamp(2rem, 4vw, 3rem)',
+                            marginBottom: tokens.spacing[2]
+                          }}>
+                            🎯
+                          </div>
+                          <h4 style={{
+                            fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.success,
+                            marginBottom: tokens.spacing[2]
+                          }}>
+                            Etsy-Ready
+                          </h4>
+                          <p style={{
+                            fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+                            color: tokens.colors.textMuted,
+                            marginBottom: tokens.spacing[4]
+                          }}>
+                            Your photo meets top-seller standards. Ready to list.
+                          </p>
+                          
+                          {/* Single Image Display */}
+                          <div style={{
+                            maxWidth: '500px',
+                            margin: '0 auto'
+                          }}>
+                            <img
+                              src={optimizedPhoto.url}
+                              alt="Etsy-Ready Photo"
+                              style={{
+                                width: '100%',
+                                borderRadius: tokens.radius.md,
+                                border: `1px solid ${tokens.colors.border}`
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Before/After Comparison */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                          gap: tokens.spacing[4],
+                          marginBottom: tokens.spacing[6]
+                        }}>
+                          {/* Before */}
+                          <div style={{
+                            padding: tokens.spacing[4],
+                            background: tokens.colors.surface,
+                            borderRadius: tokens.radius.md,
+                            border: `1px solid ${tokens.colors.border}`
+                          }}>
+                            <div style={{
+                              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.text,
+                              marginBottom: tokens.spacing[2],
+                              textAlign: 'center'
+                            }}>
+                              Original ({analysisResults.score}/100)
+                            </div>
+                            <img
+                              src={analysisResults.imageUrl}
+                              alt="Original"
+                              style={{
+                                width: '100%',
+                                borderRadius: tokens.radius.md,
+                                marginBottom: tokens.spacing[3]
+                              }}
+                            />
+                          </div>
+                          
+                          {/* After */}
+                          <div style={{
+                            padding: tokens.spacing[4],
+                            background: tokens.colors.surface,
+                            borderRadius: tokens.radius.md,
+                            border: `2px solid ${tokens.colors.success}`
+                          }}>
+                            <div style={{
+                              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.success,
+                              marginBottom: tokens.spacing[2],
+                              textAlign: 'center'
+                            }}>
+                              Optimized {optimizedScore ? `(${optimizedScore}/100)` : '(Analyzing...)'}
+                            </div>
+                            <img
+                              src={optimizedPhoto.url}
+                              alt="Optimized"
+                              style={{
+                                width: '100%',
+                                borderRadius: tokens.radius.md,
+                                marginBottom: tokens.spacing[3]
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </>
                     )}
-                    
-                    {/* Before/After Comparison */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                      gap: tokens.spacing[4],
-                      marginBottom: tokens.spacing[6]
-                    }}>
-                      {/* Before */}
-                      <div style={{
-                        padding: tokens.spacing[4],
-                        background: tokens.colors.surface,
-                        borderRadius: tokens.radius.md,
-                        border: `1px solid ${tokens.colors.border}`
-                      }}>
-                        <div style={{
-                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                          fontWeight: tokens.typography.fontWeight.semibold,
-                          color: tokens.colors.text,
-                          marginBottom: tokens.spacing[2],
-                          textAlign: 'center'
-                        }}>
-                          Original ({analysisResults.score}/100)
-                        </div>
-                        <img
-                          src={analysisResults.imageUrl}
-                          alt="Original"
-                          style={{
-                            width: '100%',
-                            borderRadius: tokens.radius.md,
-                            marginBottom: tokens.spacing[3]
-                          }}
-                        />
-                      </div>
-                      
-                      {/* After */}
-                      <div style={{
-                        padding: tokens.spacing[4],
-                        background: tokens.colors.surface,
-                        borderRadius: tokens.radius.md,
-                        border: `2px solid ${tokens.colors.success}`
-                      }}>
-                        <div style={{
-                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                          fontWeight: tokens.typography.fontWeight.semibold,
-                          color: tokens.colors.success,
-                          marginBottom: tokens.spacing[2],
-                          textAlign: 'center'
-                        }}>
-                          Optimized {optimizedScore ? `(${optimizedScore}/100)` : '(Analyzing...)'}
-                        </div>
-                        <img
-                          src={optimizedPhoto.url}
-                          alt="Optimized"
-                          style={{
-                            width: '100%',
-                            borderRadius: tokens.radius.md,
-                            marginBottom: tokens.spacing[3]
-                          }}
-                        />
-                      </div>
-                    </div>
                     
                     {/* Improvements List - only show if improvements were actually made */}
                     {optimizedPhoto.improvements && optimizedPhoto.improvements.length > 0 && !optimizedPhoto.alreadyOptimized && (
