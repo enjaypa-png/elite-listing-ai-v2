@@ -241,7 +241,9 @@ export default function UploadPage() {
           improvements: data.improvements || [],
           alreadyOptimized: data.alreadyOptimized || false,
           scoreImprovement: data.scoreImprovement || 0,
-          message: data.message || ''
+          message: data.message || '',
+          showReshootTips: data.showReshootTips || false,
+          scoreCategory: data.scoreCategory || ''
         });
         
         // Use the score returned from the optimizer directly
