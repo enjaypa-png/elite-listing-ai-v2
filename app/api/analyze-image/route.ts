@@ -257,7 +257,11 @@ export async function POST(request: NextRequest) {
       
       // Already optimized detection
       is_already_optimized: scoring.is_already_optimized,
+      isAlreadyOptimized: scoring.is_already_optimized, // Alias for frontend
       failed_required_specs: scoring.failed_required_specs,
+      
+      // User-friendly feedback (18 checks)
+      feedback: scoring.feedback || [],
       
       // Technical metadata
       metadata: {

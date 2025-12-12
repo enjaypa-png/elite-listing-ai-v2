@@ -530,6 +530,127 @@ export default function UploadPage() {
                     Overall Photo Quality Score
                   </div>
                 </div>
+                
+                {/* Detailed Feedback - 18 Etsy Checks */}
+                {analysisResults?.feedback && analysisResults.feedback.length > 0 && (
+                  <div style={{ marginBottom: tokens.spacing[6] }}>
+                    <h3 style={{
+                      fontSize: tokens.typography.fontSize.lg,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[2]
+                    }}>
+                      📊 R.A.N.K. 285™ Analysis Complete
+                    </h3>
+                    <p style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      color: tokens.colors.textMuted,
+                      marginBottom: tokens.spacing[4]
+                    }}>
+                      {analysisResults.feedback.length} Etsy optimization checks performed
+                    </p>
+                    
+                    {/* Critical Issues */}
+                    {analysisResults.feedback.filter((f: any) => f.status === 'critical').length > 0 && (
+                      <div style={{ marginBottom: tokens.spacing[4] }}>
+                        <h4 style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.error,
+                          marginBottom: tokens.spacing[2],
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}>
+                          ❌ Critical Issues ({analysisResults.feedback.filter((f: any) => f.status === 'critical').length})
+                        </h4>
+                        <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
+                          {analysisResults.feedback
+                            .filter((f: any) => f.status === 'critical')
+                            .map((f: any, i: number) => (
+                              <li key={i} style={{
+                                padding: tokens.spacing[3],
+                                marginBottom: tokens.spacing[2],
+                                background: `${tokens.colors.error}10`,
+                                border: `1px solid ${tokens.colors.error}30`,
+                                borderRadius: tokens.radius.sm,
+                                color: tokens.colors.text,
+                                fontSize: tokens.typography.fontSize.sm
+                              }}>
+                                {f.message}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Recommendations */}
+                    {analysisResults.feedback.filter((f: any) => f.status === 'warning').length > 0 && (
+                      <div style={{ marginBottom: tokens.spacing[4] }}>
+                        <h4 style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.warning,
+                          marginBottom: tokens.spacing[2],
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}>
+                          ⚠️ Recommendations ({analysisResults.feedback.filter((f: any) => f.status === 'warning').length})
+                        </h4>
+                        <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
+                          {analysisResults.feedback
+                            .filter((f: any) => f.status === 'warning')
+                            .map((f: any, i: number) => (
+                              <li key={i} style={{
+                                padding: tokens.spacing[3],
+                                marginBottom: tokens.spacing[2],
+                                background: `${tokens.colors.warning}10`,
+                                border: `1px solid ${tokens.colors.warning}30`,
+                                borderRadius: tokens.radius.sm,
+                                color: tokens.colors.text,
+                                fontSize: tokens.typography.fontSize.sm
+                              }}>
+                                {f.message}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* What's Working */}
+                    {analysisResults.feedback.filter((f: any) => f.status === 'passed').length > 0 && (
+                      <div style={{ marginBottom: tokens.spacing[4] }}>
+                        <h4 style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.success,
+                          marginBottom: tokens.spacing[2],
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}>
+                          ✅ What's Working ({analysisResults.feedback.filter((f: any) => f.status === 'passed').length})
+                        </h4>
+                        <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none' }}>
+                          {analysisResults.feedback
+                            .filter((f: any) => f.status === 'passed')
+                            .map((f: any, i: number) => (
+                              <li key={i} style={{
+                                padding: tokens.spacing[3],
+                                marginBottom: tokens.spacing[2],
+                                background: `${tokens.colors.success}10`,
+                                border: `1px solid ${tokens.colors.success}30`,
+                                borderRadius: tokens.radius.sm,
+                                color: tokens.colors.text,
+                                fontSize: tokens.typography.fontSize.sm
+                              }}>
+                                {f.message}
+                              </li>
+                            ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {analysisResults.suggestions && analysisResults.suggestions.length > 0 && (
                   <div>
                     <h3 style={{

@@ -164,6 +164,150 @@ export async function fetchScoringRules(supabase: SupabaseClient): Promise<Scori
 }
 
 // ===========================================
+// USER-FRIENDLY FEEDBACK MESSAGES
+// ===========================================
+
+const FEEDBACK_MESSAGES: Record<string, { passed: string; failed: string; isCritical?: boolean }> = {
+  // Technical Specs - Benefit-focused (NO technical jargon)
+  'recommended_size': {
+    failed: "Image won't display well in Etsy search results",
+    passed: 'Optimized for Etsy search visibility',
+    isCritical: true
+  },
+  'aspect_ratio': {
+    failed: 'Image may get awkwardly cropped in listings',
+    passed: 'Perfect aspect ratio for thumbnails'
+  },
+  'shortest_side': {
+    failed: 'Image resolution too low for zoom clarity',
+    passed: 'High resolution for customer zoom',
+    isCritical: true
+  },
+  'shortest_side_benchmark': {
+    failed: "Below Etsy's quality benchmark",
+    passed: "Meets Etsy's professional standards",
+    isCritical: true
+  },
+  'min_width': {
+    failed: "Doesn't meet Etsy's minimum requirements",
+    passed: "Meets Etsy's size requirements",
+    isCritical: true
+  },
+  'max_file_size': {
+    failed: 'Slow loading could lose customers',
+    passed: 'Fast mobile loading',
+    isCritical: true
+  },
+  'color_profile': {
+    failed: 'Colors may look different on customer devices',
+    passed: 'Colors display accurately everywhere'
+  },
+  'file_types': {
+    failed: 'File format incompatible with Etsy',
+    passed: "Matched to Etsy's preferred file format",
+    isCritical: true
+  },
+  'file_type': {
+    failed: 'File format incompatible with Etsy',
+    passed: "Matched to Etsy's preferred file format",
+    isCritical: true
+  },
+  // Composition - User benefits
+  'clean_background': {
+    failed: 'Background could be cleaner',
+    passed: 'Clean, professional background'
+  },
+  'good_lighting': {
+    failed: 'Lighting could improve click-through rate',
+    passed: 'Well-lit and inviting'
+  },
+  'sharp_focus': {
+    failed: 'Slight blur reduces buyer confidence',
+    passed: 'Sharp and in focus'
+  },
+  'product_centered': {
+    failed: 'Product could be better centered',
+    passed: 'Product perfectly framed'
+  },
+  'no_watermarks': {
+    failed: 'Text or watermarks may distract buyers',
+    passed: 'Clean presentation without distractions'
+  },
+  'professional_appearance': {
+    failed: 'Photo could look more professional',
+    passed: 'Professional quality image'
+  },
+  // Photo Types - Recommendations
+  'studio_shot': {
+    failed: 'Consider a studio-style main photo',
+    passed: 'Professional studio-quality photo'
+  },
+  'lifestyle_shot': {
+    failed: 'Consider showing product in use',
+    passed: 'Lifestyle context helps buyers visualize'
+  },
+  'scale_shot': {
+    failed: 'Consider showing product size reference',
+    passed: 'Size clearly communicated'
+  },
+  'detail_shot': {
+    failed: 'Consider adding close-up details',
+    passed: 'Craftsmanship and details visible'
+  }
+};
+
+function generateFeedback(
+  breakdown: {
+    technical: { rule: string; points: number; met: boolean }[];
+    photo_types: { type: string; points: number; detected: boolean }[];
+    composition: { rule: string; points: number; met: boolean }[];
+  },
+  rules: ScoringRules
+): { rule: string; status: 'critical' | 'warning' | 'passed'; message: string }[] {
+  
+  const feedback: { rule: string; status: 'critical' | 'warning' | 'passed'; message: string }[] = [];
+  
+  // Process technical rules
+  for (const item of breakdown.technical) {
+    const messageConfig = FEEDBACK_MESSAGES[item.rule];
+    if (!messageConfig) continue;
+    
+    const status = item.met ? 'passed' : (messageConfig.isCritical ? 'critical' : 'warning');
+    const message = item.met ? messageConfig.passed : messageConfig.failed;
+    
+    feedback.push({ rule: item.rule, status, message });
+  }
+  
+  // Process composition rules
+  for (const item of breakdown.composition) {
+    const messageConfig = FEEDBACK_MESSAGES[item.rule];
+    if (!messageConfig) continue;
+    
+    const status = item.met ? 'passed' : 'warning';
+    const message = item.met ? messageConfig.passed : messageConfig.failed;
+    
+    feedback.push({ rule: item.rule, status, message });
+  }
+  
+  // Process photo type rules (always warnings if not detected)
+  for (const item of breakdown.photo_types) {
+    const messageConfig = FEEDBACK_MESSAGES[item.type];
+    if (!messageConfig) continue;
+    
+    const status = item.detected ? 'passed' : 'warning';
+    const message = item.detected ? messageConfig.passed : messageConfig.failed;
+    
+    feedback.push({ rule: item.type, status, message });
+  }
+  
+  // Sort: critical first, then warnings, then passed
+  const statusOrder = { 'critical': 0, 'warning': 1, 'passed': 2 };
+  feedback.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+  
+  return feedback;
+}
+
+// ===========================================
 // DETERMINISTIC SCORE CALCULATION
 // ===========================================
 
@@ -428,6 +572,11 @@ export function calculateScore(
     failedRequired: failedRequiredSpecs,
   });
   
+  // ===========================================
+  // 6. GENERATE USER-FRIENDLY FEEDBACK
+  // ===========================================
+  const feedback = generateFeedback(breakdown, rules);
+  
   return {
     technical_points: technicalPoints,
     photo_type_points: photoTypePoints,
@@ -436,6 +585,7 @@ export function calculateScore(
     scoring_breakdown: breakdown,
     is_already_optimized: isAlreadyOptimized,
     failed_required_specs: failedRequiredSpecs,
+    feedback,
   };
 }
 
