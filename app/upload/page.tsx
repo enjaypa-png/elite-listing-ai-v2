@@ -96,8 +96,8 @@ async function compressImage(file: File, maxWidthOrHeight = 3000): Promise<File>
 
 export default function UploadPage() {
   const router = useRouter();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -136,40 +136,66 @@ export default function UploadPage() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Cleanup preview URL on unmount
+  // Cleanup preview URLs on unmount
   useEffect(() => {
     return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
+      previews.forEach(preview => URL.revokeObjectURL(preview));
     };
-  }, [preview]);
+  }, [previews]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Cleanup old preview URL
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
-      
-      setSelectedFile(file);
-      
-      // Create preview using URL.createObjectURL (no base64)
-      const objectUrl = URL.createObjectURL(file);
-      setPreview(objectUrl);
+    const files = Array.from(e.target.files || []);
+    
+    // Validate: 2-10 images
+    if (files.length < 2) {
+      alert('Please select at least 2 images for your listing.');
+      return;
+    }
+    if (files.length > 10) {
+      alert('Maximum 10 images allowed per listing.');
+      return;
+    }
+    
+    // Cleanup old preview URLs
+    previews.forEach(preview => URL.revokeObjectURL(preview));
+    
+    setSelectedFiles(files);
+    
+    // Create previews for all files
+    const objectUrls = files.map(file => URL.createObjectURL(file));
+    setPreviews(objectUrls);
+  };
+  
+  const handleRemoveImage = (index: number) => {
+    // Revoke URL for removed image
+    URL.revokeObjectURL(previews[index]);
+    
+    // Remove from arrays
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    const newPreviews = previews.filter((_, i) => i !== index);
+    
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+    
+    // Clear results if all images removed
+    if (newFiles.length === 0) {
+      setAnalysisResults(null);
+      setOptimizedPhoto(null);
     }
   };
 
   const handleAnalyze = async () => {
-    if (!selectedFile || !preview) return;
+    if (selectedFiles.length === 0) return;
+
+    // For now, analyze only the first image (main image)
+    const mainImageFile = selectedFiles[0];
 
     setIsAnalyzing(true);
 
     try {
       // Compress image before upload (especially important for iPhone photos)
-      console.log('[Upload] Original file size:', (selectedFile.size / 1024 / 1024).toFixed(2), 'MB');
-      const compressedFile = await compressImage(selectedFile);
+      console.log('[Upload] Original file size:', (mainImageFile.size / 1024 / 1024).toFixed(2), 'MB');
+      const compressedFile = await compressImage(mainImageFile);
       
       // Verify compressed size is reasonable
       const compressedSizeMB = compressedFile.size / 1024 / 1024;
@@ -283,8 +309,8 @@ export default function UploadPage() {
     setOptimizedPhoto(null);
     setOptimizedScore(null);
     setAnalysisResults(null);
-    setPreview(null);
-    setSelectedFile(null);
+    setPreviews([]);
+    setSelectedFiles([]);
   };
 
   return (
@@ -323,7 +349,7 @@ export default function UploadPage() {
           {/* Upload Area */}
           <Card>
             <div style={{ padding: tokens.spacing[12] }}>
-              {!preview ? (
+              {previews.length === 0 ? (
                 <label style={{
                   display: 'block',
                   cursor: 'pointer'
@@ -331,6 +357,7 @@ export default function UploadPage() {
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleFileSelect}
                     style={{ display: 'none' }}
                   />
@@ -361,19 +388,98 @@ export default function UploadPage() {
                       color: tokens.colors.text,
                       marginBottom: tokens.spacing[2]
                     }}>
-                      Click to upload or drag and drop
+                      Upload Your Listing Photos
                     </p>
                     <p style={{
                       fontSize: tokens.typography.fontSize.base,
                       color: tokens.colors.textMuted
                     }}>
-                      PNG, JPG, or WEBP (max 10MB)
+                      Select 2-10 images • PNG, JPG, or WEBP (max 10MB each)
+                    </p>
+                    <p style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      color: tokens.colors.textMuted,
+                      marginTop: tokens.spacing[2]
+                    }}>
+                      First image will be your main listing photo
                     </p>
                   </div>
                 </label>
               ) : (
                 <div>
-                  {/* Preview */}
+                  {/* Thumbnail Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+                    gap: tokens.spacing[3],
+                    marginBottom: tokens.spacing[6]
+                  }}>
+                    {previews.map((preview, index) => (
+                      <div key={index} style={{
+                        position: 'relative',
+                        aspectRatio: '1',
+                        border: `2px solid ${index === 0 ? tokens.colors.primary : tokens.colors.border}`,
+                        borderRadius: tokens.radius.md,
+                        overflow: 'hidden',
+                        background: tokens.colors.surface
+                      }}>
+                        {/* Main Image Badge */}
+                        {index === 0 && (
+                          <div style={{
+                            position: 'absolute',
+                            top: tokens.spacing[2],
+                            left: tokens.spacing[2],
+                            background: tokens.colors.primary,
+                            color: 'white',
+                            padding: `${tokens.spacing[1]} ${tokens.spacing[2]}`,
+                            borderRadius: tokens.radius.sm,
+                            fontSize: tokens.typography.fontSize.xs,
+                            fontWeight: tokens.typography.fontWeight.semibold,
+                            zIndex: 2
+                          }}>
+                            Main Image
+                          </div>
+                        )}
+                        
+                        {/* Image */}
+                        <img
+                          src={preview}
+                          alt={`Product ${index + 1}`}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                        />
+                        
+                        {/* Remove Button */}
+                        <button
+                          onClick={() => handleRemoveImage(index)}
+                          style={{
+                            position: 'absolute',
+                            top: tokens.spacing[2],
+                            right: tokens.spacing[2],
+                            background: 'rgba(0,0,0,0.7)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '50%',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            zIndex: 2
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Original single image preview removed - now using grid above */}
                   <div 
                     contentEditable={false}
                     tabIndex={-1}
@@ -385,10 +491,11 @@ export default function UploadPage() {
                       userSelect: 'none',
                       WebkitUserSelect: 'none',
                       MozUserSelect: 'none',
-                      msUserSelect: 'none'
+                      msUserSelect: 'none',
+                      display: 'none'
                     }}>
                     <img
-                      src={preview}
+                      src={previews[0] || ''}
                       alt="Product preview"
                       draggable={false}
                       style={{
@@ -401,39 +508,38 @@ export default function UploadPage() {
                         pointerEvents: 'none'
                       }}
                     />
-                    <button
-                      onClick={() => {
-                        setSelectedFile(null);
-                        setPreview(null);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: tokens.spacing[3],
-                        right: tokens.spacing[3],
-                        width: tokens.spacing[10],
-                        height: tokens.spacing[10],
-                        background: 'rgba(0, 0, 0, 0.8)',
-                        color: tokens.colors.text,
-                        border: 'none',
-                        borderRadius: tokens.radius.full,
-                        cursor: 'pointer',
-                        fontSize: tokens.typography.fontSize.xl,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      ×
-                    </button>
                   </div>
 
-                  {/* Analyze Button */}
+                  {/* Upload More Button */}
+                  <label style={{
+                    display: 'block',
+                    marginBottom: tokens.spacing[4]
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      style={{ display: 'none' }}
+                    />
+                    <Button
+                      variant="secondary"
+                      size="md"
+                      fullWidth
+                      onClick={(e: any) => e.preventDefault()}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      📤 Add More Images ({selectedFiles.length}/10)
+                    </Button>
+                  </label>
+
+                  {/* Analyze Listing Button */}
                   <Button
                     variant="primary"
                     size="lg"
                     fullWidth
                     onClick={handleAnalyze}
-                    disabled={isAnalyzing}
+                    disabled={isAnalyzing || selectedFiles.length < 2}
                   >
                     {isAnalyzing ? (
                       <>
@@ -445,18 +551,18 @@ export default function UploadPage() {
                           borderRadius: tokens.radius.full,
                           animation: 'spin 1s linear infinite'
                         }} />
-                        Analyzing your photo...
+                        Analyzing your listing...
                       </>
                     ) : (
                       <>
-                        ✨ Analyze My Photo
+                        {'Analyze Listing (' + selectedFiles.length + ' images)'}
                       </>
                     )}
                   </Button>
 
-                  {/* Change Photo */}
+                  {/* Hidden - keeping for compatibility */}
                   <label style={{
-                    display: 'block',
+                    display: 'none',
                     marginTop: tokens.spacing[3],
                     textAlign: 'center',
                     cursor: 'pointer'
@@ -464,6 +570,7 @@ export default function UploadPage() {
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       onChange={handleFileSelect}
                       style={{ display: 'none' }}
                     />
@@ -1006,8 +1113,8 @@ export default function UploadPage() {
                     size="md"
                     onClick={() => {
                       setAnalysisResults(null);
-                      setSelectedFile(null);
-                      setPreview(null);
+                      setSelectedFiles([]);
+                      setPreviews([]);
                     }}
                   >
                     Analyze Another Photo
