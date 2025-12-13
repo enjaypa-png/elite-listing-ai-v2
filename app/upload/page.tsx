@@ -187,30 +187,38 @@ export default function UploadPage() {
   const handleAnalyze = async () => {
     if (selectedFiles.length === 0) return;
 
-    // For now, analyze only the first image (main image)
-    const mainImageFile = selectedFiles[0];
-
     setIsAnalyzing(true);
 
     try {
-      // Compress image before upload (especially important for iPhone photos)
-      console.log('[Upload] Original file size:', (mainImageFile.size / 1024 / 1024).toFixed(2), 'MB');
-      const compressedFile = await compressImage(mainImageFile);
+      // Compress all images before upload
+      console.log(`[Upload] Compressing ${selectedFiles.length} images...`);
+      const compressedFiles: File[] = [];
       
-      // Verify compressed size is reasonable
-      const compressedSizeMB = compressedFile.size / 1024 / 1024;
-      console.log('[Upload] Compressed file size:', compressedSizeMB.toFixed(2), 'MB');
-      
-      if (compressedSizeMB > 4) {
-        throw new Error('Compressed image is still too large. Please use a smaller photo.');
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        console.log(`[Upload] Image ${i + 1}: Original size ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+        
+        const compressed = await compressImage(file);
+        const compressedSizeMB = compressed.size / 1024 / 1024;
+        console.log(`[Upload] Image ${i + 1}: Compressed size ${compressedSizeMB.toFixed(2)} MB`);
+        
+        if (compressedSizeMB > 4) {
+          throw new Error(`Image ${i + 1} is too large. Please use smaller photos.`);
+        }
+        
+        compressedFiles.push(compressed);
       }
       
-      // Analyze image directly with new endpoint
+      // Call new listing analysis endpoint with ALL images
       const formData = new FormData();
-      formData.append('image', compressedFile);
-      formData.append('category', 'single_image_scoring'); // Use default profile for all images
+      compressedFiles.forEach((file, index) => {
+        formData.append(`image_${index}`, file);
+      });
+      formData.append('category', 'single_image_scoring');
 
-      const analyzeResponse = await fetch('/api/analyze-image', {
+      console.log(`[Upload] Calling /api/analyze-listing with ${compressedFiles.length} images`);
+
+      const analyzeResponse = await fetch('/api/analyze-listing', {
         method: 'POST',
         body: formData
       });
@@ -613,13 +621,16 @@ export default function UploadPage() {
                   color: tokens.colors.text,
                   marginBottom: tokens.spacing[6]
                 }}>
-                  📊 Analysis Results
+                  📊 Listing Analysis Results
                 </h2>
+                
+                {/* Overall Listing Score */}
                 <div style={{
                   padding: tokens.spacing[6],
                   background: tokens.colors.background,
                   borderRadius: tokens.radius.md,
-                  marginBottom: tokens.spacing[4]
+                  marginBottom: tokens.spacing[6],
+                  border: `2px solid ${tokens.colors.primary}`
                 }}>
                   <div style={{
                     fontSize: tokens.typography.fontSize['4xl'],
@@ -628,15 +639,161 @@ export default function UploadPage() {
                     textAlign: 'center',
                     marginBottom: tokens.spacing[2]
                   }}>
-                    {analysisResults.score || 0}/100
+                    {analysisResults.overallListingScore || analysisResults.score || 0}/100
                   </div>
                   <div style={{
                     textAlign: 'center',
-                    color: tokens.colors.textMuted
+                    color: tokens.colors.textMuted,
+                    fontSize: tokens.typography.fontSize.base,
+                    marginBottom: tokens.spacing[4]
                   }}>
-                    Overall Photo Quality Score
+                    Overall Listing Score
                   </div>
+                  {analysisResults.imageCount && (
+                    <div style={{
+                      textAlign: 'center',
+                      fontSize: tokens.typography.fontSize.sm,
+                      color: tokens.colors.textMuted
+                    }}>
+                      {analysisResults.imageCount} images analyzed
+                    </div>
+                  )}
                 </div>
+                
+                {/* Photo Type Variety */}
+                {analysisResults.detectedPhotoTypes && (
+                  <div style={{
+                    padding: tokens.spacing[5],
+                    background: tokens.colors.surface,
+                    borderRadius: tokens.radius.md,
+                    marginBottom: tokens.spacing[6]
+                  }}>
+                    <h3 style={{
+                      fontSize: tokens.typography.fontSize.base,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[3]
+                    }}>
+                      📷 Photo Variety
+                    </h3>
+                    
+                    {/* Detected Types */}
+                    {analysisResults.detectedPhotoTypes.length > 0 && (
+                      <div style={{ marginBottom: tokens.spacing[3] }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.success,
+                          marginBottom: tokens.spacing[2]
+                        }}>
+                          ✅ Detected:
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: tokens.spacing[2]
+                        }}>
+                          {analysisResults.detectedPhotoTypes.map((type: string) => (
+                            <span key={type} style={{
+                              padding: `${tokens.spacing[1]} ${tokens.spacing[3]}`,
+                              background: `${tokens.colors.success}15`,
+                              border: `1px solid ${tokens.colors.success}30`,
+                              borderRadius: tokens.radius.sm,
+                              fontSize: tokens.typography.fontSize.sm,
+                              color: tokens.colors.text
+                            }}>
+                              {type.replace('_', ' ')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Missing Types */}
+                    {analysisResults.missingPhotoTypes && analysisResults.missingPhotoTypes.length > 0 && (
+                      <div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.warning,
+                          marginBottom: tokens.spacing[2]
+                        }}>
+                          ⚠️ Missing:
+                        </div>
+                        <ul style={{
+                          margin: 0,
+                          paddingLeft: tokens.spacing[5],
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted
+                        }}>
+                          {analysisResults.missingPhotoTypes.map((missing: string, i: number) => (
+                            <li key={i}>{missing}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Individual Image Scores */}
+                {analysisResults.imageResults && analysisResults.imageResults.length > 0 && (
+                  <div style={{ marginBottom: tokens.spacing[6] }}>
+                    <h3 style={{
+                      fontSize: tokens.typography.fontSize.base,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[3]
+                    }}>
+                      🖼️ Individual Image Scores
+                    </h3>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: tokens.spacing[3]
+                    }}>
+                      {analysisResults.imageResults.map((result: any, index: number) => (
+                        <div key={index} style={{
+                          padding: tokens.spacing[4],
+                          background: tokens.colors.surface,
+                          border: `1px solid ${result.isMainImage ? tokens.colors.primary : tokens.colors.border}`,
+                          borderRadius: tokens.radius.md
+                        }}>
+                          {result.isMainImage && (
+                            <div style={{
+                              fontSize: tokens.typography.fontSize.xs,
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.primary,
+                              marginBottom: tokens.spacing[2]
+                            }}>
+                              MAIN IMAGE
+                            </div>
+                          )}
+                          <div style={{
+                            fontSize: tokens.typography.fontSize['2xl'],
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[1]
+                          }}>
+                            {result.score}/100
+                          </div>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.xs,
+                            color: tokens.colors.textMuted
+                          }}>
+                            Image {index + 1}
+                          </div>
+                          {result.photoTypes && result.photoTypes.length > 0 && (
+                            <div style={{
+                              marginTop: tokens.spacing[2],
+                              fontSize: tokens.typography.fontSize.xs,
+                              color: tokens.colors.textMuted
+                            }}>
+                              {result.photoTypes.join(', ').replace(/_/g, ' ')}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {/* Detailed Feedback - 18 Etsy Checks */}
                 {analysisResults?.feedback && analysisResults.feedback.length > 0 && (
