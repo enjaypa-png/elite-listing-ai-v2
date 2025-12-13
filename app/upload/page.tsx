@@ -252,18 +252,34 @@ export default function UploadPage() {
   };
 
   const handleOptimizePhoto = async () => {
-    if (!analysisResults || !analysisResults.imageUrl) return;
+    // Check if we have analysis results
+    if (!analysisResults) return;
+    
+    // For listing analysis, optimize the main image (first image)
+    if (!analysisResults.imageUrl && selectedFiles.length === 0) return;
     
     setIsOptimizing(true);
     try {
       console.log('[Photo Optimizer] Starting optimization...');
       
+      // For listing analysis, we need to upload and optimize the main image
+      let imageUrlToOptimize = analysisResults.imageUrl;
+      
+      if (!imageUrlToOptimize && selectedFiles.length > 0) {
+        // Upload main image first to get URL
+        console.log('[Photo Optimizer] No imageUrl found, uploading main image...');
+        // For now, skip optimization if no imageUrl - will implement full listing optimization later
+        alert('Listing optimization coming soon! For now, optimize individual images.');
+        setIsOptimizing(false);
+        return;
+      }
+      
       const response = await fetch('/api/optimize/photo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: analysisResults.imageUrl,
-          category: 'single_image_scoring' // Use default profile for all images
+          imageUrl: imageUrlToOptimize,
+          category: 'single_image_scoring'
         })
       });
       
@@ -753,9 +769,31 @@ export default function UploadPage() {
                         <div key={index} style={{
                           padding: tokens.spacing[4],
                           background: tokens.colors.surface,
-                          border: `1px solid ${result.isMainImage ? tokens.colors.primary : tokens.colors.border}`,
+                          border: `2px solid ${result.isMainImage ? tokens.colors.primary : tokens.colors.border}`,
                           borderRadius: tokens.radius.md
                         }}>
+                          {/* Thumbnail */}
+                          {previews[index] && (
+                            <div style={{
+                              width: '100%',
+                              aspectRatio: '1',
+                              marginBottom: tokens.spacing[3],
+                              borderRadius: tokens.radius.sm,
+                              overflow: 'hidden',
+                              border: `1px solid ${tokens.colors.border}`
+                            }}>
+                              <img
+                                src={previews[index]}
+                                alt={`Image ${index + 1}`}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            </div>
+                          )}
+                          
                           {result.isMainImage && (
                             <div style={{
                               fontSize: tokens.typography.fontSize.xs,
