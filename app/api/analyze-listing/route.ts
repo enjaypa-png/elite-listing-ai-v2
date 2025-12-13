@@ -2,11 +2,15 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { fetchScoringRules, calculateScore, ImageAttributes } from '@/lib/database-scoring';
 import { analyzeImageWithVision, mergeAttributes } from '@/lib/ai-vision';
 import { calculateListingScore, ImageAnalysisResult } from '@/lib/listing-scoring';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 /**
  * POST /api/analyze-listing
@@ -57,9 +61,10 @@ export async function POST(request: NextRequest) {
     }
     
     // ===========================================
-    // 2. FETCH SCORING RULES ONCE (used for all images)
+    // 2. CREATE SUPABASE CLIENT & FETCH SCORING RULES
     // ===========================================
-    const rules = await fetchScoringRules(category);
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const rules = await fetchScoringRules(supabase);
     
     if (!rules) {
       return NextResponse.json(
