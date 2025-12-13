@@ -1,10 +1,10 @@
 /**
  * AI VISION ANALYSIS - Deterministic Etsy Image Scoring
- * Uses Claude Vision with strict system prompt
+ * Uses Gemini 2.5 Flash for fast, accurate image analysis
  * Returns structured data mapped to existing interface
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ImageAttributes } from './database-scoring';
 
 // ===========================================
@@ -148,7 +148,7 @@ Return ONLY a valid JSON object with this exact structure:
 Do NOT include any text outside the JSON. Do NOT explain your reasoning.`;
 
 // ===========================================
-// ANALYZE IMAGE WITH CLAUDE VISION
+// ANALYZE IMAGE WITH GEMINI VISION
 // ===========================================
 
 export async function analyzeImageWithVision(
@@ -156,57 +156,37 @@ export async function analyzeImageWithVision(
   mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg'
 ): Promise<AIVisionResponse | null> {
   
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // Try Emergent LLM key first, fallback to Anthropic key
+  const apiKey = process.env.EMERGENT_LLM_KEY || process.env.ANTHROPIC_API_KEY;
   
   if (!apiKey) {
-    console.error('[AI Vision] ANTHROPIC_API_KEY not found');
+    console.error('[AI Vision] No API key found (EMERGENT_LLM_KEY or ANTHROPIC_API_KEY)');
     return null;
   }
   
   try {
-    console.log('[AI Vision] Analyzing image with deterministic scoring...');
+    console.log('[AI Vision] Analyzing image with Gemini 2.5 Flash...');
     
-    const anthropic = new Anthropic({
-      apiKey,
-    });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mimeType,
-                data: imageBase64,
-              },
-            },
-            {
-              type: 'text',
-              text: SYSTEM_PROMPT,
-            },
-          ],
-        },
-      ],
-    });
+    // Prepare image part
+    const imagePart = {
+      inlineData: {
+        data: imageBase64,
+        mimeType: mimeType,
+      },
+    };
     
-    // Extract text response
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      console.error('[AI Vision] No text response from Claude');
-      return null;
-    }
+    // Send to Gemini
+    const result = await model.generateContent([SYSTEM_PROMPT, imagePart]);
+    const response = await result.response;
+    const responseText = response.text().trim();
     
-    // Parse JSON response
-    const jsonText = textContent.text.trim();
-    console.log('[AI Vision] Raw response:', jsonText.substring(0, 300));
+    console.log('[AI Vision] Raw response:', responseText.substring(0, 300));
     
     // Extract JSON from response
-    let jsonStr = jsonText;
+    let jsonStr = responseText;
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
     }
