@@ -1,14 +1,14 @@
 /**
- * AI VISION ANALYSIS - Binary YES/NO Responses Only
- * Uses Claude Vision to detect image attributes
- * Returns structured boolean data, NOT subjective scores
+ * AI VISION ANALYSIS - Deterministic Etsy Image Scoring
+ * Uses Claude Vision with strict system prompt
+ * Returns structured data mapped to existing interface
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { ImageAttributes } from './database-scoring';
 
 // ===========================================
-// AI VISION RESPONSE TYPE
+// AI VISION RESPONSE TYPE (EXISTING SHAPE - PRESERVED)
 // ===========================================
 
 export interface AIVisionResponse {
@@ -30,71 +30,122 @@ export interface AIVisionResponse {
   has_packaging_shot: boolean;
   has_process_shot: boolean;
   
-  // Photo-type specific attributes (NEW)
-  shows_texture_or_craftsmanship: boolean;  // For detail shots
-  product_clearly_visible: boolean;          // For lifestyle shots
-  appealing_context: boolean;                // For lifestyle shots
-  reference_object_visible: boolean;         // For scale shots
-  size_comparison_clear: boolean;            // For scale shots
+  // Photo-type specific attributes
+  shows_texture_or_craftsmanship: boolean;
+  product_clearly_visible: boolean;
+  appealing_context: boolean;
+  reference_object_visible: boolean;
+  size_comparison_clear: boolean;
+  
+  // NEW: AI-determined score (1-100) - SINGLE SOURCE OF TRUTH
+  ai_score?: number;
+  ai_confidence?: number;
+  ai_caps_applied?: string[];
+  ai_strengths?: string[];
+  ai_issues?: string[];
 }
 
 // ===========================================
-// CLAUDE VISION PROMPT
+// SYSTEM PROMPT - SINGLE SOURCE OF TRUTH (VERBATIM)
 // ===========================================
 
-const VISION_PROMPT = `You are analyzing product photos for Etsy listings. Your goal is to help sellers understand if their photos meet Etsy's best practices.
+const SYSTEM_PROMPT = `ROLE:
+You are an automated, critical image quality evaluator for Etsy product listings.
 
-Analyze this product image and return ONLY a JSON object with these exact boolean fields.
-Do NOT add any explanation or text outside the JSON.
+Your task is to strictly score individual product images on a 1–100 scale based on Etsy's real buyer-facing image standards.
+You must be skeptical, conservative, and evidence-driven.
 
+👉 Scores above 90 are rare and represent top-tier, professional listings only.
+👉 Do not inflate scores. Do not assume intent. Judge only what is visible.
+
+🔢 SCORING BASE RULES (MANDATORY)
+
+Start every image at 50/100
+
+Adjust score only when visual evidence exists
+
+Apply hard caps when required elements are missing
+
+Never return 100 unless all required criteria are met
+
+If unsure, score lower, not higher
+
+🚫 HARD SCORE CAPS (NON-NEGOTIABLE)
+
+If any condition below is missing, enforce the maximum score cap:
+
+Missing Element              | Max Score
+-----------------------------|----------
+Clean, distraction-free background | 85
+Proper crop (no edge clipping, centered) | 90
+Product clearly dominates frame | 90
+Sharp focus (no softness / blur) | 85
+Accurate color & exposure | 88
+Studio-style presentation (main image only) | 92
+
+📸 SCORING DIMENSIONS (ADD / SUBTRACT)
+
+Apply all that apply. No double counting.
+
+Composition & Framing (±15)
+- Product fills ~70–85% of frame: +8
+- Balanced margins / centered subject: +5
+- Awkward crop, tilt, or cutoff: −8
+
+Lighting & Exposure (±15)
+- Soft, even, diffused lighting: +10
+- Harsh shadows, glare, blown highlights: −10
+
+Background Quality (±10)
+- Clean, neutral, Etsy-appropriate background: +8
+- Busy, textured, distracting background: −10
+
+Context Use (±10)
+- Lifestyle context improves clarity: +6
+- Props distract or confuse: −6
+
+Technical Quality (±10)
+- Sharp, noise-free image: +8
+- Compression artifacts, blur, softness: −8
+
+🧠 PHOTO TYPE CLASSIFICATION (REQUIRED)
+
+Classify each image as one or more of:
+- studio_shot
+- lifestyle_shot
+- detail_shot
+- scale_shot
+
+If confidence <70%, classify as uncertain.
+
+🚨 ANTI-INFLATION RULES (CRITICAL)
+
+Do NOT assume professionalism
+Do NOT average away failures
+Do NOT reward "effort"
+Do NOT boost scores for quantity
+90–100 = top 1–5% of Etsy listings
+Most solid listings should score 70–85
+
+📤 REQUIRED OUTPUT (JSON ONLY)
+
+Return ONLY a valid JSON object with this exact structure:
 {
-  "has_clean_white_background": true/false,
-  "is_product_centered": true/false,
-  "has_good_lighting": true/false,
-  "is_sharp_focus": true/false,
-  "has_no_watermarks": true/false,
-  "professional_appearance": true/false,
-  "detected_photo_type": "studio" | "lifestyle" | "scale" | "detail" | "group" | "packaging" | "process" | "unknown",
-  "has_studio_shot": true/false,
-  "has_lifestyle_shot": true/false,
-  "has_scale_shot": true/false,
-  "has_detail_shot": true/false,
-  "has_group_shot": true/false,
-  "has_packaging_shot": true/false,
-  "has_process_shot": true/false,
-  "shows_texture_or_craftsmanship": true/false,
-  "product_clearly_visible": true/false,
-  "appealing_context": true/false,
-  "reference_object_visible": true/false,
-  "size_comparison_clear": true/false
+  "score": <number 1-100>,
+  "capsApplied": [<list of cap reasons if any>],
+  "photoTypes": [<list of detected types>],
+  "strengths": [<list of positive observations>],
+  "issues": [<list of problems found>],
+  "confidence": <number 0-1>,
+  "has_clean_background": <boolean>,
+  "is_centered": <boolean>,
+  "has_good_lighting": <boolean>,
+  "is_sharp": <boolean>,
+  "has_watermarks": <boolean>,
+  "looks_professional": <boolean>
 }
 
-STANDARD CRITERIA (be reasonable, not strict):
-- has_clean_white_background: true if background is clean and uncluttered. Can be white, gray, beige, cream, linen, wood, or any simple surface. Does NOT require pure white.
-- is_product_centered: true if the product is the clear focus and prominently positioned
-- has_good_lighting: true if product is well-lit and details are visible. Soft shadows are fine.
-- is_sharp_focus: true if product is in focus and details are reasonably clear
-- has_no_watermarks: true if there are NO text overlays, logos, or watermarks
-- professional_appearance: true if the image looks intentionally styled and composed
-
-PHOTO TYPE DEFINITIONS (be generous - if it's close, mark it true):
-- STUDIO: Clean, uncluttered background (white, gray, beige, linen, wood, simple texture). Product is the clear focus. Does NOT require pure white backdrop.
-- LIFESTYLE: Product shown in context, in use, or styled setting (on table, shelf, with decor, outdoors, etc.)
-- SCALE: ANY object providing size reference - books, leaves, plants, hands, furniture, cups, coins, rulers, fabric, food items, etc.
-- DETAIL: Close-up or cropped view showing texture, material quality, craftsmanship, stitching, or specific features
-- GROUP: Multiple products or variations shown together
-- PACKAGING: Product packaging is visible
-- PROCESS: Behind-the-scenes or making-of shot
-
-PHOTO-TYPE SPECIFIC CRITERIA:
-- shows_texture_or_craftsmanship: true if you can see material quality, texture, grain, weave, stitching, or handmade details
-- product_clearly_visible: true if the product is the clear subject and easily identifiable
-- appealing_context: true if the setting enhances the product appeal
-- reference_object_visible: true if ANY object provides size context (books, leaves, plants, hands, furniture, cups, etc.)
-- size_comparison_clear: true if viewer can reasonably gauge the product's size from context
-
-Set detected_photo_type to the BEST match, and set the corresponding has_X_shot to true.
-Return ONLY the JSON object, no other text.`;
+Do NOT include any text outside the JSON. Do NOT explain your reasoning.`;
 
 // ===========================================
 // ANALYZE IMAGE WITH CLAUDE VISION
@@ -105,7 +156,6 @@ export async function analyzeImageWithVision(
   mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg'
 ): Promise<AIVisionResponse | null> {
   
-  // Use ANTHROPIC_API_KEY only
   const apiKey = process.env.ANTHROPIC_API_KEY;
   
   if (!apiKey) {
@@ -114,7 +164,7 @@ export async function analyzeImageWithVision(
   }
   
   try {
-    console.log('[AI Vision] Analyzing image with Claude Vision...');
+    console.log('[AI Vision] Analyzing image with deterministic scoring...');
     
     const anthropic = new Anthropic({
       apiKey,
@@ -137,7 +187,7 @@ export async function analyzeImageWithVision(
             },
             {
               type: 'text',
-              text: VISION_PROMPT,
+              text: SYSTEM_PROMPT,
             },
           ],
         },
@@ -153,25 +203,85 @@ export async function analyzeImageWithVision(
     
     // Parse JSON response
     const jsonText = textContent.text.trim();
-    console.log('[AI Vision] Raw response:', jsonText);
+    console.log('[AI Vision] Raw response:', jsonText.substring(0, 300));
     
-    // Try to extract JSON from response (in case there's extra text)
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    // Extract JSON from response
+    let jsonStr = jsonText;
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+    }
+    const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('[AI Vision] Could not find JSON in response');
       return null;
     }
     
-    const parsed = JSON.parse(jsonMatch[0]) as AIVisionResponse;
+    const parsed = JSON.parse(jsonMatch[0]);
     
-    console.log('[AI Vision] Parsed response:', parsed);
+    // Log deterministic score
+    console.log('[AI Vision] Deterministic score:', parsed.score, 'Confidence:', parsed.confidence, 'Caps:', parsed.capsApplied);
     
-    return parsed;
+    // Map new AI output to existing AIVisionResponse shape
+    const mapped: AIVisionResponse = mapToExistingShape(parsed);
+    
+    return mapped;
     
   } catch (error: any) {
     console.error('[AI Vision] Error:', error.message);
     return null;
   }
+}
+
+// ===========================================
+// MAP NEW AI OUTPUT TO EXISTING SHAPE
+// ===========================================
+
+function mapToExistingShape(aiOutput: any): AIVisionResponse {
+  const photoTypes: string[] = aiOutput.photoTypes || [];
+  
+  // Determine primary photo type
+  let detected_photo_type: AIVisionResponse['detected_photo_type'] = 'unknown';
+  if (photoTypes.includes('studio_shot')) detected_photo_type = 'studio';
+  else if (photoTypes.includes('lifestyle_shot')) detected_photo_type = 'lifestyle';
+  else if (photoTypes.includes('detail_shot')) detected_photo_type = 'detail';
+  else if (photoTypes.includes('scale_shot')) detected_photo_type = 'scale';
+  else if (photoTypes.includes('group_shot')) detected_photo_type = 'group';
+  else if (photoTypes.includes('packaging_shot')) detected_photo_type = 'packaging';
+  else if (photoTypes.includes('process_shot')) detected_photo_type = 'process';
+  
+  return {
+    // Map boolean composition checks
+    has_clean_white_background: aiOutput.has_clean_background ?? false,
+    is_product_centered: aiOutput.is_centered ?? false,
+    has_good_lighting: aiOutput.has_good_lighting ?? false,
+    is_sharp_focus: aiOutput.is_sharp ?? false,
+    has_no_watermarks: !(aiOutput.has_watermarks ?? false),
+    professional_appearance: aiOutput.looks_professional ?? false,
+    
+    // Photo type detection
+    detected_photo_type,
+    has_studio_shot: photoTypes.includes('studio_shot'),
+    has_lifestyle_shot: photoTypes.includes('lifestyle_shot'),
+    has_scale_shot: photoTypes.includes('scale_shot'),
+    has_detail_shot: photoTypes.includes('detail_shot'),
+    has_group_shot: photoTypes.includes('group_shot'),
+    has_packaging_shot: photoTypes.includes('packaging_shot'),
+    has_process_shot: photoTypes.includes('process_shot'),
+    
+    // Photo-type specific (infer from context)
+    shows_texture_or_craftsmanship: photoTypes.includes('detail_shot'),
+    product_clearly_visible: aiOutput.is_centered ?? false,
+    appealing_context: photoTypes.includes('lifestyle_shot'),
+    reference_object_visible: photoTypes.includes('scale_shot'),
+    size_comparison_clear: photoTypes.includes('scale_shot'),
+    
+    // NEW: AI-determined score - SINGLE SOURCE OF TRUTH
+    ai_score: typeof aiOutput.score === 'number' ? aiOutput.score : undefined,
+    ai_confidence: typeof aiOutput.confidence === 'number' ? aiOutput.confidence : undefined,
+    ai_caps_applied: Array.isArray(aiOutput.capsApplied) ? aiOutput.capsApplied : [],
+    ai_strengths: Array.isArray(aiOutput.strengths) ? aiOutput.strengths : [],
+    ai_issues: Array.isArray(aiOutput.issues) ? aiOutput.issues : [],
+  };
 }
 
 // ===========================================
@@ -184,7 +294,7 @@ export function getDefaultVisionResponse(): AIVisionResponse {
     is_product_centered: false,
     has_good_lighting: false,
     is_sharp_focus: false,
-    has_no_watermarks: true,  // Assume no watermarks by default
+    has_no_watermarks: true,
     professional_appearance: false,
     detected_photo_type: 'unknown',
     has_studio_shot: false,
@@ -194,12 +304,16 @@ export function getDefaultVisionResponse(): AIVisionResponse {
     has_group_shot: false,
     has_packaging_shot: false,
     has_process_shot: false,
-    // Photo-type specific defaults (NEW)
     shows_texture_or_craftsmanship: false,
     product_clearly_visible: false,
     appealing_context: false,
     reference_object_visible: false,
     size_comparison_clear: false,
+    ai_score: 50,  // Conservative baseline
+    ai_confidence: 0,
+    ai_caps_applied: ['analysis_failed'],
+    ai_strengths: [],
+    ai_issues: ['Unable to analyze image'],
   };
 }
 
@@ -240,7 +354,7 @@ export function mergeAttributes(
     has_packaging_shot: vision.has_packaging_shot,
     has_process_shot: vision.has_process_shot,
     
-    // Photo-type specific attributes (NEW)
+    // Photo-type specific attributes
     shows_texture_or_craftsmanship: vision.shows_texture_or_craftsmanship ?? false,
     product_clearly_visible: vision.product_clearly_visible ?? false,
     appealing_context: vision.appealing_context ?? false,
