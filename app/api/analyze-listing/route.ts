@@ -125,10 +125,14 @@ export async function POST(request: NextRequest) {
         // Run AI Vision analysis
         let visionResponse = null;
         try {
-          visionResponse = await analyzeImageWithVision(buffer);
+          // Convert buffer to base64 string
+          const imageBase64 = buffer.toString('base64');
+          const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+          
+          visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
           console.log(`[${requestId}] Image ${i + 1}: AI Vision complete`);
-        } catch (visionError) {
-          console.error(`[${requestId}] Image ${i + 1}: AI Vision failed:`, visionError);
+        } catch (visionError: any) {
+          console.error(`[${requestId}] Image ${i + 1}: AI Vision failed:`, visionError.message);
           // Continue with technical-only analysis
         }
         
