@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
-import { fetchScoringRules, calculateScore, ImageAttributes } from '@/lib/database-scoring';
+import { fetchScoringRules, fetchScoringRulesByPhotoType, calculateScore, ImageAttributes, PhotoType } from '@/lib/database-scoring';
 import { analyzeImageWithVision, mergeAttributes } from '@/lib/ai-vision';
 import { calculateListingScore, ImageAnalysisResult } from '@/lib/listing-scoring';
 
@@ -120,6 +120,12 @@ export async function POST(request: NextRequest) {
           has_group_shot: false,
           has_packaging_shot: false,
           has_process_shot: false,
+          // Photo-type specific defaults (NEW)
+          shows_texture_or_craftsmanship: false,
+          product_clearly_visible: false,
+          appealing_context: false,
+          reference_object_visible: false,
+          size_comparison_clear: false,
         };
         
         // Run AI Vision analysis
@@ -141,8 +147,22 @@ export async function POST(request: NextRequest) {
           ? mergeAttributes(technicalAttrs, visionResponse)
           : technicalAttrs;
         
-        // Calculate score using database rules
-        const scoring = calculateScore(attributes, rules);
+        // Determine photo type for scoring
+        // Main image (index 0) always uses main_image_scoring
+        // Other images use their detected photo type
+        let photoTypeForScoring: PhotoType = 'main';
+        if (!isMainImage && visionResponse?.detected_photo_type) {
+          photoTypeForScoring = visionResponse.detected_photo_type as PhotoType;
+        }
+        
+        // Fetch photo-type-specific rules
+        const photoTypeRules = await fetchScoringRulesByPhotoType(supabase, photoTypeForScoring);
+        const rulesToUse = photoTypeRules || rules;
+        
+        console.log(`[${requestId}] Image ${i + 1}: Using ${rulesToUse?.profileName || 'default'} profile`);
+        
+        // Calculate score using photo-type-specific rules
+        const scoring = calculateScore(attributes, rulesToUse!);
         
         // Detect photo types from AI Vision
         const photoTypes: string[] = [];
@@ -166,7 +186,7 @@ export async function POST(request: NextRequest) {
           isMainImage
         });
         
-        console.log(`[${requestId}] Image ${i + 1}: Score = ${scoring.total_score}, Types = ${photoTypes.join(', ')}`);
+        console.log(`[${requestId}] Image ${i + 1}: Score = ${scoring.total_score}, Types = ${photoTypes.join(', ')}, Profile = ${rulesToUse?.profileName}`);
         
       } catch (imageError: any) {
         console.error(`[${requestId}] Failed to analyze image ${i + 1}:`, imageError);

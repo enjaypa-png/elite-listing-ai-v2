@@ -73,6 +73,12 @@ async function extractTechnicalAttributes(buffer: Buffer, fileType: string): Pro
     has_group_shot: false,
     has_packaging_shot: false,
     has_process_shot: false,
+    // Photo-type specific defaults (NEW)
+    shows_texture_or_craftsmanship: false,
+    product_clearly_visible: false,
+    appealing_context: false,
+    reference_object_visible: false,
+    size_comparison_clear: false,
   };
 }
 

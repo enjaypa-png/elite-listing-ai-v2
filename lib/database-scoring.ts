@@ -70,6 +70,13 @@ export interface ImageAttributes {
   has_group_shot: boolean;
   has_packaging_shot: boolean;
   has_process_shot: boolean;
+  
+  // Photo-type specific attributes (NEW)
+  shows_texture_or_craftsmanship: boolean;  // For detail shots
+  product_clearly_visible: boolean;          // For lifestyle shots
+  appealing_context: boolean;                // For lifestyle shots
+  reference_object_visible: boolean;         // For scale shots
+  size_comparison_clear: boolean;            // For scale shots
 }
 
 export interface ScoringResult {
@@ -159,6 +166,102 @@ export async function fetchScoringRules(supabase: SupabaseClient): Promise<Scori
     
   } catch (error) {
     console.error('[Scoring] Error fetching rules:', error);
+    return null;
+  }
+}
+
+// ===========================================
+// FETCH SCORING RULES BY PHOTO TYPE
+// ===========================================
+
+export type PhotoType = 'main' | 'detail' | 'lifestyle' | 'scale' | 'studio' | 'group' | 'packaging' | 'process' | 'unknown';
+
+export async function fetchScoringRulesByPhotoType(
+  supabase: SupabaseClient,
+  photoType: PhotoType
+): Promise<ScoringRules | null> {
+  
+  // Map photo type to profile name
+  const profileNameMap: Record<string, string> = {
+    'main': 'main_image_scoring',
+    'studio': 'main_image_scoring',      // Studio shots use main image rules
+    'detail': 'detail_shot_scoring',
+    'lifestyle': 'lifestyle_shot_scoring',
+    'scale': 'scale_shot_scoring',
+    'group': 'main_image_scoring',       // Fallback to main
+    'packaging': 'main_image_scoring',   // Fallback to main
+    'process': 'main_image_scoring',     // Fallback to main
+    'unknown': 'main_image_scoring',     // Fallback to main
+  };
+  
+  const profileName = profileNameMap[photoType] || 'main_image_scoring';
+  
+  console.log(`[Scoring] Fetching rules for photo type: ${photoType} -> profile: ${profileName}`);
+  
+  try {
+    // Fetch profile by name
+    const { data: profiles, error: profileError } = await supabase
+      .from('scoring_profiles')
+      .select('id, name')
+      .eq('name', profileName)
+      .eq('is_active', true)
+      .limit(1);
+    
+    if (profileError) {
+      console.error(`[Scoring] Error fetching profile ${profileName}:`, profileError);
+      return null;
+    }
+    
+    if (!profiles || profiles.length === 0) {
+      console.error(`[Scoring] Profile not found: ${profileName}`);
+      return null;
+    }
+    
+    const profile = profiles[0];
+    console.log(`[Scoring] Using profile: ${profile.name} (${profile.id})`);
+    
+    // Fetch rules for this profile
+    // Note: Technical specs are shared - fetch from the original 'single_image_scoring' profile
+    const { data: singleImageProfile } = await supabase
+      .from('scoring_profiles')
+      .select('id')
+      .eq('name', 'single_image_scoring')
+      .eq('is_active', true)
+      .limit(1);
+    
+    const technicalProfileId = singleImageProfile?.[0]?.id || profile.id;
+    
+    const [technicalResult, photoTypesResult, compositionResult] = await Promise.all([
+      supabase
+        .from('technical_specs_rules')
+        .select('*')
+        .eq('profile_id', technicalProfileId),
+      supabase
+        .from('photo_types_rules')
+        .select('*')
+        .eq('profile_id', technicalProfileId),
+      supabase
+        .from('composition_rules')
+        .select('*')
+        .eq('profile_id', profile.id),  // Use photo-type-specific composition rules
+    ]);
+    
+    console.log(`[Scoring] Rules loaded for ${profileName}:`, {
+      technical: technicalResult.data?.length || 0,
+      photoTypes: photoTypesResult.data?.length || 0,
+      composition: compositionResult.data?.length || 0,
+    });
+    
+    return {
+      profileId: profile.id,
+      profileName: profile.name,
+      technicalSpecs: technicalResult.data || [],
+      photoTypes: photoTypesResult.data || [],
+      compositionRules: compositionResult.data || [],
+    };
+    
+  } catch (error) {
+    console.error('[Scoring] Error fetching rules by photo type:', error);
     return null;
   }
 }
@@ -500,7 +603,9 @@ export function calculateScore(
   // ===========================================
   console.log('[DEBUG] Starting composition evaluation...');
   const compositionMap: Record<string, keyof ImageAttributes> = {
+    // Standard composition rules
     'clean_background': 'has_clean_white_background',
+    'has_clean_background': 'has_clean_white_background',
     'clean_white_background': 'has_clean_white_background',
     'has_clean_white_background': 'has_clean_white_background',
     'product_centered': 'is_product_centered',
@@ -512,7 +617,15 @@ export function calculateScore(
     'no_watermarks': 'has_no_watermarks',
     'has_no_watermarks': 'has_no_watermarks',
     'professional_appearance': 'professional_appearance',
-    'home_living_guidance': 'has_clean_white_background', // Fallback for category-specific rules
+    'home_living_guidance': 'has_clean_white_background',
+    
+    // Photo-type specific rules (NEW)
+    'shows_texture_or_craftsmanship': 'shows_texture_or_craftsmanship',
+    'product_clearly_visible': 'product_clearly_visible',
+    'appealing_context': 'appealing_context',
+    'reference_object_visible': 'reference_object_visible',
+    'size_comparison_clear': 'size_comparison_clear',
+    'product_visible': 'product_clearly_visible',  // Alias for scale shot
   };
   
   for (const rule of rules.compositionRules) {

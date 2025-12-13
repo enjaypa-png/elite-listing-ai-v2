@@ -29,6 +29,13 @@ export interface AIVisionResponse {
   has_group_shot: boolean;
   has_packaging_shot: boolean;
   has_process_shot: boolean;
+  
+  // Photo-type specific attributes (NEW)
+  shows_texture_or_craftsmanship: boolean;  // For detail shots
+  product_clearly_visible: boolean;          // For lifestyle shots
+  appealing_context: boolean;                // For lifestyle shots
+  reference_object_visible: boolean;         // For scale shots
+  size_comparison_clear: boolean;            // For scale shots
 }
 
 // ===========================================
@@ -53,16 +60,28 @@ Answer each question with true or false based on strict criteria:
   "has_detail_shot": true/false,
   "has_group_shot": true/false,
   "has_packaging_shot": true/false,
-  "has_process_shot": true/false
+  "has_process_shot": true/false,
+  "shows_texture_or_craftsmanship": true/false,
+  "product_clearly_visible": true/false,
+  "appealing_context": true/false,
+  "reference_object_visible": true/false,
+  "size_comparison_clear": true/false
 }
 
-STRICT CRITERIA:
+STANDARD CRITERIA:
 - has_clean_white_background: true ONLY if background is solid white or neutral (beige, light gray) with NO distracting elements
 - is_product_centered: true ONLY if the main product occupies the center 60% of the frame
 - has_good_lighting: true ONLY if product is evenly lit with no harsh shadows or dark areas
 - is_sharp_focus: true ONLY if product edges are crisp and clear, not blurry
 - has_no_watermarks: true ONLY if there are NO text overlays, logos, or watermarks visible
 - professional_appearance: true ONLY if the image looks professionally shot (good composition, proper staging)
+
+PHOTO-TYPE SPECIFIC CRITERIA:
+- shows_texture_or_craftsmanship: true if close-up reveals material quality, stitching, grain, weave, or handmade details
+- product_clearly_visible: true if the product is easily identifiable in the scene (not hidden, obscured, or too small)
+- appealing_context: true if the setting/environment enhances product appeal (cozy home, outdoor use, styled scene)
+- reference_object_visible: true if a common object (hand, coin, ruler, pen, cup) is shown next to product for size reference
+- size_comparison_clear: true if viewer can easily understand product dimensions from the reference object
 
 PHOTO TYPE DEFINITIONS:
 - studio: Product on clean, simple, well-lit background (white/neutral)
@@ -174,6 +193,12 @@ export function getDefaultVisionResponse(): AIVisionResponse {
     has_group_shot: false,
     has_packaging_shot: false,
     has_process_shot: false,
+    // Photo-type specific defaults (NEW)
+    shows_texture_or_craftsmanship: false,
+    product_clearly_visible: false,
+    appealing_context: false,
+    reference_object_visible: false,
+    size_comparison_clear: false,
   };
 }
 
@@ -213,5 +238,12 @@ export function mergeAttributes(
     has_group_shot: vision.has_group_shot,
     has_packaging_shot: vision.has_packaging_shot,
     has_process_shot: vision.has_process_shot,
+    
+    // Photo-type specific attributes (NEW)
+    shows_texture_or_craftsmanship: vision.shows_texture_or_craftsmanship ?? false,
+    product_clearly_visible: vision.product_clearly_visible ?? false,
+    appealing_context: vision.appealing_context ?? false,
+    reference_object_visible: vision.reference_object_visible ?? false,
+    size_comparison_clear: vision.size_comparison_clear ?? false,
   };
 }
