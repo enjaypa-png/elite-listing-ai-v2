@@ -274,13 +274,8 @@ export default function UploadPage() {
         formData.append(`image_${index}`, file);
       });
       
-      // Pass the analysis scores so optimization shows consistent "before" scores
-      if (analysisResults?.imageResults) {
-        const analysisScores = analysisResults.imageResults.map((r: any) => r.score);
-        formData.append('analysis_scores', JSON.stringify(analysisScores));
-        formData.append('analysis_overall_score', String(analysisResults.overallListingScore || analysisResults.score));
-        console.log('[Listing Optimizer] Passing analysis scores:', analysisScores);
-      }
+      // NOTE: Do NOT pass frontend scores - AI Vision is authoritative
+      console.log('[Listing Optimizer] Sending images for AI-based optimization');
       
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',
