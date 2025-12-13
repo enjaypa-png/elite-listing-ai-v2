@@ -103,6 +103,7 @@ export default function UploadPage() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizedPhoto, setOptimizedPhoto] = useState<any>(null);
   const [optimizedScore, setOptimizedScore] = useState<number | null>(null);
+  const [optimizedListing, setOptimizedListing] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -251,61 +252,50 @@ export default function UploadPage() {
     }
   };
 
-  const handleOptimizePhoto = async () => {
-    // Check if we have analysis results
-    if (!analysisResults) return;
-    
-    // For listing analysis, optimize the main image (first image)
-    if (!analysisResults.imageUrl && selectedFiles.length === 0) return;
+  const handleOptimizeListing = async () => {
+    // Check if we have analysis results and images
+    if (!analysisResults || selectedFiles.length === 0) return;
     
     setIsOptimizing(true);
     try {
-      console.log('[Photo Optimizer] Starting optimization...');
+      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'images...');
       
-      // For listing analysis, we need to upload and optimize the main image
-      let imageUrlToOptimize = analysisResults.imageUrl;
-      
-      if (!imageUrlToOptimize && selectedFiles.length > 0) {
-        // Upload main image first to get URL
-        console.log('[Photo Optimizer] No imageUrl found, uploading main image...');
-        // For now, skip optimization if no imageUrl - will implement full listing optimization later
-        alert('Listing optimization coming soon! For now, optimize individual images.');
-        setIsOptimizing(false);
-        return;
+      // Compress all images before sending
+      const compressedFiles: File[] = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const compressed = await compressImage(file);
+        compressedFiles.push(compressed);
       }
       
-      const response = await fetch('/api/optimize/photo', {
+      // Build FormData with all images
+      const formData = new FormData();
+      compressedFiles.forEach((file, index) => {
+        formData.append(`image_${index}`, file);
+      });
+      
+      const response = await fetch('/api/optimize-listing', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: imageUrlToOptimize,
-          category: 'single_image_scoring'
-        })
+        body: formData
       });
       
       const data = await response.json();
       
       if (data.success) {
-        setOptimizedPhoto({
-          url: data.optimizedUrl,
-          improvements: data.improvements || [],
-          alreadyOptimized: data.alreadyOptimized || false,
-          scoreImprovement: data.scoreImprovement || 0,
-          message: data.message || '',
-          showReshootTips: data.showReshootTips || false,
-          scoreCategory: data.scoreCategory || ''
+        console.log('[Listing Optimizer] Complete:', data);
+        setOptimizedListing({
+          originalScore: data.originalListingScore,
+          newScore: data.newListingScore,
+          improvement: data.overallImprovement,
+          images: data.optimizedImages,
+          message: data.message
         });
-        
-        // Use the score returned from the optimizer directly
-        setOptimizedScore(data.newScore);
-        console.log('[Photo Optimizer] Complete - New score:', data.newScore, 
-                   'Improvement:', data.scoreImprovement);
       } else {
-        alert('Failed to optimize photo: ' + data.error);
+        alert('Failed to optimize listing: ' + data.error);
       }
     } catch (error: any) {
-      console.error('Optimization failed:', error);
-      alert('Failed to optimize photo. Please try again.');
+      console.error('Listing optimization failed:', error);
+      alert('Failed to optimize listing. Please try again.');
     } finally {
       setIsOptimizing(false);
     }
@@ -332,6 +322,7 @@ export default function UploadPage() {
   const resetOptimization = () => {
     setOptimizedPhoto(null);
     setOptimizedScore(null);
+    setOptimizedListing(null);
     setAnalysisResults(null);
     setPreviews([]);
     setSelectedFiles([]);
@@ -974,8 +965,8 @@ export default function UploadPage() {
                     </ul>
                   </div>
                 )}
-                {/* Photo Optimization Section */}
-                {!optimizedPhoto ? (
+                {/* Listing Optimization Section */}
+                {!optimizedListing ? (
                   <div style={{
                     marginTop: tokens.spacing[6],
                     padding: 'clamp(1rem, 3vw, 1.5rem)',
@@ -989,21 +980,21 @@ export default function UploadPage() {
                       color: tokens.colors.text,
                       marginBottom: tokens.spacing[3]
                     }}>
-                      AI Photo Optimization
+                      🚀 Optimize All Photos
                     </h3>
                     <p style={{
                       fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
                       color: tokens.colors.textMuted,
                       marginBottom: tokens.spacing[4]
                     }}>
-                      Let our AI automatically optimize your photo based on the suggestions above. We'll enhance lighting, improve clarity, and crop to the perfect 1:1 ratio.
+                      Automatically optimize all {selectedFiles.length} photos for Etsy. We'll resize to 3000×2250, enhance lighting, sharpen details, and compress for fast loading.
                     </p>
                     <Button
                       variant="primary"
                       size="lg"
                       fullWidth
-                      onClick={handleOptimizePhoto}
-                      disabled={isOptimizing}
+                      onClick={handleOptimizeListing}
+                      disabled={isOptimizing || selectedFiles.length === 0}
                       style={{
                         minHeight: '56px',
                         fontSize: 'clamp(1rem, 3vw, 1.125rem)',
@@ -1022,10 +1013,10 @@ export default function UploadPage() {
                             animation: 'spin 1s linear infinite',
                             marginRight: tokens.spacing[2]
                           }} />
-                          Optimizing Photo...
+                          Optimizing {selectedFiles.length} photos...
                         </>
                       ) : (
-                        'Optimize My Photo with AI'
+                        `Optimize All ${selectedFiles.length} Photos`
                       )}
                     </Button>
                   </div>
@@ -1033,244 +1024,196 @@ export default function UploadPage() {
                   <div style={{
                     marginTop: tokens.spacing[6]
                   }}>
-                    <h3 style={{
-                      fontSize: 'clamp(1rem, 3vw, 1.25rem)',
-                      fontWeight: tokens.typography.fontWeight.bold,
-                      color: tokens.colors.success,
-                      marginBottom: tokens.spacing[4],
-                      textAlign: 'center'
+                    {/* Listing Optimization Results Header */}
+                    <div style={{
+                      textAlign: 'center',
+                      marginBottom: tokens.spacing[6]
                     }}>
-                      {optimizedPhoto.alreadyOptimized 
-                        ? 'Image Fully Optimized' 
-                        : 'Photo Optimized Successfully'}
-                    </h3>
+                      <div style={{
+                        fontSize: 'clamp(2rem, 4vw, 3rem)',
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        ✨
+                      </div>
+                      <h3 style={{
+                        fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.success,
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        Listing Photos Optimized!
+                      </h3>
+                      <p style={{
+                        fontSize: tokens.typography.fontSize.base,
+                        color: tokens.colors.textMuted
+                      }}>
+                        {optimizedListing.message}
+                      </p>
+                    </div>
                     
-                    {/* Conditional Display: Single Image for Already-Optimized OR Before/After Comparison */}
-                    {(optimizedPhoto.alreadyOptimized || analysisResults.score === optimizedScore) ? (
-                      <>
-                        {/* Already Optimized - Single Image Display */}
+                    {/* Overall Score Comparison */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: tokens.spacing[4],
+                      marginBottom: tokens.spacing[6],
+                      padding: tokens.spacing[4],
+                      background: `${tokens.colors.primary}10`,
+                      borderRadius: tokens.radius.md,
+                      border: `1px solid ${tokens.colors.primary}30`
+                    }}>
+                      <div style={{ textAlign: 'center' }}>
                         <div style={{
-                          padding: tokens.spacing[6],
-                          background: `${tokens.colors.success}1A`,
-                          border: `2px solid ${tokens.colors.success}`,
-                          borderRadius: tokens.radius.lg,
-                          marginBottom: tokens.spacing[6],
-                          textAlign: 'center'
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[1]
                         }}>
+                          Before
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize['2xl'],
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          color: tokens.colors.text
+                        }}>
+                          {optimizedListing.originalScore}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[1]
+                        }}>
+                          After
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize['2xl'],
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          color: tokens.colors.success
+                        }}>
+                          {optimizedListing.newScore}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[1]
+                        }}>
+                          Improvement
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize['2xl'],
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          color: optimizedListing.improvement > 0 ? tokens.colors.success : tokens.colors.text
+                        }}>
+                          {optimizedListing.improvement > 0 ? '+' : ''}{optimizedListing.improvement}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Individual Image Results */}
+                    <h4 style={{
+                      fontSize: tokens.typography.fontSize.base,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[3]
+                    }}>
+                      📥 Download Optimized Photos
+                    </h4>
+                    
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: tokens.spacing[3],
+                      marginBottom: tokens.spacing[6]
+                    }}>
+                      {optimizedListing.images && optimizedListing.images.map((img: any, index: number) => (
+                        <div key={index} style={{
+                          padding: tokens.spacing[3],
+                          background: tokens.colors.surface,
+                          border: `2px solid ${img.isMainImage ? tokens.colors.primary : tokens.colors.border}`,
+                          borderRadius: tokens.radius.md
+                        }}>
+                          {/* Thumbnail */}
+                          {img.optimizedUrl && (
+                            <div style={{
+                              width: '100%',
+                              aspectRatio: '4/3',
+                              marginBottom: tokens.spacing[2],
+                              borderRadius: tokens.radius.sm,
+                              overflow: 'hidden',
+                              border: `1px solid ${tokens.colors.border}`
+                            }}>
+                              <img
+                                src={img.optimizedUrl}
+                                alt={`Optimized ${index + 1}`}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            </div>
+                          )}
+                          
+                          {/* Badge */}
+                          {img.isMainImage && (
+                            <div style={{
+                              fontSize: tokens.typography.fontSize.xs,
+                              fontWeight: tokens.typography.fontWeight.semibold,
+                              color: tokens.colors.primary,
+                              marginBottom: tokens.spacing[1]
+                            }}>
+                              MAIN IMAGE
+                            </div>
+                          )}
+                          
+                          {/* Score Change */}
                           <div style={{
-                            fontSize: 'clamp(2rem, 4vw, 3rem)',
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.text,
                             marginBottom: tokens.spacing[2]
                           }}>
-                            🎯
+                            {img.alreadyOptimized ? (
+                              <span style={{ color: tokens.colors.success }}>
+                                ✓ Already optimized ({img.newScore}/100)
+                              </span>
+                            ) : (
+                              <>
+                                {img.originalScore} → <span style={{ color: tokens.colors.success, fontWeight: 600 }}>{img.newScore}</span>
+                                {img.scoreImprovement > 0 && (
+                                  <span style={{ color: tokens.colors.success, fontSize: tokens.typography.fontSize.xs }}>
+                                    {' '}(+{img.scoreImprovement})
+                                  </span>
+                                )}
+                              </>
+                            )}
                           </div>
-                          <h4 style={{
-                            fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
-                            fontWeight: tokens.typography.fontWeight.bold,
-                            color: tokens.colors.success,
-                            marginBottom: tokens.spacing[2]
-                          }}>
-                            Etsy-Ready
-                          </h4>
-                          <p style={{
-                            fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+                          
+                          {/* File info */}
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.xs,
                             color: tokens.colors.textMuted,
-                            marginBottom: tokens.spacing[4]
+                            marginBottom: tokens.spacing[2]
                           }}>
-                            Your photo meets top-seller standards. Ready to list.
-                          </p>
-                          
-                          {/* Single Image Display */}
-                          <div style={{
-                            maxWidth: '500px',
-                            margin: '0 auto'
-                          }}>
-                            <img
-                              src={optimizedPhoto.url}
-                              alt="Etsy-Ready Photo"
-                              style={{
-                                width: '100%',
-                                borderRadius: tokens.radius.md,
-                                border: `1px solid ${tokens.colors.border}`
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {/* Before/After Comparison */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                          gap: tokens.spacing[4],
-                          marginBottom: tokens.spacing[6]
-                        }}>
-                          {/* Before */}
-                          <div style={{
-                            padding: tokens.spacing[4],
-                            background: tokens.colors.surface,
-                            borderRadius: tokens.radius.md,
-                            border: `1px solid ${tokens.colors.border}`
-                          }}>
-                            <div style={{
-                              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              color: tokens.colors.text,
-                              marginBottom: tokens.spacing[2],
-                              textAlign: 'center'
-                            }}>
-                              Original ({analysisResults.score}/100)
-                            </div>
-                            <img
-                              src={analysisResults.imageUrl}
-                              alt="Original"
-                              style={{
-                                width: '100%',
-                                borderRadius: tokens.radius.md,
-                                marginBottom: tokens.spacing[3]
-                              }}
-                            />
+                            {img.metadata?.width}×{img.metadata?.height} • {img.metadata?.fileSizeKB}KB
                           </div>
                           
-                          {/* After */}
-                          <div style={{
-                            padding: tokens.spacing[4],
-                            background: tokens.colors.surface,
-                            borderRadius: tokens.radius.md,
-                            border: `2px solid ${tokens.colors.success}`
-                          }}>
-                            <div style={{
-                              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              color: tokens.colors.success,
-                              marginBottom: tokens.spacing[2],
-                              textAlign: 'center'
-                            }}>
-                              Optimized {optimizedScore ? `(${optimizedScore}/100)` : '(Analyzing...)'}
-                            </div>
-                            <img
-                              src={optimizedPhoto.url}
-                              alt="Optimized"
-                              style={{
-                                width: '100%',
-                                borderRadius: tokens.radius.md,
-                                marginBottom: tokens.spacing[3]
-                              }}
-                            />
-                          </div>
+                          {/* Download Button */}
+                          {img.optimizedUrl && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              fullWidth
+                              onClick={() => downloadImage(img.optimizedUrl, `optimized-${index + 1}-${Date.now()}.jpg`)}
+                            >
+                              📥 Download
+                            </Button>
+                          )}
                         </div>
-                      </>
-                    )}
-                    
-                    {/* Score Improvement Badge - show score change for non-perfect images */}
-                    {!optimizedPhoto.alreadyOptimized && analysisResults.score !== optimizedScore && (
-                      <div style={{
-                        padding: tokens.spacing[4],
-                        background: `${tokens.colors.primary}15`,
-                        border: `1px solid ${tokens.colors.primary}33`,
-                        borderRadius: tokens.radius.md,
-                        marginBottom: tokens.spacing[4],
-                        textAlign: 'center'
-                      }}>
-                        <div style={{
-                          fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          color: tokens.colors.primary,
-                          marginBottom: tokens.spacing[2]
-                        }}>
-                          📈 Score: {analysisResults.score} → {optimizedScore}
-                        </div>
-                        <p style={{
-                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                          color: tokens.colors.textMuted,
-                          margin: 0
-                        }}>
-                          {optimizedPhoto.message || 'Your image has been improved.'}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Improvements List - only show if improvements were actually made */}
-                    {optimizedPhoto.improvements && optimizedPhoto.improvements.length > 0 && !optimizedPhoto.alreadyOptimized && (
-                      <div style={{
-                        padding: 'clamp(1rem, 3vw, 1.5rem)',
-                        background: `${tokens.colors.success}1A`,
-                        border: `1px solid ${tokens.colors.success}33`,
-                        borderRadius: tokens.radius.md,
-                        marginBottom: tokens.spacing[6]
-                      }}>
-                        <h4 style={{
-                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
-                          fontWeight: tokens.typography.fontWeight.semibold,
-                          color: tokens.colors.text,
-                          marginBottom: tokens.spacing[3]
-                        }}>
-                          Improvements Applied:
-                        </h4>
-                        <ul style={{
-                          margin: 0,
-                          paddingLeft: 'clamp(1rem, 4vw, 1.5rem)',
-                          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
-                          color: tokens.colors.textMuted
-                        }}>
-                          {optimizedPhoto.improvements.map((imp: string, i: number) => (
-                            <li key={i} style={{ marginBottom: tokens.spacing[2] }}>
-                              {imp}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {/* Reshoot Tips - show when source photo quality is poor */}
-                    {optimizedPhoto.showReshootTips && (
-                      <div style={{
-                        padding: tokens.spacing[5],
-                        background: `${tokens.colors.warning}10`,
-                        border: `2px solid ${tokens.colors.warning}`,
-                        borderRadius: tokens.radius.md,
-                        marginBottom: tokens.spacing[6]
-                      }}>
-                        <div style={{
-                          fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-                          marginBottom: tokens.spacing[3],
-                          textAlign: 'center'
-                        }}>
-                          💡
-                        </div>
-                        <h4 style={{
-                          fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          color: tokens.colors.text,
-                          marginBottom: tokens.spacing[3],
-                          textAlign: 'center'
-                        }}>
-                          Reshoot Tips
-                        </h4>
-                        <ul style={{
-                          margin: 0,
-                          paddingLeft: tokens.spacing[5],
-                          fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                          color: tokens.colors.textMuted,
-                          lineHeight: 1.6
-                        }}>
-                          <li style={{ marginBottom: tokens.spacing[2] }}>☀️ Natural light near a window</li>
-                          <li style={{ marginBottom: tokens.spacing[2] }}>🧹 Plain background</li>
-                          <li style={{ marginBottom: tokens.spacing[2] }}>📏 Product fills the frame</li>
-                          <li style={{ marginBottom: tokens.spacing[2] }}>📱 Highest camera resolution</li>
-                        </ul>
-                        <p style={{
-                          fontSize: 'clamp(0.875rem, 2vw, 1rem)',
-                          color: tokens.colors.text,
-                          fontWeight: tokens.typography.fontWeight.semibold,
-                          marginTop: tokens.spacing[4],
-                          marginBottom: 0,
-                          textAlign: 'center'
-                        }}>
-                          A 5-minute reshoot could double your score.
-                        </p>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                     
                     {/* Action Buttons */}
                     <div style={{
@@ -1282,14 +1225,23 @@ export default function UploadPage() {
                         variant="primary"
                         size="lg"
                         fullWidth
-                        onClick={() => downloadImage(optimizedPhoto.url, `optimized-photo-${Date.now()}.jpg`)}
+                        onClick={() => {
+                          // Download all images
+                          optimizedListing.images?.forEach((img: any, index: number) => {
+                            if (img.optimizedUrl) {
+                              setTimeout(() => {
+                                downloadImage(img.optimizedUrl, `optimized-${index + 1}-${Date.now()}.jpg`);
+                              }, index * 500); // Stagger downloads
+                            }
+                          });
+                        }}
                         style={{
                           minHeight: '56px',
                           fontSize: 'clamp(1rem, 3vw, 1.125rem)',
                           fontWeight: tokens.typography.fontWeight.bold
                         }}
                       >
-                        📥 Download Optimized Photo
+                        📥 Download All {optimizedListing.images?.length || 0} Photos
                       </Button>
                       <Button
                         variant="secondary"
@@ -1297,7 +1249,7 @@ export default function UploadPage() {
                         fullWidth
                         onClick={resetOptimization}
                       >
-                        Upload & Optimize Another Photo
+                        Upload & Optimize Another Listing
                       </Button>
                     </div>
                   </div>
