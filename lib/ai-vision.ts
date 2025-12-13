@@ -1,11 +1,17 @@
 /**
  * AI VISION ANALYSIS - Deterministic Etsy Image Scoring
- * Uses Gemini 2.5 Flash for fast, accurate image analysis
- * Returns structured data mapped to existing interface
+ * Uses Vertex AI (Gemini 2.5 Flash) for fast, accurate image analysis
+ * Auth: API key header (x-goog-api-key)
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ImageAttributes } from './database-scoring';
+
+// ===========================================
+// VERTEX AI CONFIGURATION
+// ===========================================
+const VERTEX_PROJECT = 'gen-lang-client-0375102261';
+const VERTEX_LOCATION = 'us-central1';
+const VERTEX_MODEL = 'gemini-2.5-flash';
 
 // ===========================================
 // AI VISION RESPONSE TYPE (EXISTING SHAPE - PRESERVED)
@@ -37,7 +43,7 @@ export interface AIVisionResponse {
   reference_object_visible: boolean;
   size_comparison_clear: boolean;
   
-  // NEW: AI-determined score (1-100) - SINGLE SOURCE OF TRUTH
+  // AI-determined score (1-100) - SINGLE SOURCE OF TRUTH
   ai_score?: number;
   ai_confidence?: number;
   ai_caps_applied?: string[];
@@ -46,7 +52,7 @@ export interface AIVisionResponse {
 }
 
 // ===========================================
-// SYSTEM PROMPT - SINGLE SOURCE OF TRUTH (VERBATIM)
+// SYSTEM PROMPT - SINGLE SOURCE OF TRUTH
 // ===========================================
 
 const SYSTEM_PROMPT = `ROLE:
@@ -148,7 +154,7 @@ Return ONLY a valid JSON object with this exact structure:
 Do NOT include any text outside the JSON. Do NOT explain your reasoning.`;
 
 // ===========================================
-// ANALYZE IMAGE WITH GEMINI VISION
+// ANALYZE IMAGE WITH VERTEX AI
 // ===========================================
 
 export async function analyzeImageWithVision(
@@ -156,32 +162,66 @@ export async function analyzeImageWithVision(
   mimeType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp' = 'image/jpeg'
 ): Promise<AIVisionResponse | null> {
   
-  // Try Emergent LLM key first, fallback to Anthropic key
-  const apiKey = process.env.EMERGENT_LLM_KEY || process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   
   if (!apiKey) {
-    console.error('[AI Vision] No API key found (EMERGENT_LLM_KEY or ANTHROPIC_API_KEY)');
+    console.error('[AI Vision] GOOGLE_API_KEY not found');
     return null;
   }
   
   try {
-    console.log('[AI Vision] Analyzing image with Gemini 2.5 Flash...');
+    console.log('[AI Vision] Analyzing image with Vertex AI (Gemini 2.5 Flash)...');
     
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Vertex AI endpoint
+    const endpoint = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
     
-    // Prepare image part
-    const imagePart = {
-      inlineData: {
-        data: imageBase64,
-        mimeType: mimeType,
+    // Build request body
+    const requestBody = {
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: SYSTEM_PROMPT },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: imageBase64,
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: 1024,
       },
     };
     
-    // Send to Gemini
-    const result = await model.generateContent([SYSTEM_PROMPT, imagePart]);
-    const response = await result.response;
-    const responseText = response.text().trim();
+    // Make request with API key header
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[AI Vision] Vertex AI error:', response.status, errorText);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    // Extract text from response
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    if (!responseText) {
+      console.error('[AI Vision] No text in response');
+      return null;
+    }
     
     console.log('[AI Vision] Raw response:', responseText.substring(0, 300));
     
@@ -201,7 +241,7 @@ export async function analyzeImageWithVision(
     // Log deterministic score
     console.log('[AI Vision] Deterministic score:', parsed.score, 'Confidence:', parsed.confidence, 'Caps:', parsed.capsApplied);
     
-    // Map new AI output to existing AIVisionResponse shape
+    // Map AI output to existing AIVisionResponse shape
     const mapped: AIVisionResponse = mapToExistingShape(parsed);
     
     return mapped;
@@ -213,7 +253,7 @@ export async function analyzeImageWithVision(
 }
 
 // ===========================================
-// MAP NEW AI OUTPUT TO EXISTING SHAPE
+// MAP AI OUTPUT TO EXISTING SHAPE
 // ===========================================
 
 function mapToExistingShape(aiOutput: any): AIVisionResponse {
@@ -255,7 +295,7 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
     reference_object_visible: photoTypes.includes('scale_shot'),
     size_comparison_clear: photoTypes.includes('scale_shot'),
     
-    // NEW: AI-determined score - SINGLE SOURCE OF TRUTH
+    // AI-determined score - SINGLE SOURCE OF TRUTH
     ai_score: typeof aiOutput.score === 'number' ? aiOutput.score : undefined,
     ai_confidence: typeof aiOutput.confidence === 'number' ? aiOutput.confidence : undefined,
     ai_caps_applied: Array.isArray(aiOutput.capsApplied) ? aiOutput.capsApplied : [],
@@ -289,7 +329,7 @@ export function getDefaultVisionResponse(): AIVisionResponse {
     appealing_context: false,
     reference_object_visible: false,
     size_comparison_clear: false,
-    ai_score: 50,  // Conservative baseline
+    ai_score: 50,
     ai_confidence: 0,
     ai_caps_applied: ['analysis_failed'],
     ai_strengths: [],
