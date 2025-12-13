@@ -170,8 +170,7 @@ export async function POST(request: NextRequest) {
       missingPhotoTypes: listingScore.missingPhotoTypes,
       breakdown: listingScore.breakdown,
       imageResults,
-      imageCount: imageResults.length,
-      category
+      imageCount: imageResults.length
     });
     
   } catch (error: any) {
