@@ -92,6 +92,7 @@ function calculateVarietyScore(detectedTypes: string[]): number {
 
 /**
  * Calculate overall listing score from multiple images
+ * Uses simple average of individual image scores for transparency
  */
 export function calculateListingScore(imageResults: ImageAnalysisResult[]): ListingScoreResult {
   if (imageResults.length === 0) {
@@ -102,30 +103,20 @@ export function calculateListingScore(imageResults: ImageAnalysisResult[]): List
   const mainImageResult = imageResults[0];
   const mainImageScore = mainImageResult.score;
   
-  // 2. Average of all image scores
+  // 2. Average of all image scores (simple average for transparency)
   const totalScore = imageResults.reduce((sum, result) => sum + result.score, 0);
   const averageImageScore = Math.round(totalScore / imageResults.length);
   
-  // 3. Variety score
+  // 3. Variety score (for display purposes only)
   const detectedPhotoTypes = detectPhotoTypeVariety(imageResults);
   const varietyScore = calculateVarietyScore(detectedPhotoTypes);
   
-  // 4. Completeness bonus
+  // 4. Completeness bonus (for display purposes only)
   const completenessBonus = imageResults.length >= 5;
-  const completenessScore = completenessBonus ? 100 : (imageResults.length / 5) * 100;
   
-  // 5. Calculate weighted overall score
-  const mainImageWeight = 0.40;      // 40% - Most important
-  const averageWeight = 0.30;        // 30% - Quality matters
-  const varietyWeight = 0.20;        // 20% - Diversity
-  const completenessWeight = 0.10;   // 10% - Completeness
-  
-  const overallListingScore = Math.round(
-    (mainImageScore * mainImageWeight) +
-    (averageImageScore * averageWeight) +
-    (varietyScore * varietyWeight) +
-    (completenessScore * completenessWeight)
-  );
+  // 5. Overall listing score = simple average of all image scores
+  // This matches user expectation: if scores are 100,100,96,100,100,100,100 → average is 99
+  const overallListingScore = averageImageScore;
   
   // 6. Detect missing photo types
   const missingPhotoTypes = getMissingPhotoTypes(detectedPhotoTypes);
@@ -135,10 +126,10 @@ export function calculateListingScore(imageResults: ImageAnalysisResult[]): List
     mainImageScore,
     averageImageScore,
     varietyScore,
-    completenessScore,
     detectedPhotoTypes,
     missingPhotoTypes,
-    imageCount: imageResults.length
+    imageCount: imageResults.length,
+    individualScores: imageResults.map(r => r.score)
   });
   
   return {
@@ -150,10 +141,10 @@ export function calculateListingScore(imageResults: ImageAnalysisResult[]): List
     detectedPhotoTypes,
     missingPhotoTypes,
     breakdown: {
-      mainImageWeight: Math.round(mainImageScore * mainImageWeight),
-      averageWeight: Math.round(averageImageScore * averageWeight),
-      varietyWeight: Math.round(varietyScore * varietyWeight),
-      completenessWeight: Math.round(completenessScore * completenessWeight)
+      mainImageWeight: mainImageScore,
+      averageWeight: averageImageScore,
+      varietyWeight: varietyScore,
+      completenessWeight: completenessBonus ? 100 : Math.round((imageResults.length / 5) * 100)
     }
   };
 }

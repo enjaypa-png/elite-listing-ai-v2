@@ -274,6 +274,14 @@ export default function UploadPage() {
         formData.append(`image_${index}`, file);
       });
       
+      // Pass the analysis scores so optimization shows consistent "before" scores
+      if (analysisResults?.imageResults) {
+        const analysisScores = analysisResults.imageResults.map((r: any) => r.score);
+        formData.append('analysis_scores', JSON.stringify(analysisScores));
+        formData.append('analysis_overall_score', String(analysisResults.overallListingScore || analysisResults.score));
+        console.log('[Listing Optimizer] Passing analysis scores:', analysisScores);
+      }
+      
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',
         body: formData
@@ -1053,62 +1061,41 @@ export default function UploadPage() {
                     
                     {/* Overall Score Comparison */}
                     <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: tokens.spacing[4],
-                      marginBottom: tokens.spacing[6],
-                      padding: tokens.spacing[4],
+                      padding: tokens.spacing[5],
                       background: `${tokens.colors.primary}10`,
                       borderRadius: tokens.radius.md,
-                      border: `1px solid ${tokens.colors.primary}30`
+                      border: `1px solid ${tokens.colors.primary}30`,
+                      textAlign: 'center',
+                      marginBottom: tokens.spacing[6]
                     }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{
-                          fontSize: tokens.typography.fontSize.sm,
-                          color: tokens.colors.textMuted,
-                          marginBottom: tokens.spacing[1]
-                        }}>
-                          Before
-                        </div>
-                        <div style={{
-                          fontSize: tokens.typography.fontSize['2xl'],
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          color: tokens.colors.text
-                        }}>
-                          {optimizedListing.originalScore}
-                        </div>
+                      <div style={{
+                        fontSize: tokens.typography.fontSize.sm,
+                        color: tokens.colors.textMuted,
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        Your Listing Score
                       </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{
-                          fontSize: tokens.typography.fontSize.sm,
-                          color: tokens.colors.textMuted,
-                          marginBottom: tokens.spacing[1]
-                        }}>
-                          After
-                        </div>
-                        <div style={{
-                          fontSize: tokens.typography.fontSize['2xl'],
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          color: tokens.colors.success
-                        }}>
-                          {optimizedListing.newScore}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{
-                          fontSize: tokens.typography.fontSize.sm,
-                          color: tokens.colors.textMuted,
-                          marginBottom: tokens.spacing[1]
-                        }}>
-                          Improvement
-                        </div>
-                        <div style={{
-                          fontSize: tokens.typography.fontSize['2xl'],
-                          fontWeight: tokens.typography.fontWeight.bold,
-                          color: optimizedListing.improvement > 0 ? tokens.colors.success : tokens.colors.text
-                        }}>
-                          {optimizedListing.improvement > 0 ? '+' : ''}{optimizedListing.improvement}
-                        </div>
+                      <div style={{
+                        fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.text,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: tokens.spacing[3]
+                      }}>
+                        <span>{optimizedListing.originalScore}</span>
+                        <span style={{ color: tokens.colors.textMuted }}>→</span>
+                        <span style={{ color: tokens.colors.success }}>{optimizedListing.newScore}</span>
+                        {optimizedListing.improvement > 0 && (
+                          <span style={{ 
+                            fontSize: tokens.typography.fontSize.lg,
+                            color: tokens.colors.success,
+                            fontWeight: tokens.typography.fontWeight.semibold
+                          }}>
+                            (+{optimizedListing.improvement})
+                          </span>
+                        )}
                       </div>
                     </div>
                     

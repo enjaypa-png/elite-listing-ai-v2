@@ -178,6 +178,26 @@ export async function POST(request: NextRequest) {
       index++;
     }
     
+    // Get analysis scores if provided (to show consistent "before" scores)
+    let analysisScores: number[] = [];
+    let analysisOverallScore: number | null = null;
+    const analysisScoresStr = formData.get('analysis_scores') as string;
+    const analysisOverallStr = formData.get('analysis_overall_score') as string;
+    
+    if (analysisScoresStr) {
+      try {
+        analysisScores = JSON.parse(analysisScoresStr);
+        console.log(`[${requestId}] Using analysis scores from frontend:`, analysisScores);
+      } catch (e) {
+        console.log(`[${requestId}] Could not parse analysis scores, will calculate fresh`);
+      }
+    }
+    
+    if (analysisOverallStr) {
+      analysisOverallScore = parseInt(analysisOverallStr, 10);
+      console.log(`[${requestId}] Using analysis overall score from frontend:`, analysisOverallScore);
+    }
+    
     console.log(`[${requestId}] Received ${imageFiles.length} images for optimization`);
     
     // Validation
@@ -254,15 +274,24 @@ export async function POST(request: NextRequest) {
         
         console.log(`[${requestId}] Image ${i + 1}: Using profile = ${rules.profileName} (type: ${photoTypeForScoring})`);
         
-        // Calculate original score using photo-type-specific rules
-        const originalScoring = calculateScore(originalMerged, rules);
-        const originalScore = originalScoring.total_score;
+        // Use analysis score if provided, otherwise calculate fresh
+        // This ensures "before" scores match what user saw in analysis
+        let originalScore: number;
+        if (analysisScores.length > i) {
+          originalScore = analysisScores[i];
+          console.log(`[${requestId}] Image ${i + 1}: Using passed analysis score = ${originalScore}`);
+        } else {
+          const originalScoring = calculateScore(originalMerged, rules);
+          originalScore = originalScoring.total_score;
+          console.log(`[${requestId}] Image ${i + 1}: Calculated fresh score = ${originalScore}`);
+        }
         totalOriginalScore += originalScore;
         
-        console.log(`[${requestId}] Image ${i + 1}: BEFORE score = ${originalScore} (from fresh analysis with ${rules.profileName})`);
+        console.log(`[${requestId}] Image ${i + 1}: BEFORE score = ${originalScore}`);
         
-        // Check if already optimized
-        if (originalScoring.is_already_optimized) {
+        // Check if already optimized (score >= 95)
+        const isAlreadyOptimized = originalScore >= 95;
+        if (isAlreadyOptimized) {
           console.log(`[${requestId}] Image ${i + 1}: Already optimized (score >= 95)`);
           
           // Upload original as-is
@@ -398,7 +427,10 @@ export async function POST(request: NextRequest) {
     // ===========================================
     // 4. CALCULATE OVERALL SCORES
     // ===========================================
-    const avgOriginalScore = Math.round(totalOriginalScore / imageFiles.length);
+    // Use passed analysis overall score if available, otherwise calculate average
+    const avgOriginalScore = analysisOverallScore !== null 
+      ? analysisOverallScore 
+      : Math.round(totalOriginalScore / imageFiles.length);
     const avgNewScore = Math.round(totalNewScore / imageFiles.length);
     const overallImprovement = avgNewScore - avgOriginalScore;
     
@@ -407,6 +439,7 @@ export async function POST(request: NextRequest) {
       avgOriginal: avgOriginalScore,
       avgNew: avgNewScore,
       improvement: overallImprovement,
+      usedPassedOverallScore: analysisOverallScore !== null
     });
     
     // ===========================================
