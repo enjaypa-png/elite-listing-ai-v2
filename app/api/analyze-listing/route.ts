@@ -10,7 +10,7 @@ import { analyzeImageWithVision, mergeAttributes } from '@/lib/ai-vision';
 import { calculateListingScore, ImageAnalysisResult } from '@/lib/listing-scoring';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 /**
  * POST /api/analyze-listing
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     // ===========================================
     // 2. CREATE SUPABASE CLIENT & FETCH SCORING RULES
     // ===========================================
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const rules = await fetchScoringRules(supabase);
     
     if (!rules) {
