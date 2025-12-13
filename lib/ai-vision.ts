@@ -44,7 +44,7 @@ export interface AIVisionResponse {
 
 const VISION_PROMPT = `Analyze this product image and return ONLY a JSON object with these exact boolean fields.
 Do NOT add any explanation or text outside the JSON.
-Answer each question with true or false based on strict criteria:
+Answer each question with true or false based on the criteria below:
 
 {
   "has_clean_white_background": true/false,
@@ -69,28 +69,28 @@ Answer each question with true or false based on strict criteria:
 }
 
 STANDARD CRITERIA:
-- has_clean_white_background: true ONLY if background is solid white or neutral (beige, light gray) with NO distracting elements
-- is_product_centered: true ONLY if the main product occupies the center 60% of the frame
-- has_good_lighting: true ONLY if product is evenly lit with no harsh shadows or dark areas
-- is_sharp_focus: true ONLY if product edges are crisp and clear, not blurry
-- has_no_watermarks: true ONLY if there are NO text overlays, logos, or watermarks visible
-- professional_appearance: true ONLY if the image looks professionally shot (good composition, proper staging)
+- has_clean_white_background: true if background is clean and uncluttered - white, gray, beige, or simple neutral texture. Does NOT need to be pure white.
+- is_product_centered: true if the main product is prominently positioned (doesn't need to be mathematically centered)
+- has_good_lighting: true if product is well-lit and details are visible (some soft shadows are OK)
+- is_sharp_focus: true if product is in focus and details are clear
+- has_no_watermarks: true if there are NO text overlays, logos, or watermarks visible
+- professional_appearance: true if the image looks intentionally styled and composed
 
 PHOTO-TYPE SPECIFIC CRITERIA:
-- shows_texture_or_craftsmanship: true if close-up reveals material quality, stitching, grain, weave, or handmade details
-- product_clearly_visible: true if the product is easily identifiable in the scene (not hidden, obscured, or too small)
-- appealing_context: true if the setting/environment enhances product appeal (cozy home, outdoor use, styled scene)
-- reference_object_visible: true if a common object (hand, coin, ruler, pen, cup) is shown next to product for size reference
-- size_comparison_clear: true if viewer can easily understand product dimensions from the reference object
+- shows_texture_or_craftsmanship: true if you can see material quality, texture, grain, weave, stitching, or handmade details
+- product_clearly_visible: true if the product is the clear subject and easily identifiable
+- appealing_context: true if the setting enhances the product (lifestyle scene, styled props, natural environment)
+- reference_object_visible: true if ANY object provides size context - books, leaves, hands, plants, furniture, cups, fabric, etc. Does NOT need to be a ruler or coin.
+- size_comparison_clear: true if viewer can reasonably gauge the product's size from context
 
-PHOTO TYPE DEFINITIONS:
-- studio: Product on clean, simple, well-lit background (white/neutral)
-- lifestyle: Product shown in use or natural setting/environment
-- scale: Product shown next to common object (hand, coin, ruler) for size reference
-- detail: Close-up highlighting texture, quality, or unique features
+PHOTO TYPE DEFINITIONS (be generous - if it partially fits, mark true):
+- studio: Background is clean and simple (white, gray, beige, simple texture, linen). Product is the clear focus.
+- lifestyle: Product shown in a real setting, in use, or styled environment (table, shelf, with plants, outdoors)
+- scale: ANY object near the product that helps understand size - hands, books, plants, furniture, cups, food items, fabric
+- detail: Close-up or cropped view showing texture, material, craftsmanship, or specific features
 - group: Multiple products or variations shown together
-- packaging: Image showing the product packaging
-- process: Behind-the-scenes or product being made
+- packaging: Product packaging is visible
+- process: Behind-the-scenes or making-of shot
 
 Set the corresponding has_X_shot to true for the detected type.
 Return ONLY the JSON object, no other text.`;

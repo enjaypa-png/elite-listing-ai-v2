@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
-import { fetchScoringRules, calculateScore, ImageAttributes } from '@/lib/database-scoring';
+import { fetchScoringRules, fetchScoringRulesByPhotoType, calculateScore, ImageAttributes, PhotoType } from '@/lib/database-scoring';
 import { analyzeImageWithVision, mergeAttributes } from '@/lib/ai-vision';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -196,17 +196,12 @@ export async function POST(request: NextRequest) {
     }
     
     // ===========================================
-    // 2. CREATE SUPABASE CLIENT & FETCH SCORING RULES
+    // 2. CREATE SUPABASE CLIENT
     // ===========================================
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const rules = await fetchScoringRules(supabase);
     
-    if (!rules) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to load scoring rules' },
-        { status: 500 }
-      );
-    }
+    // Note: We fetch photo-type-specific rules per image in the loop
+    console.log(`[${requestId}] Supabase client created`);
     
     // ===========================================
     // 3. OPTIMIZE EACH IMAGE
@@ -235,6 +230,7 @@ export async function POST(request: NextRequest) {
           const imageBase64 = buffer.toString('base64');
           const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
           visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
+          console.log(`[${requestId}] Image ${i + 1}: Vision detected type = ${visionResponse?.detected_photo_type || 'unknown'}`);
         } catch (visionError: any) {
           console.error(`[${requestId}] Image ${i + 1}: Vision failed:`, visionError.message);
         }
@@ -243,14 +239,31 @@ export async function POST(request: NextRequest) {
           ? mergeAttributes(originalAttrs, visionResponse)
           : originalAttrs;
         
-        // Calculate original score
+        // Determine photo type for scoring (same logic as analyze-listing)
+        let photoTypeForScoring: PhotoType = 'main';
+        if (!isMainImage && visionResponse?.detected_photo_type) {
+          photoTypeForScoring = visionResponse.detected_photo_type as PhotoType;
+        }
+        
+        // Fetch photo-type-specific rules
+        const rules = await fetchScoringRulesByPhotoType(supabase, photoTypeForScoring);
+        if (!rules) {
+          console.error(`[${requestId}] Image ${i + 1}: Failed to fetch rules for ${photoTypeForScoring}`);
+          throw new Error('Failed to load scoring rules');
+        }
+        
+        console.log(`[${requestId}] Image ${i + 1}: Using profile = ${rules.profileName} (type: ${photoTypeForScoring})`);
+        
+        // Calculate original score using photo-type-specific rules
         const originalScoring = calculateScore(originalMerged, rules);
         const originalScore = originalScoring.total_score;
         totalOriginalScore += originalScore;
         
+        console.log(`[${requestId}] Image ${i + 1}: BEFORE score = ${originalScore} (from fresh analysis with ${rules.profileName})`);
+        
         // Check if already optimized
         if (originalScoring.is_already_optimized) {
-          console.log(`[${requestId}] Image ${i + 1}: Already optimized`);
+          console.log(`[${requestId}] Image ${i + 1}: Already optimized (score >= 95)`);
           
           // Upload original as-is
           const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
@@ -309,11 +322,21 @@ export async function POST(request: NextRequest) {
           has_group_shot: originalMerged.has_group_shot,
           has_packaging_shot: originalMerged.has_packaging_shot,
           has_process_shot: originalMerged.has_process_shot,
+          // Photo-type specific attributes (inherit from original)
+          shows_texture_or_craftsmanship: originalMerged.shows_texture_or_craftsmanship,
+          product_clearly_visible: originalMerged.product_clearly_visible,
+          appealing_context: originalMerged.appealing_context,
+          reference_object_visible: originalMerged.reference_object_visible,
+          size_comparison_clear: originalMerged.size_comparison_clear,
         };
         
+        // Use the same rules for the optimized score
         const newScoring = calculateScore(optimizedMerged, rules);
         const newScore = newScoring.total_score;
         totalNewScore += newScore;
+        
+        console.log(`[${requestId}] Image ${i + 1}: AFTER score = ${newScore} (profile: ${rules.profileName})`);
+        console.log(`[${requestId}] Image ${i + 1}: Score change: ${originalScore} → ${newScore} (+${newScore - originalScore})`);
         
         // Upload optimized image
         const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
