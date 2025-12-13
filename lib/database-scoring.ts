@@ -658,16 +658,19 @@ export function calculateScore(
   console.log('[DEBUG] Composition complete. Total composition points:', compositionPoints);
   
   // ===========================================
-  // 4. CALCULATE TOTAL SCORE
+  // 4. CALCULATE TOTAL SCORE (capped at 100)
   // ===========================================
-  const totalScore = technicalPoints + photoTypePoints + compositionPoints;
+  const rawScore = technicalPoints + photoTypePoints + compositionPoints;
+  const totalScore = Math.min(rawScore, 100);  // Cap at 100
   
   // DEBUG: Log final calculation
   console.log('[DEBUG] Final score calculation:', {
     technicalPoints: technicalPoints,
     photoTypePoints: photoTypePoints,
     compositionPoints: compositionPoints,
+    rawScore: rawScore,
     totalScore: totalScore,
+    capped: rawScore > 100,
     failedRequiredSpecs: failedRequiredSpecs
   });
   

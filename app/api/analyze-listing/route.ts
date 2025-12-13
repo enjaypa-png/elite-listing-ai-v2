@@ -61,19 +61,14 @@ export async function POST(request: NextRequest) {
     }
     
     // ===========================================
-    // 2. CREATE SUPABASE CLIENT & FETCH SCORING RULES
+    // 2. CREATE SUPABASE CLIENT
     // ===========================================
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const rules = await fetchScoringRules(supabase);
     
-    if (!rules) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to load scoring rules' },
-        { status: 500 }
-      );
-    }
+    // Note: We fetch photo-type-specific rules inside the loop for each image
+    // This allows main image to use main_image_scoring, others to use their detected type
     
-    console.log(`[${requestId}] Rules loaded for category: ${category}`);
+    console.log(`[${requestId}] Supabase client created, will fetch rules per image type`);
     
     // ===========================================
     // 3. ANALYZE EACH IMAGE
@@ -155,14 +150,25 @@ export async function POST(request: NextRequest) {
           photoTypeForScoring = visionResponse.detected_photo_type as PhotoType;
         }
         
+        console.log(`[${requestId}] Image ${i + 1}: Detected type = ${visionResponse?.detected_photo_type || 'unknown'}, scoring as = ${photoTypeForScoring}`);
+        
         // Fetch photo-type-specific rules
         const photoTypeRules = await fetchScoringRulesByPhotoType(supabase, photoTypeForScoring);
-        const rulesToUse = photoTypeRules || rules;
         
-        console.log(`[${requestId}] Image ${i + 1}: Using ${rulesToUse?.profileName || 'default'} profile`);
+        if (!photoTypeRules) {
+          console.error(`[${requestId}] Image ${i + 1}: Failed to fetch rules for ${photoTypeForScoring}, using fallback`);
+          // Fallback to single_image_scoring if photo-type profile not found
+          const fallbackRules = await fetchScoringRules(supabase);
+          if (!fallbackRules) {
+            throw new Error('No scoring rules available');
+          }
+        }
+        
+        const rulesToUse = photoTypeRules!;
+        console.log(`[${requestId}] Image ${i + 1}: Using profile = ${rulesToUse.profileName}`);
         
         // Calculate score using photo-type-specific rules
-        const scoring = calculateScore(attributes, rulesToUse!);
+        const scoring = calculateScore(attributes, rulesToUse);
         
         // Detect photo types from AI Vision
         const photoTypes: string[] = [];
