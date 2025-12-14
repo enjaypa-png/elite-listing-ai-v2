@@ -1,17 +1,15 @@
 /**
  * AI VISION ANALYSIS - Deterministic Etsy Image Scoring
- * Uses Vertex AI (Gemini 2.5 Flash) for fast, accurate image analysis
- * Auth: API key header (x-goog-api-key)
+ * Uses Google AI Studio (Gemini 2.0 Flash) for fast, accurate image analysis
+ * Auth: API key in URL query parameter
  */
 
 import { ImageAttributes } from './database-scoring';
 
 // ===========================================
-// VERTEX AI CONFIGURATION
+// GOOGLE AI STUDIO CONFIGURATION
 // ===========================================
-const VERTEX_PROJECT = 'gen-lang-client-0375102261';
-const VERTEX_LOCATION = 'us-central1';
-const VERTEX_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 // ===========================================
 // AI VISION RESPONSE TYPE (EXISTING SHAPE - PRESERVED)
@@ -154,7 +152,7 @@ Return ONLY a valid JSON object with this exact structure:
 Do NOT include any text outside the JSON. Do NOT explain your reasoning.`;
 
 // ===========================================
-// ANALYZE IMAGE WITH VERTEX AI
+// ANALYZE IMAGE WITH GOOGLE AI STUDIO
 // ===========================================
 
 export async function analyzeImageWithVision(
@@ -170,21 +168,20 @@ export async function analyzeImageWithVision(
   }
   
   try {
-    console.log('[AI Vision] Analyzing image with Vertex AI (Gemini 2.5 Flash)...');
+    console.log('[AI Vision] Analyzing image with Google AI Studio (Gemini 2.0 Flash)...');
     
-    // Vertex AI endpoint
-    const endpoint = `https://${VERTEX_LOCATION}-aiplatform.googleapis.com/v1/projects/${VERTEX_PROJECT}/locations/${VERTEX_LOCATION}/publishers/google/models/${VERTEX_MODEL}:generateContent`;
+    // Google AI Studio endpoint - API key in query parameter
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
     
-    // Build request body
+    // Build request body (Google AI Studio format)
     const requestBody = {
       contents: [
         {
-          role: 'user',
           parts: [
             { text: SYSTEM_PROMPT },
             {
-              inlineData: {
-                mimeType: mimeType,
+              inline_data: {
+                mime_type: mimeType,
                 data: imageBase64,
               },
             },
@@ -197,19 +194,18 @@ export async function analyzeImageWithVision(
       },
     };
     
-    // Make request with API key header
+    // Make request
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify(requestBody),
     });
     
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[AI Vision] Vertex AI error:', response.status, errorText);
+      console.error('[AI Vision] Google AI Studio error:', response.status, errorText);
       return null;
     }
     
