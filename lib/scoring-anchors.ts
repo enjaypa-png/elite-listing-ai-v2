@@ -1,351 +1,323 @@
 /**
- * SCORING ANCHORS SYSTEM
- * Calibrates AI scoring using real Etsy examples
+ * SCORING ANCHORS - Real Etsy Examples for AI Calibration
  * 
- * This file will be populated with anchor data from Manus AI collection
+ * These anchors teach the AI what different score ranges look like.
+ * Data collected from real Etsy listings across quality spectrum.
  */
 
 // ===========================================
-// TYPE DEFINITIONS
+// SCORE RANGE DEFINITIONS
 // ===========================================
 
-export interface ScoringAnchor {
-  id: string;
-  category: EtsyCategory;
-  photo_type: PhotoType;
-  score: number;
-  image_url: string;
-  seller_type: 'best_seller' | 'star_seller' | 'regular' | 'new_seller';
-  reasoning: {
-    score_justification: string;
-    strengths: string[];
-    weaknesses: string[];
-    etsy_alignment: string;
-  };
-  technical_notes: {
-    background_type: BackgroundType;
-    lighting_quality: LightingQuality;
-    composition: CompositionQuality;
-    has_props: boolean;
-    shows_scale: boolean;
-    image_position: 'main_image' | 'secondary' | 'detail';
-  };
-}
-
-export type EtsyCategory = 
-  | 'home_living'
-  | 'jewelry'
-  | 'clothing'
-  | 'craft_supplies'
-  | 'paper_party'
-  | 'art_collectibles'
-  | 'bath_beauty'
-  | 'pet_supplies'
-  | 'toys_games'
-  | 'vintage';
-
-export type PhotoType = 
-  | 'studio'
-  | 'lifestyle'
-  | 'detail'
-  | 'scale'
-  | 'group'
-  | 'packaging'
-  | 'process';
-
-export type BackgroundType = 
-  | 'clean_white'
-  | 'clean_neutral'
-  | 'lifestyle_clean'
-  | 'lifestyle_busy'
-  | 'textured_minimal'
-  | 'cluttered_home'
-  | 'outdoor'
-  | 'other';
-
-export type LightingQuality = 
-  | 'professional_soft'
-  | 'professional_dramatic'
-  | 'natural_good'
-  | 'natural_harsh'
-  | 'poor_indoor'
-  | 'mixed';
-
-export type CompositionQuality = 
-  | 'centered_balanced'
-  | 'rule_of_thirds'
-  | 'slightly_off'
-  | 'off_center'
-  | 'poor';
+export const SCORE_RANGES = {
+  exceptional: { min: 90, max: 100, label: 'Exceptional', description: 'Top 1-5% of Etsy - professional photography' },
+  good: { min: 80, max: 89, label: 'Good', description: 'Best-seller quality - strong photos that convert' },
+  average: { min: 70, max: 79, label: 'Average', description: 'Typical Etsy quality - room for improvement' },
+  below_average: { min: 60, max: 69, label: 'Below Average', description: 'Multiple issues affecting sales' },
+  poor: { min: 40, max: 59, label: 'Poor', description: 'Significant problems - needs reshoot' },
+  failing: { min: 0, max: 39, label: 'Failing', description: 'Would actively hurt sales' }
+};
 
 // ===========================================
-// CATEGORY REQUIREMENTS (From your doc)
+// ANCHOR EXAMPLES BY SCORE RANGE
+// These are embedded in the AI prompt for calibration
 // ===========================================
 
-export const CATEGORY_REQUIREMENTS: Record<EtsyCategory, {
+export const SCORING_ANCHORS_TEXT = `
+## SCORING CALIBRATION ANCHORS
+
+Use these real Etsy examples to calibrate your scoring. Match the user's image to the most similar anchor.
+
+### EXCEPTIONAL (90-98)
+
+**94/100 - Pet Supplies - Lifestyle with Pet**
+"Cat actively using wooden pet bowl, shows removable bowl feature, warm natural lighting, cozy home setting - exactly what Pet Supplies needs. Pet engagement + clear product visibility + aspirational context."
+- Strengths: Pet in use, natural light, demonstrates functionality, emotional appeal
+- Why 94: Hits every category requirement, professional execution
+
+**93/100 - Jewelry - On-Body Hero**
+"Personalized anklet on model's ankle with beach setting, warm lighting makes gold pop, excellent scale reference with foot visible."
+- Strengths: On-body context, warm lighting, lifestyle setting, clear product
+- Why 93: Professional quality, shows size naturally, aspirational context
+
+**92/100 - Vintage - Hero Product Shot**
+"Watch in presentation box, professional lighting highlights sunburst gold dial, clear vintage authenticity markers visible."
+- Strengths: Professional presentation, excellent lighting, shows condition clearly
+- Why 92: Builds trust for vintage buyers, museum-quality presentation
+
+**91/100 - Home & Living - Lifestyle**
+"Framed wall art in elegant Parisian-style room, beautiful natural lighting, oak frame visible, minimalist styling."
+- Strengths: Aspirational room setting, natural light, doesn't over-style
+- Why 91: Shows product in context without competing elements
+
+### GOOD (80-89)
+
+**88/100 - Home & Living - Lifestyle**
+"Coffee table in living room with natural lighting, good scale reference with surrounding furniture, elegant styling with candles/books."
+- Strengths: Real room context, warm lighting, demonstrates scale
+- Why 88 not 92: Slight darkness in lighting, one distracting element
+
+**86/100 - Vintage - Side Profile Detail**
+"Watch slim case profile and lug design, important for collectors assessing wearability."
+- Strengths: Critical detail for category, sharp focus, informative
+- Why 86: Useful but not hero-quality, serves specific purpose
+
+**85/100 - Home & Living - Lifestyle**
+"Coffee table hero shot in realistic living room, excellent scale reference and styling."
+- Strengths: Good context, shows real use
+- Why 85 not 90: Lighting slightly dark, could be brighter
+
+### AVERAGE (70-79)
+
+**75/100 - Home & Living - Detail**
+"Close-up showing weave texture and pattern, fills frame well."
+- Strengths: Good detail visibility, sharp focus
+- Weaknesses: Still on unappealing floor background, slight shadow at bottom
+- Why 75: Good execution undermined by poor background choice
+
+**73/100 - Jewelry - Infographic**
+"Font selection guide for personalization options."
+- Strengths: Helpful for conversion, clear information
+- Weaknesses: Not a product photo, doesn't showcase actual jewelry
+- Why 73: Useful but doesn't demonstrate product quality
+
+### BELOW AVERAGE (60-69)
+
+**68/100 - Home & Living - Detail**
+"Weave texture from closer angle, better composition than others."
+- Strengths: Shows material quality
+- Weaknesses: Same industrial floor background, no lifestyle context
+- Why 68: Decent shot ruined by environment
+
+**62/100 - Home & Living - Hero**
+"Full rug laid flat on industrial green tile floor, orange wall visible, harsh overhead lighting."
+- Strengths: Shows full product
+- Weaknesses: Industrial floor with grout lines, clashing wall color, harsh reflections
+- Why 62: Product visible but environment actively hurts appeal
+
+**61/100 - Home & Living - Alternate Angle**
+"Different perspective but same green tile floor, orange wall, harsh lighting with reflections."
+- Strengths: Shows different angle
+- Weaknesses: Same environmental problems, no staging effort
+- Why 61: Redundant angle doesn't add value
+
+### POOR (40-59)
+
+**55/100 - Home & Living - Lifestyle Attempt**
+"Rug shown on stairs for lifestyle context, but bright green walls and worn marble stairs are extremely distracting."
+- Strengths: Attempted lifestyle context
+- Weaknesses: Green walls clash with product, worn/dirty stairs visible, not aspirational
+- Why 55: Good intent, terrible execution - environment hurts more than helps
+
+**54/100 - Home & Living - Lifestyle Attempt**
+"Another staircase shot, bright green walls, worn marble, metal railing distracting."
+- Strengths: Shows product in use
+- Weaknesses: Clashing colors, dirty surfaces, industrial feel
+- Why 54: Lifestyle context that actually damages perception
+
+**52/100 - Wall Art - Single Image Listing**
+"Canvas print on plain beige wall, harsh overhead shadow, no scale reference, no detail shots."
+- Strengths: Product centered, in focus
+- Weaknesses: ONLY 1 IMAGE, no scale, no texture detail, no lifestyle context, plain wall
+- Why 52: Bare minimum effort - would not convert
+
+### CRITICAL SCORING RULES FROM ANCHORS:
+
+1. **Environment matters as much as product** - A sharp, well-composed product photo on ugly background caps at 75 max
+2. **Lifestyle context must be ASPIRATIONAL** - Bad lifestyle (dirty stairs, industrial floors) scores LOWER than plain studio
+3. **Single image listings cap at 60** - Regardless of image quality, 1 photo = no trust
+4. **Redundant angles don't add value** - Same shot from slightly different angle = diminishing returns
+5. **Category requirements are non-negotiable** - Pet Supplies without pet = capped. Jewelry without scale = capped.
+`;
+
+// ===========================================
+// CATEGORY-SPECIFIC REQUIREMENTS
+// ===========================================
+
+export const CATEGORY_REQUIREMENTS: Record<string, {
   name: string;
-  requirements: string[];
-  ideal_photo_types: PhotoType[];
-  scoring_emphasis: string;
+  must_have: string[];
+  nice_to_have: string[];
+  common_failures: string[];
 }> = {
   home_living: {
     name: 'Home & Living',
-    requirements: [
-      'Lifestyle context showing product in a real room setting',
-      'Scale reference (next to common objects or furniture)',
-      'Styled with complementary props that enhance, not distract',
-      'Natural warm lighting that feels inviting',
-      'Clean background or intentional lifestyle setting',
-      'Color harmony between product and environment'
+    must_have: [
+      'Lifestyle context showing product in real room setting',
+      'Scale reference with furniture or common objects',
+      'Clean or intentionally styled background',
+      'Warm, inviting lighting'
     ],
-    ideal_photo_types: ['lifestyle', 'studio', 'scale', 'detail'],
-    scoring_emphasis: 'Lifestyle context and warm, inviting presentation'
+    nice_to_have: [
+      'Multiple room settings showing versatility',
+      'Detail shots of texture/craftsmanship',
+      'Color accuracy for fabric/material'
+    ],
+    common_failures: [
+      'Industrial or warehouse backgrounds',
+      'Harsh overhead lighting',
+      'No room context - just product on floor',
+      'Clashing wall colors'
+    ]
   },
   jewelry: {
     name: 'Jewelry & Accessories',
-    requirements: [
-      'Clean white or neutral background',
-      'Sharp focus on fine details and gemstones',
-      'Proper lighting without harsh shadows or glare',
-      'Size reference (model hand, coin, or ruler)',
-      'Multiple angles to show all aspects',
-      'Product fills 70-80% of frame'
+    must_have: [
+      'Clean white or neutral background for studio shots',
+      'Sharp focus on fine details',
+      'Scale reference (hand, finger, coin)',
+      'No harsh shadows or glare on metal'
     ],
-    ideal_photo_types: ['studio', 'detail', 'scale', 'lifestyle'],
-    scoring_emphasis: 'Detail clarity and professional clean presentation'
-  },
-  clothing: {
-    name: 'Clothing/Apparel',
-    requirements: [
-      'On model OR professional flat lay presentation',
-      'Full garment visible in at least one shot',
-      'Fabric texture clearly visible',
-      'Natural lighting preferred',
-      'Neutral background that doesn\'t compete',
-      'Wrinkle-free, steamed/ironed presentation'
+    nice_to_have: [
+      'On-body/model shots',
+      'Multiple angles',
+      'Lifestyle context (elegant setting)'
     ],
-    ideal_photo_types: ['studio', 'lifestyle', 'detail'],
-    scoring_emphasis: 'Fit visualization and fabric quality visibility'
-  },
-  craft_supplies: {
-    name: 'Craft Supplies & Tools',
-    requirements: [
-      'Clean product shot showing all items',
-      'Detail shots highlighting quality',
-      'Scale reference for size understanding',
-      'Texture and material clearly visible',
-      'Lifestyle context showing product in use',
-      'Handmade quality visible if applicable'
-    ],
-    ideal_photo_types: ['studio', 'detail', 'scale', 'process'],
-    scoring_emphasis: 'Quantity clarity and material quality'
-  },
-  paper_party: {
-    name: 'Paper & Party Supplies',
-    requirements: [
-      'Flat lay styling for paper goods',
-      'Clean white background for clarity',
-      'Text must be clearly readable',
-      'Styled with relevant props',
-      'Even lighting without shadows on text',
-      'Color accuracy is critical'
-    ],
-    ideal_photo_types: ['studio', 'lifestyle', 'detail'],
-    scoring_emphasis: 'Text readability and color accuracy'
-  },
-  art_collectibles: {
-    name: 'Art & Collectibles',
-    requirements: [
-      'Straight-on shot without perspective distortion',
-      'Even lighting without glare or reflections',
-      'True color representation',
-      'Frame or mockup context shown',
-      'High resolution for detail appreciation',
-      'White or neutral background'
-    ],
-    ideal_photo_types: ['studio', 'detail', 'scale', 'lifestyle'],
-    scoring_emphasis: 'Color accuracy and no distortion'
-  },
-  bath_beauty: {
-    name: 'Bath & Beauty',
-    requirements: [
-      'Clean, spa-like aesthetic',
-      'Packaging clearly visible and readable',
-      'Ingredients or texture shown where relevant',
-      'Lifestyle context suggesting use',
-      'Natural/organic vibe in styling',
-      'Professional, even lighting'
-    ],
-    ideal_photo_types: ['studio', 'lifestyle', 'detail', 'packaging'],
-    scoring_emphasis: 'Clean aesthetic and ingredient/texture visibility'
+    common_failures: [
+      'Blurry detail shots',
+      'No size reference',
+      'Busy patterned backgrounds',
+      'Glare on gemstones/metal'
+    ]
   },
   pet_supplies: {
     name: 'Pet Supplies',
-    requirements: [
+    must_have: [
       'Pet shown using the product (when possible)',
       'Product clearly visible even with pet',
-      'Scale reference for sizing',
-      'Clean background',
-      'Lifestyle context',
-      'Emotional appeal and cuteness factor'
+      'Scale reference',
+      'Clean background'
     ],
-    ideal_photo_types: ['lifestyle', 'studio', 'scale'],
-    scoring_emphasis: 'Pet engagement and clear product visibility'
-  },
-  toys_games: {
-    name: 'Toys & Games',
-    requirements: [
-      'In-use shot showing play value',
-      'Bright, cheerful lighting',
-      'Clean background',
-      'Scale reference for size',
-      'Safety features visible if applicable',
-      'Fun, playful styling'
+    nice_to_have: [
+      'Multiple pets/breeds shown',
+      'Lifestyle home setting',
+      'Emotional appeal shots'
     ],
-    ideal_photo_types: ['lifestyle', 'studio', 'scale', 'detail'],
-    scoring_emphasis: 'Play value demonstration and safety visibility'
+    common_failures: [
+      'No pet in any photos',
+      'Pet obscures product',
+      'No size reference for pet items',
+      'Sterile studio-only approach'
+    ]
   },
   vintage: {
     name: 'Vintage Items',
-    requirements: [
-      'Condition clearly visible (show wear honestly)',
+    must_have: [
+      'Condition clearly visible - show wear honestly',
       'Multiple angles',
-      'Scale reference',
-      'Natural lighting preferred',
-      'Authenticity marks visible (labels, stamps)',
-      'Patina/character shown authentically'
+      'Authenticity markers visible (labels, stamps, hallmarks)',
+      'Scale reference'
     ],
-    ideal_photo_types: ['studio', 'detail', 'scale'],
-    scoring_emphasis: 'Honest condition representation and authenticity'
+    nice_to_have: [
+      'Professional presentation (box, stand)',
+      'Detail shots of patina/character',
+      'Context shots suggesting era'
+    ],
+    common_failures: [
+      'Hiding flaws or wear',
+      'Single angle only',
+      'No authenticity proof',
+      'Poor lighting hiding condition'
+    ]
+  },
+  art_collectibles: {
+    name: 'Art & Collectibles / Wall Art',
+    must_have: [
+      'Straight-on shot without distortion',
+      'True colors, no color cast',
+      'No glare or reflections',
+      'Scale reference with furniture or person'
+    ],
+    nice_to_have: [
+      'Room mockup showing size in context',
+      'Detail of texture/brushwork',
+      'Frame options shown'
+    ],
+    common_failures: [
+      'Single image only',
+      'No size context',
+      'Glare from glass/varnish',
+      'Perspective distortion'
+    ]
+  },
+  clothing: {
+    name: 'Clothing/Apparel',
+    must_have: [
+      'On model OR professional flat lay',
+      'Full garment visible',
+      'Fabric texture visible',
+      'Wrinkle-free presentation'
+    ],
+    nice_to_have: [
+      'Multiple angles (front, back, detail)',
+      'Size reference or fit guide',
+      'Lifestyle/styled shots'
+    ],
+    common_failures: [
+      'Wrinkled garments',
+      'On hanger against wall',
+      'Poor lighting hiding fabric quality',
+      'No full garment shot'
+    ]
+  },
+  bath_beauty: {
+    name: 'Bath & Beauty',
+    must_have: [
+      'Clean, spa-like aesthetic',
+      'Packaging/labels clearly readable',
+      'Ingredients or texture shown (where relevant)',
+      'Professional lighting'
+    ],
+    nice_to_have: [
+      'Lifestyle context (bathroom, vanity)',
+      'Texture swatches',
+      'Size comparison'
+    ],
+    common_failures: [
+      'Cluttered background',
+      'Unreadable labels',
+      'No texture/consistency shown',
+      'Harsh bathroom lighting'
+    ]
+  },
+  craft_supplies: {
+    name: 'Craft Supplies & Tools',
+    must_have: [
+      'All items clearly shown',
+      'Quantity visible',
+      'Scale reference',
+      'Quality/texture visible'
+    ],
+    nice_to_have: [
+      'Shown in use/project context',
+      'Close-up of material quality',
+      'Packaging shot'
+    ],
+    common_failures: [
+      'Unclear what quantity included',
+      'No size reference',
+      'Poor lighting hiding quality',
+      'Messy arrangement'
+    ]
   }
 };
 
 // ===========================================
-// PLACEHOLDER: ANCHOR DATA
-// (Will be populated from Manus AI collection)
+// HELPER: Generate prompt section
 // ===========================================
 
-export const SCORING_ANCHORS: ScoringAnchor[] = [
-  // PLACEHOLDER - These will be replaced with real anchors from Manus AI
-  // Example structure:
-  /*
-  {
-    id: "anchor_001",
-    category: "jewelry",
-    photo_type: "studio",
-    score: 92,
-    image_url: "https://i.etsystatic.com/...",
-    seller_type: "best_seller",
-    reasoning: {
-      score_justification: "Professional studio setup with clean white background...",
-      strengths: ["Flawless white background", "Sharp focus", "Perfect lighting"],
-      weaknesses: ["No scale reference in this shot"],
-      etsy_alignment: "Exceeds Etsy jewelry photography guidelines"
-    },
-    technical_notes: {
-      background_type: "clean_white",
-      lighting_quality: "professional_soft",
-      composition: "centered_balanced",
-      has_props: false,
-      shows_scale: false,
-      image_position: "main_image"
-    }
-  }
-  */
-];
-
-// ===========================================
-// HELPER FUNCTIONS
-// ===========================================
-
-/**
- * Get anchors for a specific category
- */
-export function getAnchorsForCategory(category: EtsyCategory): ScoringAnchor[] {
-  return SCORING_ANCHORS.filter(a => a.category === category);
+export function getAnchorsForPrompt(): string {
+  return SCORING_ANCHORS_TEXT;
 }
 
-/**
- * Get anchors within a score range
- */
-export function getAnchorsInScoreRange(min: number, max: number): ScoringAnchor[] {
-  return SCORING_ANCHORS.filter(a => a.score >= min && a.score <= max);
-}
-
-/**
- * Get reference anchors for AI prompt
- * Returns a curated set of anchors across the score spectrum
- */
-export function getReferenceAnchorsForPrompt(category?: EtsyCategory): string {
-  let anchors = SCORING_ANCHORS;
+export function getCategoryRequirements(category: string): string {
+  const cat = CATEGORY_REQUIREMENTS[category];
+  if (!cat) return '';
   
-  if (category) {
-    anchors = anchors.filter(a => a.category === category);
-  }
-  
-  // Get representative samples across score ranges
-  const samples: ScoringAnchor[] = [];
-  const ranges = [
-    { min: 90, max: 100, label: 'Exceptional' },
-    { min: 80, max: 89, label: 'Excellent' },
-    { min: 70, max: 79, label: 'Good' },
-    { min: 55, max: 69, label: 'Needs Work' },
-    { min: 0, max: 54, label: 'Poor' }
-  ];
-  
-  for (const range of ranges) {
-    const inRange = anchors.filter(a => a.score >= range.min && a.score <= range.max);
-    if (inRange.length > 0) {
-      // Take up to 2 samples per range
-      samples.push(...inRange.slice(0, 2));
-    }
-  }
-  
-  // Format for prompt
-  return samples.map(a => 
-    `[${a.score}/100 - ${a.category}] ${a.reasoning.score_justification}\n` +
-    `Strengths: ${a.reasoning.strengths.join(', ')}\n` +
-    `Weaknesses: ${a.reasoning.weaknesses.join(', ')}`
-  ).join('\n\n');
-}
-
-/**
- * Get category requirements for AI prompt
- */
-export function getCategoryRequirementsForPrompt(category: EtsyCategory): string {
-  const req = CATEGORY_REQUIREMENTS[category];
   return `
-CATEGORY: ${req.name}
-REQUIREMENTS:
-${req.requirements.map((r, i) => `${i + 1}. ${r}`).join('\n')}
-
-IDEAL PHOTO TYPES: ${req.ideal_photo_types.join(', ')}
-SCORING EMPHASIS: ${req.scoring_emphasis}
+CATEGORY: ${cat.name}
+MUST HAVE: ${cat.must_have.join(', ')}
+NICE TO HAVE: ${cat.nice_to_have.join(', ')}
+COMMON FAILURES: ${cat.common_failures.join(', ')}
 `;
 }
-
-// ===========================================
-// SCORE CALIBRATION
-// ===========================================
-
-export const SCORE_CALIBRATION = {
-  // Recalibrated ranges based on real Etsy best-sellers
-  ranges: {
-    exceptional: { min: 90, max: 98, description: 'Top 1-5% of Etsy - Professional photography, perfect execution' },
-    best_seller: { min: 85, max: 89, description: 'Best-seller quality - Strong photos that drive sales' },
-    good: { min: 75, max: 84, description: 'Solid listings - Minor improvements possible' },
-    average: { min: 65, max: 74, description: 'Average Etsy quality - Several areas to improve' },
-    needs_work: { min: 50, max: 64, description: 'Below average - Multiple issues affecting sales' },
-    poor: { min: 0, max: 49, description: 'Poor quality - Significant problems, rebuild needed' }
-  },
-  
-  // What each score range means for the seller
-  guidance: {
-    '90+': 'Your photos are exceptional! Focus on maintaining consistency across all listings.',
-    '85-89': 'Excellent photos that compete with best-sellers. Minor tweaks could push to exceptional.',
-    '75-84': 'Good foundation. Addressing the issues noted could significantly boost visibility.',
-    '65-74': 'Average for Etsy. Prioritize the top 2-3 improvements for biggest impact.',
-    '50-64': 'Below average. Consider reshooting with focus on lighting and background.',
-    'below 50': 'Photos are likely hurting sales. A full reshoot following Etsy guidelines is recommended.'
-  }
-};

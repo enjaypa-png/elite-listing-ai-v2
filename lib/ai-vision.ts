@@ -1,10 +1,11 @@
 /**
- * AI VISION ANALYSIS - Deterministic Etsy Image Scoring
- * Uses Google AI Studio (Gemini 2.0 Flash) for fast, accurate image analysis
- * Auth: API key in URL query parameter
+ * AI VISION ANALYSIS - Etsy Image Scoring
+ * Uses Google AI Studio (Gemini 2.0 Flash)
+ * Calibrated with real Etsy listing anchors
  */
 
 import { ImageAttributes } from './database-scoring';
+import { SCORING_ANCHORS_TEXT, CATEGORY_REQUIREMENTS } from './scoring-anchors';
 
 // ===========================================
 // GOOGLE AI STUDIO CONFIGURATION
@@ -12,11 +13,10 @@ import { ImageAttributes } from './database-scoring';
 const GEMINI_MODEL = 'gemini-2.0-flash';
 
 // ===========================================
-// AI VISION RESPONSE TYPE (EXISTING SHAPE - PRESERVED)
+// AI VISION RESPONSE TYPE
 // ===========================================
 
 export interface AIVisionResponse {
-  // Composition checks (binary)
   has_clean_white_background: boolean;
   is_product_centered: boolean;
   has_good_lighting: boolean;
@@ -24,7 +24,6 @@ export interface AIVisionResponse {
   has_no_watermarks: boolean;
   professional_appearance: boolean;
   
-  // Photo type detection (binary)
   detected_photo_type: 'studio' | 'lifestyle' | 'scale' | 'detail' | 'group' | 'packaging' | 'process' | 'unknown';
   has_studio_shot: boolean;
   has_lifestyle_shot: boolean;
@@ -34,14 +33,12 @@ export interface AIVisionResponse {
   has_packaging_shot: boolean;
   has_process_shot: boolean;
   
-  // Photo-type specific attributes
   shows_texture_or_craftsmanship: boolean;
   product_clearly_visible: boolean;
   appealing_context: boolean;
   reference_object_visible: boolean;
   size_comparison_clear: boolean;
   
-  // AI-determined score (1-100) - SINGLE SOURCE OF TRUTH
   ai_score?: number;
   ai_confidence?: number;
   ai_caps_applied?: string[];
@@ -50,106 +47,100 @@ export interface AIVisionResponse {
 }
 
 // ===========================================
-// SYSTEM PROMPT - SINGLE SOURCE OF TRUTH
+// SYSTEM PROMPT - CALIBRATED WITH REAL ANCHORS
 // ===========================================
 
-const SYSTEM_PROMPT = `ROLE:
-You are an automated, critical image quality evaluator for Etsy product listings.
+const SYSTEM_PROMPT = `You are an Etsy product image scorer. Score images 1-100 based on how well they would convert sales on Etsy.
 
-Your task is to strictly score individual product images on a 1–100 scale based on Etsy's real buyer-facing image standards.
-You must be skeptical, conservative, and evidence-driven.
+## YOUR CALIBRATION
 
-👉 Scores above 90 are rare and represent top-tier, professional listings only.
-👉 Do not inflate scores. Do not assume intent. Judge only what is visible.
+You have been trained on real Etsy listings. Use these reference points:
 
-🔢 SCORING BASE RULES (MANDATORY)
+${SCORING_ANCHORS_TEXT}
 
-Start every image at 50/100
+## SCORING APPROACH
 
-Adjust score only when visual evidence exists
+1. **Start at 70** (average Etsy quality)
+2. **Add points** for strengths (max +28 to reach 98)
+3. **Subtract points** for issues (can go down to 40)
+4. **Apply hard caps** for missing requirements
 
-Apply hard caps when required elements are missing
+## POINT ADJUSTMENTS
 
-Never return 100 unless all required criteria are met
+**Composition (+/- 12 max)**
+- Product fills 70-85% of frame: +6
+- Well-centered, balanced margins: +4
+- Awkward crop or tilted: -6
+- Product too small in frame: -4
 
-If unsure, score lower, not higher
+**Lighting (+/- 12 max)**
+- Soft, even, professional lighting: +8
+- Natural light, warm and inviting: +6
+- Harsh shadows or glare: -8
+- Too dark or overexposed: -6
 
-🚫 HARD SCORE CAPS (NON-NEGOTIABLE)
+**Background (+/- 12 max)**
+- Clean studio (white/neutral): +6
+- Aspirational lifestyle setting: +8
+- Busy but not distracting: +2
+- Distracting/ugly background: -10
+- Industrial/messy environment: -12
 
-If any condition below is missing, enforce the maximum score cap:
+**Category Fit (+/- 8 max)**
+- Meets all category must-haves: +6
+- Exceeds with nice-to-haves: +8
+- Missing critical requirement: -8
 
-Missing Element              | Max Score
------------------------------|----------
-Clean, distraction-free background | 85
-Proper crop (no edge clipping, centered) | 90
-Product clearly dominates frame | 90
-Sharp focus (no softness / blur) | 85
-Accurate color & exposure | 88
-Studio-style presentation (main image only) | 92
+## HARD CAPS (Cannot exceed these scores)
 
-📸 SCORING DIMENSIONS (ADD / SUBTRACT)
+| Issue | Max Score |
+|-------|-----------|
+| Ugly/industrial background | 75 |
+| Bad lifestyle (dirty, clashing) | 70 |
+| No scale reference (jewelry/furniture) | 85 |
+| Blurry or soft focus | 80 |
+| Single image in listing context | 60 |
 
-Apply all that apply. No double counting.
+## PHOTO TYPE DETECTION
 
-Composition & Framing (±15)
-- Product fills ~70–85% of frame: +8
-- Balanced margins / centered subject: +5
-- Awkward crop, tilt, or cutoff: −8
+Classify as ONE primary type:
+- **studio**: Clean background, product-focused
+- **lifestyle**: Product in use or styled setting  
+- **detail**: Close-up of texture/features
+- **scale**: Size reference included
+- **group**: Multiple items shown
+- **packaging**: Shows how product arrives
+- **process**: Behind-the-scenes/making
 
-Lighting & Exposure (±15)
-- Soft, even, diffused lighting: +10
-- Harsh shadows, glare, blown highlights: −10
+## OUTPUT FORMAT
 
-Background Quality (±10)
-- Clean, neutral, Etsy-appropriate background: +8
-- Busy, textured, distracting background: −10
-
-Context Use (±10)
-- Lifestyle context improves clarity: +6
-- Props distract or confuse: −6
-
-Technical Quality (±10)
-- Sharp, noise-free image: +8
-- Compression artifacts, blur, softness: −8
-
-🧠 PHOTO TYPE CLASSIFICATION (REQUIRED)
-
-Classify each image as one or more of:
-- studio_shot
-- lifestyle_shot
-- detail_shot
-- scale_shot
-
-If confidence <70%, classify as uncertain.
-
-🚨 ANTI-INFLATION RULES (CRITICAL)
-
-Do NOT assume professionalism
-Do NOT average away failures
-Do NOT reward "effort"
-Do NOT boost scores for quantity
-90–100 = top 1–5% of Etsy listings
-Most solid listings should score 70–85
-
-📤 REQUIRED OUTPUT (JSON ONLY)
-
-Return ONLY a valid JSON object with this exact structure:
+Return ONLY valid JSON:
 {
-  "score": <number 1-100>,
-  "capsApplied": [<list of cap reasons if any>],
-  "photoTypes": [<list of detected types>],
-  "strengths": [<list of positive observations>],
-  "issues": [<list of problems found>],
-  "confidence": <number 0-1>,
+  "score": <number 40-98>,
+  "photoType": "<primary type>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "issues": ["<issue 1>", "<issue 2>"],
+  "capsApplied": ["<cap reason if any>"],
+  "confidence": <0.0-1.0>,
   "has_clean_background": <boolean>,
   "is_centered": <boolean>,
   "has_good_lighting": <boolean>,
   "is_sharp": <boolean>,
   "has_watermarks": <boolean>,
-  "looks_professional": <boolean>
+  "looks_professional": <boolean>,
+  "background_quality": "<clean|lifestyle_good|lifestyle_bad|busy|ugly>",
+  "similar_anchor": "<brief description of which anchor this most resembles>"
 }
 
-Do NOT include any text outside the JSON. Do NOT explain your reasoning.`;
+## CRITICAL RULES
+
+1. **Environment matters as much as product** - Great product on ugly background = 75 max
+2. **Bad lifestyle scores LOWER than no lifestyle** - Dirty stairs worse than plain studio
+3. **Match to anchors** - Find the closest anchor and adjust from there
+4. **Be honest** - Most Etsy photos are 65-80. Reserve 90+ for truly exceptional.
+5. **Explain your score** - Reference specific visual evidence
+
+Do NOT include any text outside the JSON.`;
 
 // ===========================================
 // ANALYZE IMAGE WITH GOOGLE AI STUDIO
@@ -168,12 +159,10 @@ export async function analyzeImageWithVision(
   }
   
   try {
-    console.log('[AI Vision] Analyzing image with Google AI Studio (Gemini 2.0 Flash)...');
+    console.log('[AI Vision] Analyzing image with Gemini 2.0 Flash (anchor-calibrated)...');
     
-    // Google AI Studio endpoint - API key in query parameter
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
     
-    // Build request body (Google AI Studio format)
     const requestBody = {
       contents: [
         {
@@ -194,7 +183,6 @@ export async function analyzeImageWithVision(
       },
     };
     
-    // Make request
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -211,7 +199,6 @@ export async function analyzeImageWithVision(
     
     const data = await response.json();
     
-    // Extract text from response
     const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     
     if (!responseText) {
@@ -219,9 +206,9 @@ export async function analyzeImageWithVision(
       return null;
     }
     
-    console.log('[AI Vision] Raw response:', responseText.substring(0, 300));
+    console.log('[AI Vision] Raw response:', responseText.substring(0, 500));
     
-    // Extract JSON from response
+    // Extract JSON
     let jsonStr = responseText;
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
@@ -234,13 +221,9 @@ export async function analyzeImageWithVision(
     
     const parsed = JSON.parse(jsonMatch[0]);
     
-    // Log deterministic score
-    console.log('[AI Vision] Deterministic score:', parsed.score, 'Confidence:', parsed.confidence, 'Caps:', parsed.capsApplied);
+    console.log('[AI Vision] Score:', parsed.score, '| Type:', parsed.photoType, '| Similar to:', parsed.similar_anchor);
     
-    // Map AI output to existing AIVisionResponse shape
-    const mapped: AIVisionResponse = mapToExistingShape(parsed);
-    
-    return mapped;
+    return mapToExistingShape(parsed);
     
   } catch (error: any) {
     console.error('[AI Vision] Error:', error.message);
@@ -249,24 +232,22 @@ export async function analyzeImageWithVision(
 }
 
 // ===========================================
-// MAP AI OUTPUT TO EXISTING SHAPE
+// MAP AI OUTPUT TO RESPONSE SHAPE
 // ===========================================
 
 function mapToExistingShape(aiOutput: any): AIVisionResponse {
-  const photoTypes: string[] = aiOutput.photoTypes || [];
+  const photoType = aiOutput.photoType || 'unknown';
   
-  // Determine primary photo type
   let detected_photo_type: AIVisionResponse['detected_photo_type'] = 'unknown';
-  if (photoTypes.includes('studio_shot')) detected_photo_type = 'studio';
-  else if (photoTypes.includes('lifestyle_shot')) detected_photo_type = 'lifestyle';
-  else if (photoTypes.includes('detail_shot')) detected_photo_type = 'detail';
-  else if (photoTypes.includes('scale_shot')) detected_photo_type = 'scale';
-  else if (photoTypes.includes('group_shot')) detected_photo_type = 'group';
-  else if (photoTypes.includes('packaging_shot')) detected_photo_type = 'packaging';
-  else if (photoTypes.includes('process_shot')) detected_photo_type = 'process';
+  if (photoType.includes('studio')) detected_photo_type = 'studio';
+  else if (photoType.includes('lifestyle')) detected_photo_type = 'lifestyle';
+  else if (photoType.includes('detail')) detected_photo_type = 'detail';
+  else if (photoType.includes('scale')) detected_photo_type = 'scale';
+  else if (photoType.includes('group')) detected_photo_type = 'group';
+  else if (photoType.includes('packaging')) detected_photo_type = 'packaging';
+  else if (photoType.includes('process')) detected_photo_type = 'process';
   
   return {
-    // Map boolean composition checks
     has_clean_white_background: aiOutput.has_clean_background ?? false,
     is_product_centered: aiOutput.is_centered ?? false,
     has_good_lighting: aiOutput.has_good_lighting ?? false,
@@ -274,24 +255,21 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
     has_no_watermarks: !(aiOutput.has_watermarks ?? false),
     professional_appearance: aiOutput.looks_professional ?? false,
     
-    // Photo type detection
     detected_photo_type,
-    has_studio_shot: photoTypes.includes('studio_shot'),
-    has_lifestyle_shot: photoTypes.includes('lifestyle_shot'),
-    has_scale_shot: photoTypes.includes('scale_shot'),
-    has_detail_shot: photoTypes.includes('detail_shot'),
-    has_group_shot: photoTypes.includes('group_shot'),
-    has_packaging_shot: photoTypes.includes('packaging_shot'),
-    has_process_shot: photoTypes.includes('process_shot'),
+    has_studio_shot: photoType === 'studio',
+    has_lifestyle_shot: photoType === 'lifestyle',
+    has_scale_shot: photoType === 'scale',
+    has_detail_shot: photoType === 'detail',
+    has_group_shot: photoType === 'group',
+    has_packaging_shot: photoType === 'packaging',
+    has_process_shot: photoType === 'process',
     
-    // Photo-type specific (infer from context)
-    shows_texture_or_craftsmanship: photoTypes.includes('detail_shot'),
+    shows_texture_or_craftsmanship: photoType === 'detail',
     product_clearly_visible: aiOutput.is_centered ?? false,
-    appealing_context: photoTypes.includes('lifestyle_shot'),
-    reference_object_visible: photoTypes.includes('scale_shot'),
-    size_comparison_clear: photoTypes.includes('scale_shot'),
+    appealing_context: photoType === 'lifestyle' && aiOutput.background_quality !== 'lifestyle_bad',
+    reference_object_visible: photoType === 'scale',
+    size_comparison_clear: photoType === 'scale',
     
-    // AI-determined score - SINGLE SOURCE OF TRUTH
     ai_score: typeof aiOutput.score === 'number' ? aiOutput.score : undefined,
     ai_confidence: typeof aiOutput.confidence === 'number' ? aiOutput.confidence : undefined,
     ai_caps_applied: Array.isArray(aiOutput.capsApplied) ? aiOutput.capsApplied : [],
@@ -301,7 +279,7 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
 }
 
 // ===========================================
-// FALLBACK: DETERMINISTIC DEFAULTS
+// FALLBACK DEFAULTS
 // ===========================================
 
 export function getDefaultVisionResponse(): AIVisionResponse {
@@ -334,7 +312,7 @@ export function getDefaultVisionResponse(): AIVisionResponse {
 }
 
 // ===========================================
-// MERGE TECHNICAL + AI VISION INTO ATTRIBUTES
+// MERGE TECHNICAL + AI VISION
 // ===========================================
 
 export function mergeAttributes(
@@ -352,16 +330,12 @@ export function mergeAttributes(
   return {
     ...technical,
     shortest_side: Math.min(technical.width_px, technical.height_px),
-    
-    // AI Vision attributes
     has_clean_white_background: vision.has_clean_white_background,
     is_product_centered: vision.is_product_centered,
     has_good_lighting: vision.has_good_lighting,
     is_sharp_focus: vision.is_sharp_focus,
     has_no_watermarks: vision.has_no_watermarks,
     professional_appearance: vision.professional_appearance,
-    
-    // Photo types
     has_studio_shot: vision.has_studio_shot,
     has_lifestyle_shot: vision.has_lifestyle_shot,
     has_scale_shot: vision.has_scale_shot,
@@ -369,8 +343,6 @@ export function mergeAttributes(
     has_group_shot: vision.has_group_shot,
     has_packaging_shot: vision.has_packaging_shot,
     has_process_shot: vision.has_process_shot,
-    
-    // Photo-type specific attributes
     shows_texture_or_craftsmanship: vision.shows_texture_or_craftsmanship ?? false,
     product_clearly_visible: vision.product_clearly_visible ?? false,
     appealing_context: vision.appealing_context ?? false,
