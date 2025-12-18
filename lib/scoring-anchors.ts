@@ -103,17 +103,17 @@ Use these real Etsy examples to calibrate your scoring. Match the user's image t
 
 ### POOR (40-59)
 
-**55/100 - Home & Living - Lifestyle Attempt**
-"Rug shown on stairs for lifestyle context, but bright green walls and worn marble stairs are extremely distracting."
-- Strengths: Attempted lifestyle context
-- Weaknesses: Green walls clash with product, worn/dirty stairs visible, not aspirational
-- Why 55: Good intent, terrible execution - environment hurts more than helps
+**55/100 - Wall Art - Canvas Painting**
+"Ocean view canvas with 9 images but all generic product shots, no lifestyle mockups showing art in a room."
+- Strengths: Artwork clear, consistent image quality
+- Weaknesses: No in-room lifestyle mockups, no scale reference, flat lighting hides canvas texture, images feel generic and repetitive
+- Why 55: Fails Art & Collectibles presentation standards - buyers can't visualize it in their space
 
-**54/100 - Home & Living - Lifestyle Attempt**
-"Another staircase shot, bright green walls, worn marble, metal railing distracting."
-- Strengths: Shows product in use
-- Weaknesses: Clashing colors, dirty surfaces, industrial feel
-- Why 54: Lifestyle context that actually damages perception
+**52/100 - Pet Supplies - Dog Bowls**
+"8 images of ceramic dog bowls but NO pet shown using them, harsh glare and reflections throughout."
+- Strengths: Product visible and identifiable, multiple angles provided
+- Weaknesses: No pet using product (critical for category), harsh glare/reflections, repetitive angles provide no new information, no emotional appeal or lifestyle context
+- Why 52: Violates Pet Supplies category requirements - missing the #1 conversion driver (pet in photo)
 
 **52/100 - Wall Art - Single Image Listing**
 "Canvas print on plain beige wall, harsh overhead shadow, no scale reference, no detail shots."
@@ -121,13 +121,29 @@ Use these real Etsy examples to calibrate your scoring. Match the user's image t
 - Weaknesses: ONLY 1 IMAGE, no scale, no texture detail, no lifestyle context, plain wall
 - Why 52: Bare minimum effort - would not convert
 
+### VERY POOR (40-49)
+
+**48/100 - Wall Decor - Beach Photo**
+"9 images of a beach photograph but looks like raw photography, not a finished product for sale."
+- Strengths: Image resolution acceptable
+- Weaknesses: No framing or product context, looks like raw photo not finished product, no size/environment/buyer visualization, near-duplicate images
+- Why 48: High scroll abandonment risk - buyer has no idea what they're actually purchasing or how it would look in their home
+
+**54/100 - Home & Living - Lifestyle Attempt**
+"Rug on stairs for lifestyle context, but bright green walls and worn marble stairs extremely distracting."
+- Strengths: Attempted lifestyle context
+- Weaknesses: Clashing colors, dirty surfaces, industrial feel
+- Why 54: Lifestyle context that actually DAMAGES perception - worse than plain studio
+
 ### CRITICAL SCORING RULES FROM ANCHORS:
 
 1. **Environment matters as much as product** - A sharp, well-composed product photo on ugly background caps at 75 max
 2. **Lifestyle context must be ASPIRATIONAL** - Bad lifestyle (dirty stairs, industrial floors) scores LOWER than plain studio
 3. **Single image listings cap at 60** - Regardless of image quality, 1 photo = no trust
 4. **Redundant angles don't add value** - Same shot from slightly different angle = diminishing returns
-5. **Category requirements are non-negotiable** - Pet Supplies without pet = capped. Jewelry without scale = capped.
+5. **Category requirements are non-negotiable** - Pet Supplies without pet = capped at 55. Jewelry without scale = capped at 85.
+6. **Raw photos vs finished products** - If image looks like source material not a product listing, cap at 50
+7. **No lifestyle mockups for wall art = cap at 60** - Buyers must visualize art in their space
 `;
 
 // ===========================================
