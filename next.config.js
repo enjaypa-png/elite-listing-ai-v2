@@ -11,3 +11,4 @@ const nextConfig = {
 
 module.exports = nextConfig
 
+// Security patch applied Fri Dec 19 11:30:40 UTC 2025
