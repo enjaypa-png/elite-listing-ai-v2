@@ -142,12 +142,13 @@ CORE SCORING PRINCIPLES (UPDATED CALIBRATION)
 - Harmful images score LOWER than neutral images
 
 CRITICAL BASELINE CALIBRATION:
-- A technically competent photo with good lighting and clear product = 80 MINIMUM
-- The AVERAGE successful Etsy listing image scores 75-82
-- Photos only score below 75 when they have GENUINE problems
+- Average Etsy image quality ≈ 50/100
+- A technically competent photo with good lighting and clear product = 70-80
+- The AVERAGE successful Etsy listing image scores 65-75
+- Photos only score below 50 when they have GENUINE problems
 - Styled lifestyle shots with intentional props are GOOD, not cluttered
-- Reserve scores 60-74 for photos with real issues (bad lighting, blur, confusing composition)
-- Reserve scores below 60 for photos that would actively hurt sales
+- Reserve scores 40-59 for photos with real issues (bad lighting, blur, confusing composition)
+- Reserve scores below 40 for photos that would actively hurt sales
 
 - Environment matters as much as product quality
 - Bad lifestyle context scores LOWER than no lifestyle
@@ -237,12 +238,12 @@ FAILING (Below 45)
 SCORING METHOD
 ================================================
 For EACH image:
-1) Start at 75 (baseline for a clear, competent product photo)
+1) Start at 50 (average Etsy quality baseline)
 2) Adjust UP for strengths:
-   - Excellent composition & framing: +5 to +12
-   - Professional lighting & clarity: +5 to +10
-   - Effective background/environment: +3 to +8
-   - Strong category compliance: +3 to +8
+   - Excellent composition & framing: +5 to +15
+   - Professional lighting & clarity: +5 to +15
+   - Effective background/environment: +5 to +15
+   - Strong category compliance: +5 to +15
 3) Adjust DOWN for weaknesses:
    - Poor composition: -5 to -15
    - Bad lighting: -5 to -15
