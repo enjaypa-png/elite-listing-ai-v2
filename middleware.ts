@@ -1,26 +1,29 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Simple middleware for Supabase Auth
-// For now, we'll allow all requests and handle auth checks in individual API routes
 export function middleware(request: NextRequest) {
-  // Allow all requests to pass through
-  // Auth checks are done in individual API routes using Supabase
-  return NextResponse.next()
+  // Add security headers to all responses
+  const response = NextResponse.next()
+  
+  // Security headers for production
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  
+  return response
 }
 
 export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api/auth (auth API routes)
+     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder files
-     * - auth/signin (login page)
-     * - auth/signup (signup page)
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|auth/signin|auth/signup).*)",
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

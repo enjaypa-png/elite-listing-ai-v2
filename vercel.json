@@ -1,0 +1,23 @@
+{
+  "functions": {
+    "app/api/analyze-image/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    },
+    "app/api/optimize/photo/route.ts": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/:path*",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ]
+}

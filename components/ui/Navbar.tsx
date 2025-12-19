@@ -1,9 +1,9 @@
 'use client'
 
 import React from 'react'
-import Link from 'next/link'
 import tokens from '@/design-system/tokens.json'
 import { Button } from './Button'
+import { AppLogo } from './AppLogo'
 
 interface NavbarProps {
   showAuth?: boolean
@@ -23,9 +23,7 @@ export function Navbar({ showAuth = true }: NavbarProps) {
         justifyContent: 'space-between',
         alignItems: 'center'
       }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="/logo.png" alt="Elite Listing AI" style={{ height: '2.5rem', width: 'auto' }} />
-        </Link>
+        <AppLogo size="lg" href="/" />
         {showAuth && (
           <div style={{ display: 'flex', alignItems: 'center', gap: tokens.spacing[4] }}>
             <Button variant="ghost" size="md" href="/auth/signup">
