@@ -17,6 +17,37 @@ const ETSY_TARGET_WIDTH = 3000;
 const ETSY_TARGET_HEIGHT = 2250;  // 4:3 ratio
 const ETSY_MIN_SHORTEST_SIDE = 2000;
 
+/**
+ * Check if main image will crop well to square thumbnail
+ * Etsy crops first image to 1:1 from center
+ */
+function validateSquareSafe(width: number, height: number, isMainImage: boolean): { 
+  isSquareSafe: boolean; 
+  warning?: string 
+} {
+  if (!isMainImage) return { isSquareSafe: true };
+  
+  const aspectRatio = width / height;
+  
+  // If image is much wider than tall, center square crop might cut product
+  if (aspectRatio > 1.5) {
+    return { 
+      isSquareSafe: false, 
+      warning: 'Main image is very wide - Etsy thumbnail may crop off sides of product'
+    };
+  }
+  
+  // If image is much taller than wide, center square crop might cut product
+  if (aspectRatio < 0.67) {
+    return { 
+      isSquareSafe: false, 
+      warning: 'Main image is very tall - Etsy thumbnail may crop off top/bottom of product'
+    };
+  }
+  
+  return { isSquareSafe: true };
+}
+
 interface OptimizedImageResult {
   imageIndex: number;
   isMainImage: boolean;
@@ -87,7 +118,8 @@ async function extractTechnicalAttributes(buffer: Buffer, fileType: string): Pro
  */
 async function optimizeImageBuffer(
   buffer: Buffer,
-  originalAttributes: ImageAttributes
+  originalAttributes: ImageAttributes,
+  mergedAttributes?: any  // Includes AI-derived optimization flags
 ): Promise<{ optimizedBuffer: Buffer; improvements: string[] }> {
   const improvements: string[] = [];
   let pipeline = sharp(buffer);
@@ -107,29 +139,59 @@ async function optimizeImageBuffer(
       targetHeight = Math.round(targetWidth / (4/3));
     }
     
-    pipeline = pipeline.resize(targetWidth, targetHeight, {
-      fit: 'cover',
-      position: 'center',
-    });
+    // Use 'contain' to preserve entire product, then extend canvas to 4:3
+    // This prevents cropping off product edges
+    pipeline = pipeline
+      .resize(targetWidth, targetHeight, {
+        fit: 'contain',
+        position: 'center',
+        background: { r: 255, g: 255, b: 255, alpha: 1 }  // White padding
+      })
+      .toColorspace('srgb');
     
-    improvements.push('✅ Optimized for Etsy search');
+    improvements.push('✅ Resized to Etsy optimal dimensions (4:3)');
+    improvements.push('✅ Color profile converted to sRGB');
   }
   
+  // Get optimization flags from merged attributes (now derived from AI issues)
+  const needsBrightness = mergedAttributes?._needs_brightness_boost ?? !originalAttributes.has_good_lighting;
+  const needsSharpening = mergedAttributes?._needs_sharpening ?? !originalAttributes.is_sharp_focus;
+  const needsContrast = mergedAttributes?._needs_contrast_boost ?? false;
+  const needsSaturation = mergedAttributes?._needs_saturation_boost ?? false;
+
   // Apply sharpening if needed
-  if (!originalAttributes.is_sharp_focus) {
-    pipeline = pipeline.sharpen({ sigma: 1.2 });
-    improvements.push('✅ Professional polish applied');
+  if (needsSharpening) {
+    pipeline = pipeline.sharpen({ sigma: 1.0, m1: 0.5, m2: 0.5 });
+    improvements.push('✅ Image sharpened for clarity');
   }
-  
-  // Adjust brightness if needed
-  if (!originalAttributes.has_good_lighting) {
-    pipeline = pipeline.modulate({ brightness: 1.1 });
+
+  // Apply lighting/color adjustments
+  const modulateOptions: { brightness?: number; saturation?: number } = {};
+
+  if (needsBrightness) {
+    modulateOptions.brightness = 1.08;  // Subtle, not aggressive
     improvements.push('✅ Lighting enhanced');
+  }
+
+  if (needsSaturation) {
+    modulateOptions.saturation = 1.1;  // Slight vibrance boost
+    improvements.push('✅ Colors enhanced');
+  }
+
+  if (Object.keys(modulateOptions).length > 0) {
+    pipeline = pipeline.modulate(modulateOptions);
+  }
+
+  // Apply contrast adjustment if needed
+  if (needsContrast) {
+    pipeline = pipeline.linear(1.1, -(128 * 0.1));  // 10% contrast boost
+    improvements.push('✅ Contrast improved');
   }
   
   // Output as JPEG (Etsy compliant, under 1MB)
   let quality = 85;
   let optimizedBuffer = await pipeline
+    .withMetadata({ density: 72 })
     .jpeg({ quality, progressive: true, mozjpeg: true })
     .toBuffer();
   
@@ -287,7 +349,7 @@ export async function POST(request: NextRequest) {
         }
         
         // Optimize the image
-        const { optimizedBuffer, improvements } = await optimizeImageBuffer(buffer, originalMerged);
+        const { optimizedBuffer, improvements } = await optimizeImageBuffer(buffer, originalMerged, originalMerged);
         
         console.log(`[${requestId}] Image ${i + 1}: Optimized size: ${optimizedBuffer.length} bytes`);
         
@@ -327,6 +389,17 @@ export async function POST(request: NextRequest) {
         const { data: urlData } = supabase.storage
           .from('product-images')
           .getPublicUrl(filename);
+        
+        // Check square-safe for main image
+        const squareSafeCheck = validateSquareSafe(
+          optimizedMetadata.width || 0, 
+          optimizedMetadata.height || 0, 
+          isMainImage
+        );
+
+        if (!squareSafeCheck.isSquareSafe && squareSafeCheck.warning) {
+          improvements.push(`⚠️ ${squareSafeCheck.warning}`);
+        }
         
         optimizedResults.push({
           imageIndex: i,

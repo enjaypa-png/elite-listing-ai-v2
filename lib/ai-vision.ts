@@ -44,6 +44,16 @@ export interface AIVisionResponse {
   ai_strengths?: string[];
   ai_issues?: string[];
   ai_optimization_recommendations?: string[];
+  
+  // Optimization flags derived from AI analysis
+  _needs_brightness_boost?: boolean;
+  _needs_sharpening?: boolean;
+  _needs_contrast_boost?: boolean;
+  _needs_saturation_boost?: boolean;
+  _needs_background_cleanup?: boolean;
+  
+  // Product fill percentage (70-80% is ideal for Etsy)
+  ai_product_fill_percent?: number;
 }
 
 // ===========================================
@@ -304,6 +314,7 @@ Return ONE JSON object:
       "imageNumber": number,
       "score": number,
       "photoType": string,
+      "productFillPercent": number,
       "strengths": [string],
       "issues": [string],
       "capsApplied": [string],
@@ -509,7 +520,11 @@ export async function analyzeMultipleImages(
 // ===========================================
 
 function mapToExistingShape(aiOutput: any): AIVisionResponse {
-  const photoType = aiOutput.photoType || 'unknown';
+  const photoType = (aiOutput.photoType || 'unknown').toLowerCase();
+  const issues = Array.isArray(aiOutput.issues) ? aiOutput.issues : [];
+  const strengths = Array.isArray(aiOutput.strengths) ? aiOutput.strengths : [];
+  const issuesLower = issues.map((i: string) => i.toLowerCase());
+  const strengthsLower = strengths.map((s: string) => s.toLowerCase());
   
   let detected_photo_type: AIVisionResponse['detected_photo_type'] = 'unknown';
   if (photoType.includes('studio')) detected_photo_type = 'studio';
@@ -520,36 +535,76 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
   else if (photoType.includes('packaging')) detected_photo_type = 'packaging';
   else if (photoType.includes('process')) detected_photo_type = 'process';
   
+  // Derive flags from AI issues and strengths (more reliable than arbitrary fields)
+  const hasLightingIssue = issuesLower.some(i => 
+    i.includes('lighting') || i.includes('dark') || i.includes('dim') || 
+    i.includes('shadow') || i.includes('bright') || i.includes('exposure')
+  );
+  const hasGoodLighting = strengthsLower.some(s => 
+    s.includes('lighting') || s.includes('well-lit') || s.includes('bright')
+  ) && !hasLightingIssue;
+  
+  const hasFocusIssue = issuesLower.some(i => 
+    i.includes('blur') || i.includes('focus') || i.includes('soft') || i.includes('sharp')
+  );
+  const isSharpFocus = strengthsLower.some(s => 
+    s.includes('sharp') || s.includes('focus') || s.includes('crisp') || s.includes('clear')
+  ) && !hasFocusIssue;
+  
+  const hasBackgroundIssue = issuesLower.some(i => 
+    i.includes('background') || i.includes('clutter') || i.includes('distract')
+  );
+  const hasCleanBackground = strengthsLower.some(s => 
+    s.includes('clean') || s.includes('background') || s.includes('simple')
+  ) && !hasBackgroundIssue;
+  
+  const hasContrastIssue = issuesLower.some(i => 
+    i.includes('contrast') || i.includes('flat') || i.includes('dull')
+  );
+  
+  const hasSaturationIssue = issuesLower.some(i => 
+    i.includes('saturation') || i.includes('color') || i.includes('vibran') || i.includes('dull')
+  );
+  
   return {
-    has_clean_white_background: aiOutput.has_clean_background ?? false,
-    is_product_centered: aiOutput.is_centered ?? true,
-    has_good_lighting: aiOutput.has_good_lighting ?? false,
-    is_sharp_focus: aiOutput.is_sharp ?? true,
-    has_no_watermarks: !(aiOutput.has_watermarks ?? false),
-    professional_appearance: aiOutput.looks_professional ?? false,
+    has_clean_white_background: hasCleanBackground,
+    is_product_centered: !issuesLower.some(i => i.includes('center') || i.includes('crop') || i.includes('fill')),
+    has_good_lighting: hasGoodLighting,
+    is_sharp_focus: isSharpFocus,
+    has_no_watermarks: !issuesLower.some(i => i.includes('watermark') || i.includes('logo') || i.includes('text')),
+    professional_appearance: (aiOutput.score ?? 50) >= 75,
     
     detected_photo_type,
-    has_studio_shot: photoType === 'studio',
-    has_lifestyle_shot: photoType === 'lifestyle',
-    has_scale_shot: photoType === 'scale',
-    has_detail_shot: photoType === 'detail',
-    has_group_shot: photoType === 'group',
-    has_packaging_shot: photoType === 'packaging',
-    has_process_shot: photoType === 'process',
+    has_studio_shot: photoType.includes('studio'),
+    has_lifestyle_shot: photoType.includes('lifestyle'),
+    has_scale_shot: photoType.includes('scale'),
+    has_detail_shot: photoType.includes('detail'),
+    has_group_shot: photoType.includes('group'),
+    has_packaging_shot: photoType.includes('packaging'),
+    has_process_shot: photoType.includes('process'),
     
-    shows_texture_or_craftsmanship: photoType === 'detail',
-    product_clearly_visible: true,
-    appealing_context: photoType === 'lifestyle',
-    reference_object_visible: photoType === 'scale',
-    size_comparison_clear: photoType === 'scale',
+    shows_texture_or_craftsmanship: photoType.includes('detail'),
+    product_clearly_visible: !issuesLower.some(i => i.includes('visible') || i.includes('unclear')),
+    appealing_context: photoType.includes('lifestyle') && !hasBackgroundIssue,
+    reference_object_visible: photoType.includes('scale'),
+    size_comparison_clear: photoType.includes('scale'),
     
     ai_score: typeof aiOutput.score === 'number' ? aiOutput.score : undefined,
     ai_confidence: typeof aiOutput.confidence === 'number' ? aiOutput.confidence : 0.8,
     ai_caps_applied: Array.isArray(aiOutput.capsApplied) ? aiOutput.capsApplied : [],
-    ai_strengths: Array.isArray(aiOutput.strengths) ? aiOutput.strengths : [],
-    ai_issues: Array.isArray(aiOutput.issues) ? aiOutput.issues : [],
+    ai_strengths: strengths,
+    ai_issues: issues,
     ai_optimization_recommendations: Array.isArray(aiOutput.optimizationRecommendations) ? aiOutput.optimizationRecommendations : [],
-  };
+    // New flags for optimization decisions
+    _needs_brightness_boost: hasLightingIssue,
+    _needs_sharpening: hasFocusIssue,
+    _needs_contrast_boost: hasContrastIssue,
+    _needs_saturation_boost: hasSaturationIssue,
+    _needs_background_cleanup: hasBackgroundIssue,
+    
+    // Product fill percentage (70-80% is ideal for Etsy)
+    ai_product_fill_percent: typeof aiOutput.productFillPercent === 'number' ? aiOutput.productFillPercent : undefined,
+  } as AIVisionResponse;
 }
 
 // ===========================================
@@ -583,6 +638,11 @@ export function getDefaultVisionResponse(): AIVisionResponse {
     ai_strengths: [],
     ai_issues: ['Unable to analyze image'],
     ai_optimization_recommendations: [],
+    _needs_brightness_boost: false,
+    _needs_sharpening: false,
+    _needs_contrast_boost: false,
+    _needs_saturation_boost: false,
+    _needs_background_cleanup: false,
   };
 }
 
