@@ -821,6 +821,64 @@ export default function UploadPage() {
                               {result.photoTypes.join(', ').replace(/_/g, ' ')}
                             </div>
                           )}
+                          
+                          {/* AI Issues */}
+                          {result.ai_issues && result.ai_issues.length > 0 && (
+                            <div style={{
+                              marginTop: tokens.spacing[3],
+                              padding: tokens.spacing[2],
+                              background: `${tokens.colors.warning}15`,
+                              borderRadius: tokens.radius.sm,
+                              border: `1px solid ${tokens.colors.warning}30`
+                            }}>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.xs,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: tokens.colors.warning,
+                                marginBottom: tokens.spacing[1]
+                              }}>
+                                Issues:
+                              </div>
+                              {result.ai_issues.map((issue: string, i: number) => (
+                                <div key={i} style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.text,
+                                  marginBottom: i < result.ai_issues.length - 1 ? tokens.spacing[1] : 0
+                                }}>
+                                  • {issue}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* AI Strengths */}
+                          {result.ai_strengths && result.ai_strengths.length > 0 && (
+                            <div style={{
+                              marginTop: tokens.spacing[2],
+                              padding: tokens.spacing[2],
+                              background: `${tokens.colors.success}15`,
+                              borderRadius: tokens.radius.sm,
+                              border: `1px solid ${tokens.colors.success}30`
+                            }}>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.xs,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: tokens.colors.success,
+                                marginBottom: tokens.spacing[1]
+                              }}>
+                                Strengths:
+                              </div>
+                              {result.ai_strengths.slice(0, 3).map((strength: string, i: number) => (
+                                <div key={i} style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.text,
+                                  marginBottom: i < Math.min(result.ai_strengths.length, 3) - 1 ? tokens.spacing[1] : 0
+                                }}>
+                                  ✓ {strength}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1181,6 +1239,27 @@ export default function UploadPage() {
                           }}>
                             {img.metadata?.width}×{img.metadata?.height} • {img.metadata?.fileSizeKB}KB
                           </div>
+                          
+                          {/* Improvements Applied */}
+                          {img.improvements && img.improvements.length > 0 && (
+                            <div style={{
+                              marginBottom: tokens.spacing[2],
+                              padding: tokens.spacing[2],
+                              background: `${tokens.colors.success}10`,
+                              borderRadius: tokens.radius.sm,
+                              border: `1px solid ${tokens.colors.success}30`
+                            }}>
+                              {img.improvements.map((improvement: string, i: number) => (
+                                <div key={i} style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.text,
+                                  marginBottom: i < img.improvements.length - 1 ? tokens.spacing[1] : 0
+                                }}>
+                                  {improvement}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           
                           {/* Download Button */}
                           {img.optimizedUrl && (

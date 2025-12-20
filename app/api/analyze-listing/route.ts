@@ -117,7 +117,11 @@ export async function POST(request: NextRequest) {
           technicalPoints: 0,  // Deprecated - AI handles scoring
           photoTypePoints: 0,  // Deprecated - AI handles scoring
           compositionPoints: 0, // Deprecated - AI handles scoring
-          isMainImage
+          isMainImage,
+          ai_issues: visionResponse?.ai_issues || [],
+          ai_strengths: visionResponse?.ai_strengths || [],
+          ai_caps_applied: visionResponse?.ai_caps_applied || [],
+          ai_optimization_recommendations: visionResponse?.ai_optimization_recommendations || []
         });
         
         console.log(`[${requestId}] Image ${i + 1}: FINAL score = ${aiScore} (AI authoritative), Types = ${photoTypes.join(', ')}`);
