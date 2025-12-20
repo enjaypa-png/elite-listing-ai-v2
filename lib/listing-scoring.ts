@@ -193,12 +193,8 @@ function calculateVarietyScore(detectedTypes: string[]): number {
 /**
  * Calculate overall listing score from multiple images
  * 
- * FORMULA: final_listing_score = avg(image_scores) × photo_count_multiplier × (1 - redundancy_penalty)
- * 
- * This aligns with Etsy's conversion-first ranking logic:
- * - Rewards coverage diversity, not raw count
- * - Penalizes listings with too few photos
- * - Penalizes redundant/filler images
+ * SIMPLE FORMULA: Just use the average of image scores
+ * Photo count and variety are INFORMATIONAL only, not score penalties
  */
 export function calculateListingScore(imageResults: ImageAnalysisResult[]): ListingScoreResult {
   if (imageResults.length === 0) {
@@ -209,43 +205,35 @@ export function calculateListingScore(imageResults: ImageAnalysisResult[]): List
   const mainImageResult = imageResults[0];
   const mainImageScore = mainImageResult.score;
   
-  // 2. Raw average of all image scores
+  // 2. Average of all image scores - THIS IS THE LISTING SCORE
   const totalScore = imageResults.reduce((sum, result) => sum + result.score, 0);
   const rawAverageScore = totalScore / imageResults.length;
+  const overallListingScore = Math.round(rawAverageScore);
   
-  // 3. Photo count multiplier (Etsy ranking signal)
+  // 3. Photo count info (for display only - NO PENALTY)
   const photoCount = imageResults.length;
-  const photoCountMultiplier = getPhotoCountMultiplier(photoCount);
+  const photoCountMultiplier = 1.0; // No penalty
   const photoCountAnalysis = getPhotoCountStatus(photoCount);
   
-  // 4. Redundancy penalty (diminishing returns for duplicate types)
-  const { penalty: redundancyPenalty, redundantCount } = calculateRedundancyPenalty(imageResults);
+  // 4. Redundancy info (for display only - NO PENALTY)
+  const redundancyPenalty = 0;
   
-  // 5. Calculate final listing score with multipliers
-  // Formula: avg_score × photo_count_multiplier × (1 - redundancy_penalty)
-  const adjustedScore = rawAverageScore * photoCountMultiplier * (1 - redundancyPenalty);
-  const overallListingScore = Math.round(Math.min(100, Math.max(0, adjustedScore)));
-  
-  // 6. Variety score (for display purposes)
+  // 5. Variety score (for display purposes)
   const detectedPhotoTypes = detectPhotoTypeVariety(imageResults);
   const varietyScore = calculateVarietyScore(detectedPhotoTypes);
   
-  // 7. Completeness bonus flag
+  // 6. Completeness bonus flag
   const completenessBonus = photoCount >= 5 && detectedPhotoTypes.length >= 3;
   
-  // 8. Missing photo types
+  // 7. Missing photo types
   const missingPhotoTypes = getMissingPhotoTypes(detectedPhotoTypes);
   
   console.log('[Listing Scoring] Calculated:', {
     rawAverageScore: rawAverageScore.toFixed(1),
     photoCount,
-    photoCountMultiplier,
-    redundancyPenalty: (redundancyPenalty * 100).toFixed(1) + '%',
-    redundantImages: redundantCount,
     overallListingScore,
     detectedPhotoTypes,
-    missingPhotoTypes,
-    formula: `${rawAverageScore.toFixed(1)} × ${photoCountMultiplier} × ${(1 - redundancyPenalty).toFixed(2)} = ${overallListingScore}`
+    missingPhotoTypes
   });
   
   return {
