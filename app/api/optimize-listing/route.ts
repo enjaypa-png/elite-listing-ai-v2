@@ -6,7 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { ImageAttributes } from '@/lib/database-scoring';
-import { analyzeImageWithVision, mergeAttributes, AIVisionResponse } from '@/lib/ai-vision';
+import { AIVisionResponse } from '@/lib/ai-vision';
+import { prisma } from '@/lib/prisma';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -129,27 +130,63 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     
-    // GET ANALYSIS SCORES FROM FRONTEND
-    const analysisListingScoreStr = formData.get('analysisListingScore') as string | null;
-    const analysisImageScoresStr = formData.get('analysisImageScores') as string | null;
-    
-    let analysisListingScore: number | null = null;
-    let analysisImageScores: number[] = [];
-    
-    if (analysisListingScoreStr) {
-      analysisListingScore = parseInt(analysisListingScoreStr, 10);
-      console.log(`[${requestId}] Using analysis listing score: ${analysisListingScore}`);
-    }
-    if (analysisImageScoresStr) {
-      try { analysisImageScores = JSON.parse(analysisImageScoresStr); } catch (e) { /* ignore */ }
+    // ===========================================
+    // REQUIRE analysis_id - NO CLIENT-SIDE SCORES
+    // ===========================================
+    const analysis_id = formData.get('analysis_id') as string | null;
+    if (!analysis_id) {
+      return NextResponse.json(
+        { success: false, error: 'analysis_id required' },
+        { status: 400 }
+      );
     }
     
+    // ===========================================
+    // FETCH PERSISTED ANALYSIS FROM DATABASE
+    // ===========================================
+    const analysis = await prisma.listingAnalysis.findUnique({
+      where: { id: analysis_id }
+    });
+    
+    if (!analysis) {
+      return NextResponse.json(
+        { success: false, error: 'Analysis not found', details: `No analysis with id ${analysis_id}` },
+        { status: 404 }
+      );
+    }
+    
+    const analysisImageScores = analysis.imageScores as number[];
+    const analysisListingScore = analysis.overallListingScore;
+    const analysisImageResults = analysis.imageResults as any[];
+    
+    console.log(`[${requestId}] Loaded analysis ${analysis_id}: listing=${analysisListingScore}, images=${analysisImageScores.join(',')}`);
+    
+    // ===========================================
+    // COLLECT IMAGE FILES
+    // ===========================================
     const imageFiles: File[] = [];
     let index = 0;
-    while (true) { const file = formData.get(`image_${index}`) as File; if (!file) break; imageFiles.push(file); index++; }
+    while (true) {
+      const file = formData.get(`image_${index}`) as File;
+      if (!file) break;
+      imageFiles.push(file);
+      index++;
+    }
     
-    if (imageFiles.length === 0) return NextResponse.json({ success: false, error: 'No images provided' }, { status: 400 });
-    if (imageFiles.length > 10) return NextResponse.json({ success: false, error: 'Maximum 10 images allowed' }, { status: 400 });
+    if (imageFiles.length === 0) {
+      return NextResponse.json({ success: false, error: 'No images provided' }, { status: 400 });
+    }
+    if (imageFiles.length > 10) {
+      return NextResponse.json({ success: false, error: 'Maximum 10 images allowed' }, { status: 400 });
+    }
+    
+    // Validate image count matches analysis
+    if (imageFiles.length !== analysisImageScores.length) {
+      return NextResponse.json(
+        { success: false, error: 'Image count mismatch', details: `Expected ${analysisImageScores.length} images but received ${imageFiles.length}` },
+        { status: 400 }
+      );
+    }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const optimizedResults: OptimizedImageResult[] = [];
@@ -163,10 +200,16 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer);
         const originalAttrs = await extractTechnicalAttributes(buffer, file.type || 'image/jpeg');
         
-        // USE ANALYSIS SCORE - NO RE-ANALYSIS
-        const originalScore = analysisImageScores[i] ?? 75;
+        // READ SCORE VERBATIM FROM PERSISTED ANALYSIS - NO FALLBACK
+        const originalScore = analysisImageScores[i];
+        if (originalScore === undefined) {
+          throw new Error(`No score found for image ${i} in analysis ${analysis_id}`);
+        }
         
-        const { optimizedBuffer, improvements } = await optimizeImageBuffer(buffer, originalAttrs);
+        // Get optimization flags from persisted analysis results
+        const imageAnalysis = analysisImageResults[i];
+        
+        const { optimizedBuffer, improvements } = await optimizeImageBuffer(buffer, originalAttrs, imageAnalysis);
         
         const optimizedMetadata = await sharp(optimizedBuffer).metadata();
         const warnings: string[] = [];
@@ -178,20 +221,46 @@ export async function POST(request: NextRequest) {
         const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(filename);
         
         optimizedResults.push({
-          imageIndex: i, isMainImage, originalScore, newScore: originalScore, scoreImprovement: 0,
-          optimizedUrl: urlData.publicUrl, improvements, warnings, alreadyOptimized: originalScore >= 90,
-          metadata: { width: optimizedMetadata.width || 0, height: optimizedMetadata.height || 0, fileSizeKB: Math.round(optimizedBuffer.length / 1024), colorProfile: 'sRGB', ppi: ETSY_PPI },
+          imageIndex: i,
+          isMainImage,
+          originalScore,
+          newScore: originalScore, // Score unchanged - optimization is technical only
+          scoreImprovement: 0,
+          optimizedUrl: urlData.publicUrl,
+          improvements,
+          warnings,
+          alreadyOptimized: originalScore >= 90,
+          metadata: {
+            width: optimizedMetadata.width || 0,
+            height: optimizedMetadata.height || 0,
+            fileSizeKB: Math.round(optimizedBuffer.length / 1024),
+            colorProfile: 'sRGB',
+            ppi: ETSY_PPI
+          },
         });
       } catch (imageError: any) {
-        optimizedResults.push({ imageIndex: i, isMainImage, originalScore: 0, newScore: 0, scoreImprovement: 0, optimizedUrl: '', improvements: [], warnings: [`Failed: ${imageError.message}`], alreadyOptimized: false, metadata: { width: 0, height: 0, fileSizeKB: 0, colorProfile: 'unknown', ppi: 0 } });
+        optimizedResults.push({
+          imageIndex: i,
+          isMainImage,
+          originalScore: analysisImageScores[i] || 0,
+          newScore: analysisImageScores[i] || 0,
+          scoreImprovement: 0,
+          optimizedUrl: '',
+          improvements: [],
+          warnings: [`Failed: ${imageError.message}`],
+          alreadyOptimized: false,
+          metadata: { width: 0, height: 0, fileSizeKB: 0, colorProfile: 'unknown', ppi: 0 }
+        });
       }
     }
     
-    const originalListingScore = analysisListingScore ?? 75;
-    
     return NextResponse.json({
-      success: true, imageCount: imageFiles.length,
-      originalListingScore, newListingScore: originalListingScore, overallImprovement: 0,
+      success: true,
+      analysis_id,
+      imageCount: imageFiles.length,
+      originalListingScore: analysisListingScore,
+      newListingScore: analysisListingScore, // Score unchanged
+      overallImprovement: 0,
       optimizedImages: optimizedResults,
       etsyCompliance: { colorProfile: 'sRGB', ppi: ETSY_PPI, aspectRatio: '4:3', maxFileSize: '1MB' },
       message: 'Photos optimized for Etsy compliance (sRGB, 72 PPI, 4:3, compressed).',

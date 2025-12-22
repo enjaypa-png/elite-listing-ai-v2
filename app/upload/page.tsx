@@ -256,9 +256,15 @@ export default function UploadPage() {
     // Check if we have analysis results and images
     if (!analysisResults || selectedFiles.length === 0) return;
     
+    // REQUIRE analysis_id - scores are read from DB
+    if (!analysisResults?.analysis_id) {
+      alert('No analysis found. Please analyze your photos first.');
+      return;
+    }
+    
     setIsOptimizing(true);
     try {
-      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'images...');
+      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'images with analysis_id:', analysisResults.analysis_id);
       
       // Compress all images before sending
       const compressedFiles: File[] = [];
@@ -274,16 +280,10 @@ export default function UploadPage() {
         formData.append(`image_${index}`, file);
       });
       
-      // Pass analysis scores to optimization endpoint
-      if (analysisResults?.overallListingScore) {
-        formData.append('analysisListingScore', String(analysisResults.overallListingScore));
-      }
-      if (analysisResults?.imageResults) {
-        const imageScores = analysisResults.imageResults.map((img: any) => img.score);
-        formData.append('analysisImageScores', JSON.stringify(imageScores));
-      }
+      // Pass only analysis_id - scores are read from DB (deterministic)
+      formData.append('analysis_id', analysisResults.analysis_id);
       
-      console.log('[Listing Optimizer] Sending images with analysis scores');
+      console.log('[Listing Optimizer] Sending images with analysis_id (scores from DB)');
       
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',

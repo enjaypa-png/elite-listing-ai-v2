@@ -2,15 +2,16 @@ export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { analyzeImageWithVision } from '@/lib/ai-vision';
 import { calculateListingScore, ImageAnalysisResult } from '@/lib/listing-scoring';
+import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/analyze-listing
  * Analyzes multiple images as a complete Etsy listing
  * AI Vision is the SINGLE SOURCE OF TRUTH for scores
+ * Persists results to DB with analysis_id for deterministic retrieval
  */
 export async function POST(request: NextRequest) {
   const requestId = randomUUID().substring(0, 8);
@@ -71,20 +72,29 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
+        // Convert buffer to base64 string
+        const imageBase64 = buffer.toString('base64');
+        const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+        
         // Run AI Vision analysis - SINGLE SOURCE OF TRUTH FOR SCORES
-        let visionResponse = null;
-        let aiScore = 50; // Conservative fallback
-        try {
-          // Convert buffer to base64 string
-          const imageBase64 = buffer.toString('base64');
-          const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-          
+        let visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
+        
+        // HARD ERROR if AI score missing - one retry then fail
+        if (visionResponse?.ai_score === undefined || visionResponse?.ai_score === null) {
+          console.log(`[${requestId}] Image ${i + 1}: AI score missing, retrying...`);
           visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
-          aiScore = visionResponse?.ai_score ?? 50;
-          console.log(`[${requestId}] Image ${i + 1}: AI Vision complete, AI score = ${aiScore}`);
-        } catch (visionError: any) {
-          console.error(`[${requestId}] Image ${i + 1}: AI Vision failed:`, visionError.message);
+          
+          if (visionResponse?.ai_score === undefined || visionResponse?.ai_score === null) {
+            console.error(`[${requestId}] Image ${i + 1}: AI_SCORE_INVALID after retry`);
+            return NextResponse.json(
+              { success: false, error: 'AI_SCORE_INVALID', details: `AI score missing for image ${i + 1} after retry` },
+              { status: 500 }
+            );
+          }
         }
+        
+        const aiScore = visionResponse.ai_score;
+        console.log(`[${requestId}] Image ${i + 1}: AI Vision complete, AI score = ${aiScore}`);
         
         // Detect photo types from AI Vision response
         const photoTypes: string[] = visionResponse?.has_studio_shot ? ['studio_shot'] : [];
@@ -111,7 +121,7 @@ export async function POST(request: NextRequest) {
         // Add to results - AI SCORE IS AUTHORITATIVE
         imageResults.push({
           imageIndex: i,
-          score: aiScore,  // AI score directly - NO calculateScore()
+          score: aiScore,  // AI score directly - NO FALLBACK
           feedback,
           photoTypes,
           technicalPoints: 0,  // Deprecated - AI handles scoring
@@ -129,26 +139,16 @@ export async function POST(request: NextRequest) {
       } catch (imageError: any) {
         console.error(`[${requestId}] Failed to analyze image ${i + 1}:`, imageError);
         
-        // Add failed result
-        imageResults.push({
-          imageIndex: i,
-          score: 0,
-          feedback: [{
-            rule: 'image_processing',
-            status: 'critical',
-            message: `Failed to process image: ${imageError.message || 'Unknown error'}`
-          }],
-          photoTypes: [],
-          technicalPoints: 0,
-          photoTypePoints: 0,
-          compositionPoints: 0,
-          isMainImage
-        });
+        // HARD ERROR - do not continue with failed images
+        return NextResponse.json(
+          { success: false, error: 'IMAGE_ANALYSIS_FAILED', details: `Failed to analyze image ${i + 1}: ${imageError.message}` },
+          { status: 500 }
+        );
       }
     }
     
     // ===========================================
-    // 4. CALCULATE OVERALL LISTING SCORE
+    // 3. CALCULATE OVERALL LISTING SCORE
     // ===========================================
     const listingScore = calculateListingScore(imageResults);
     
@@ -161,10 +161,29 @@ export async function POST(request: NextRequest) {
     });
     
     // ===========================================
-    // 5. RETURN RESPONSE
+    // 4. PERSIST ANALYSIS TO DATABASE
+    // ===========================================
+    const analysis = await prisma.listingAnalysis.create({
+      data: {
+        overallListingScore: listingScore.overallListingScore,
+        mainImageScore: listingScore.mainImageScore,
+        averageImageScore: listingScore.averageImageScore,
+        imageScores: imageResults.map(r => r.score),
+        imageResults: imageResults,
+        detectedPhotoTypes: listingScore.detectedPhotoTypes,
+        missingPhotoTypes: listingScore.missingPhotoTypes,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      }
+    });
+    
+    console.log(`[${requestId}] Analysis persisted with id: ${analysis.id}`);
+    
+    // ===========================================
+    // 5. RETURN RESPONSE WITH analysis_id
     // ===========================================
     return NextResponse.json({
       success: true,
+      analysis_id: analysis.id,
       overallListingScore: listingScore.overallListingScore,
       mainImageScore: listingScore.mainImageScore,
       averageImageScore: listingScore.averageImageScore,

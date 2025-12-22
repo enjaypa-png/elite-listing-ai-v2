@@ -170,6 +170,22 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
+model ListingAnalysis {
+  id                  String   @id @default(cuid())
+  overallListingScore Int
+  mainImageScore      Int
+  averageImageScore   Int
+  imageScores         Json     // Array of individual image scores [82, 84, 81, ...]
+  imageResults        Json     // Full analysis results for each image
+  detectedPhotoTypes  Json     // Array of detected photo types
+  missingPhotoTypes   Json     // Array of missing photo types
+  createdAt           DateTime @default(now())
+  expiresAt           DateTime // Auto-expire after 24 hours
+  
+  @@index([createdAt])
+  @@map("listing_analyses")
+}
+
 model Keyword {
   id          String   @id @default(cuid())
   keyword     String   @unique
