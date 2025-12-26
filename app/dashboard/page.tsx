@@ -139,7 +139,7 @@ export default function DashboardPage() {
                   justifyContent: 'center',
                   fontSize: tokens.typography.fontSize['4xl']
                 }}>
-                  \uD83D\uDD04
+                  🔄
                 </div>
                 <div style={{ flex: 1 }}>
                   <h2 style={{
@@ -199,7 +199,7 @@ export default function DashboardPage() {
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
               >
-                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udccb</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>📋</div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>My Listings</div>
                 <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>View & manage</div>
               </div>
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
               >
-                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udcf8</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>📸</div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Photo Analysis</div>
                 <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Optimize images</div>
               </div>
@@ -235,7 +235,7 @@ export default function DashboardPage() {
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = tokens.colors.primary}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = tokens.colors.border}
               >
-                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>\ud83d\udd04</div>
+                <div style={{ fontSize: tokens.typography.fontSize['3xl'], marginBottom: tokens.spacing[3] }}>🔄</div>
                 <div style={{ fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Etsy Sync</div>
                 <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>Connect shop</div>
               </div>
