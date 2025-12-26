@@ -7,6 +7,7 @@ import { StepLayout, ProgressIndicator, InfoTooltip } from '@/components/workflo
 import { TopNav, Breadcrumbs } from '@/components/navigation';
 import tokens from '@/design-system/tokens.json';
 import { createClient } from '@supabase/supabase-js';
+import { categorizeIssues, CATEGORY_EXPLANATIONS } from '@/lib/issue-categorization';
 
 // Client-side Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -830,34 +831,87 @@ export default function UploadPage() {
                             </div>
                           )}
                           
-                          {/* AI Issues */}
-                          {result.ai_issues && result.ai_issues.length > 0 && (
-                            <div style={{
-                              marginTop: tokens.spacing[3],
-                              padding: tokens.spacing[2],
-                              background: `${tokens.colors.warning}15`,
-                              borderRadius: tokens.radius.sm,
-                              border: `1px solid ${tokens.colors.warning}30`
-                            }}>
-                              <div style={{
-                                fontSize: tokens.typography.fontSize.xs,
-                                fontWeight: tokens.typography.fontWeight.semibold,
-                                color: tokens.colors.warning,
-                                marginBottom: tokens.spacing[1]
-                              }}>
-                                Issues:
-                              </div>
-                              {result.ai_issues.map((issue: string, i: number) => (
-                                <div key={i} style={{
-                                  fontSize: tokens.typography.fontSize.xs,
-                                  color: tokens.colors.text,
-                                  marginBottom: i < result.ai_issues.length - 1 ? tokens.spacing[1] : 0
-                                }}>
-                                  • {issue}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          {/* AI Issues - Categorized */}
+                          {result.ai_issues && result.ai_issues.length > 0 && (() => {
+                            const categorized = categorizeIssues(result.ai_issues);
+                            return (
+                              <>
+                                {/* Auto-Fixable Issues */}
+                                {categorized.autoFixable.length > 0 && (
+                                  <div style={{
+                                    marginTop: tokens.spacing[3],
+                                    padding: tokens.spacing[2],
+                                    background: `${tokens.colors.primary}10`,
+                                    borderRadius: tokens.radius.sm,
+                                    border: `1px solid ${tokens.colors.primary}30`
+                                  }}>
+                                    <div style={{
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      fontWeight: tokens.typography.fontWeight.semibold,
+                                      color: tokens.colors.primary,
+                                      marginBottom: tokens.spacing[0.5]
+                                    }}>
+                                      ✨ Will Auto-Fix:
+                                    </div>
+                                    <div style={{
+                                      fontSize: '10px',
+                                      color: tokens.colors.textMuted,
+                                      marginBottom: tokens.spacing[1],
+                                      fontStyle: 'italic'
+                                    }}>
+                                      {CATEGORY_EXPLANATIONS.autoFixable}
+                                    </div>
+                                    {categorized.autoFixable.map((issue: string, i: number) => (
+                                      <div key={i} style={{
+                                        fontSize: tokens.typography.fontSize.xs,
+                                        color: tokens.colors.text,
+                                        marginBottom: i < categorized.autoFixable.length - 1 ? tokens.spacing[1] : 0
+                                      }}>
+                                        • {issue}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Manual Issues */}
+                                {categorized.manual.length > 0 && (
+                                  <div style={{
+                                    marginTop: tokens.spacing[2],
+                                    padding: tokens.spacing[2],
+                                    background: `${tokens.colors.warning}15`,
+                                    borderRadius: tokens.radius.sm,
+                                    border: `1px solid ${tokens.colors.warning}30`
+                                  }}>
+                                    <div style={{
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      fontWeight: tokens.typography.fontWeight.semibold,
+                                      color: tokens.colors.warning,
+                                      marginBottom: tokens.spacing[0.5]
+                                    }}>
+                                      ⚠️ Requires Manual Editing:
+                                    </div>
+                                    <div style={{
+                                      fontSize: '10px',
+                                      color: tokens.colors.textMuted,
+                                      marginBottom: tokens.spacing[1],
+                                      fontStyle: 'italic'
+                                    }}>
+                                      {CATEGORY_EXPLANATIONS.manual}
+                                    </div>
+                                    {categorized.manual.map((issue: string, i: number) => (
+                                      <div key={i} style={{
+                                        fontSize: tokens.typography.fontSize.xs,
+                                        color: tokens.colors.text,
+                                        marginBottom: i < categorized.manual.length - 1 ? tokens.spacing[1] : 0
+                                      }}>
+                                        • {issue}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                           
                           {/* AI Strengths */}
                           {result.ai_strengths && result.ai_strengths.length > 0 && (

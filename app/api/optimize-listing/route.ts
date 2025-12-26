@@ -9,6 +9,7 @@ import { ImageAttributes } from '@/lib/database-scoring';
 import { AIVisionResponse } from '@/lib/ai-vision';
 import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } from '@/lib/etsy-compliance-scoring';
 import { prisma } from '@/lib/prisma';
+import { detectProduct, calculateSmartCrop, needsSmartCrop } from '@/lib/object-detection';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -78,7 +79,46 @@ async function optimizeImageBuffer(
 ): Promise<{ optimizedBuffer: Buffer; improvements: string[] }> {
   const improvements: string[] = [];
   let pipeline = sharp(buffer);
-  
+
+  // STEP 1: SMART CROP FOR PRODUCT FILL (NEW!)
+  // Detect product and crop to achieve 70-80% fill if needed
+  const imageBase64 = buffer.toString('base64');
+  const productDetection = await detectProduct(
+    imageBase64,
+    originalAttributes.width_px,
+    originalAttributes.height_px
+  );
+
+  if (productDetection && needsSmartCrop(productDetection.productFillPercent)) {
+    console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - applying smart crop`);
+
+    const cropBox = calculateSmartCrop(
+      originalAttributes.width_px,
+      originalAttributes.height_px,
+      productDetection.boundingBox,
+      75, // Target 75% fill (middle of 70-80% range)
+      4 / 3 // Etsy's recommended aspect ratio
+    );
+
+    // Apply smart crop
+    pipeline = pipeline.extract({
+      left: cropBox.x,
+      top: cropBox.y,
+      width: cropBox.width,
+      height: cropBox.height,
+    });
+
+    improvements.push(`✅ Smart crop applied - product now fills ${75}% of frame (was ${productDetection.productFillPercent.toFixed(0)}%)`);
+
+    // Update dimensions for subsequent operations
+    originalAttributes.width_px = cropBox.width;
+    originalAttributes.height_px = cropBox.height;
+    originalAttributes.shortest_side = Math.min(cropBox.width, cropBox.height);
+  } else if (productDetection) {
+    console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - no crop needed`);
+  }
+
+  // STEP 2: RESIZE TO ETSY DIMENSIONS
   const needsResize = originalAttributes.shortest_side < ETSY_MIN_SHORTEST_SIDE || originalAttributes.aspect_ratio !== '4:3';
   if (needsResize) {
     let targetWidth = ETSY_TARGET_WIDTH;
@@ -88,9 +128,7 @@ async function optimizeImageBuffer(
       targetWidth = Math.round(originalAttributes.width_px * scale);
       targetHeight = Math.round(targetWidth / (4/3));
     }
-    // Use 'cover' to crop edges instead of adding white padding
-    // This preserves product fill percentage (70-80% recommended by Etsy)
-    // 'entropy' strategy keeps important visual areas (product)
+    // Use 'cover' to crop edges if aspect ratio doesn't match
     pipeline = pipeline.resize(targetWidth, targetHeight, { fit: 'cover', position: 'entropy' });
     improvements.push('✅ Resized to Etsy optimal dimensions (4:3, cropped to fill)');
   }
