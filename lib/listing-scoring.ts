@@ -10,13 +10,16 @@
 
 export interface ImageAnalysisResult {
   imageIndex: number;
-  score: number;
+  score: number;  // Final combined score
+  visualQuality?: number;  // AI visual quality score (immutable)
+  etsyCompliance?: number;  // Technical compliance score (mutable)
   feedback: { rule: string; status: 'critical' | 'warning' | 'passed'; message: string }[];
   photoTypes: string[];
-  technicalPoints: number;
-  photoTypePoints: number;
-  compositionPoints: number;
+  technicalPoints: number;  // Deprecated
+  photoTypePoints: number;  // Deprecated
+  compositionPoints: number;  // Deprecated
   isMainImage: boolean;
+  etsyComplianceBreakdown?: any;  // Breakdown of compliance scores
 }
 
 export interface ListingScoreResult {

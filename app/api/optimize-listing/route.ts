@@ -6,7 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { ImageAttributes } from '@/lib/database-scoring';
-import { AIVisionResponse, analyzeImageWithVision } from '@/lib/ai-vision';
+import { AIVisionResponse } from '@/lib/ai-vision';
+import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } from '@/lib/etsy-compliance-scoring';
 import { prisma } from '@/lib/prisma';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -87,8 +88,11 @@ async function optimizeImageBuffer(
       targetWidth = Math.round(originalAttributes.width_px * scale);
       targetHeight = Math.round(targetWidth / (4/3));
     }
-    pipeline = pipeline.resize(targetWidth, targetHeight, { fit: 'contain', position: 'center', background: { r: 255, g: 255, b: 255, alpha: 1 } });
-    improvements.push('✅ Resized to Etsy optimal dimensions (4:3)');
+    // Use 'cover' to crop edges instead of adding white padding
+    // This preserves product fill percentage (70-80% recommended by Etsy)
+    // 'entropy' strategy keeps important visual areas (product)
+    pipeline = pipeline.resize(targetWidth, targetHeight, { fit: 'cover', position: 'entropy' });
+    improvements.push('✅ Resized to Etsy optimal dimensions (4:3, cropped to fill)');
   }
   
   pipeline = pipeline.toColorspace('srgb');
@@ -217,32 +221,34 @@ export async function POST(request: NextRequest) {
         if (!squareSafeCheck.isSquareSafe && squareSafeCheck.warning) warnings.push(squareSafeCheck.warning);
 
         // ===========================================
-        // RE-ANALYZE OPTIMIZED IMAGE TO GET NEW SCORE
+        // TWO-ENGINE MODEL: RECALCULATE ETSY COMPLIANCE ONLY
         // ===========================================
-        console.log(`[${requestId}] Re-analyzing optimized image ${i + 1} to measure improvement...`);
+        // Visual quality is IMMUTABLE - we keep the original AI score
+        // Only technical compliance changes during optimization
 
-        let newScore = originalScore;
-        let scoreImprovement = 0;
+        const originalVisualQuality = imageAnalysis.visualQuality || originalScore; // Fallback for old data
+        const originalEtsyCompliance = imageAnalysis.etsyCompliance || 0;
 
-        try {
-          // Convert optimized buffer to base64 for AI Vision
-          const optimizedBase64 = optimizedBuffer.toString('base64');
+        console.log(`[${requestId}] Image ${i + 1}: Original scores - Visual: ${originalVisualQuality}, Compliance: ${originalEtsyCompliance}`);
 
-          // Re-analyze with AI Vision
-          const reanalysisResult = await analyzeImageWithVision(optimizedBase64, 'image/jpeg');
+        // Extract new technical specs from optimized image
+        const newSpecs: ImageTechnicalSpecs = {
+          width: optimizedMetadata.width || 0,
+          height: optimizedMetadata.height || 0,
+          fileSizeBytes: optimizedBuffer.length,
+          colorProfile: optimizedMetadata.space || 'srgb',
+          format: 'jpeg',
+          ppi: ETSY_PPI,
+        };
 
-          if (reanalysisResult?.ai_score !== undefined && reanalysisResult.ai_score !== null) {
-            newScore = reanalysisResult.ai_score;
-            scoreImprovement = newScore - originalScore;
+        const newEtsyCompliance = calculateEtsyCompliance(newSpecs);
+        console.log(`[${requestId}] Image ${i + 1}: New Etsy compliance = ${newEtsyCompliance.overallCompliance}% (was ${originalEtsyCompliance}%)`);
 
-            console.log(`[${requestId}] Image ${i + 1} re-analysis: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement})`);
-          } else {
-            console.warn(`[${requestId}] Image ${i + 1}: AI re-analysis returned no score, using original`);
-          }
-        } catch (reanalysisError: any) {
-          console.error(`[${requestId}] Image ${i + 1}: Re-analysis failed:`, reanalysisError.message);
-          warnings.push('Could not re-analyze optimized image');
-        }
+        // Calculate new final score: Visual quality (unchanged) + New compliance
+        const newScore = calculateFinalScore(originalVisualQuality, newEtsyCompliance.overallCompliance);
+        const scoreImprovement = newScore - originalScore;
+
+        console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement}) [Visual: ${originalVisualQuality} unchanged, Compliance: ${originalEtsyCompliance} → ${newEtsyCompliance.overallCompliance}]`);
 
         const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
         await supabase.storage.from('product-images').upload(filename, optimizedBuffer, { contentType: 'image/jpeg', cacheControl: 'no-cache' });

@@ -3,19 +3,32 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import sharp from 'sharp';
 import { analyzeImageWithVision } from '@/lib/ai-vision';
 import { calculateListingScore, ImageAnalysisResult } from '@/lib/listing-scoring';
+import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } from '@/lib/etsy-compliance-scoring';
 import { prisma } from '@/lib/prisma';
 
 /**
  * POST /api/analyze-listing
- * Analyzes multiple images as a complete Etsy listing
- * AI Vision is the SINGLE SOURCE OF TRUTH for scores
- * Persists results to DB with analysis_id for deterministic retrieval
+ * Analyzes multiple images as a complete Etsy listing using TWO-ENGINE MODEL:
+ *
+ * 1. AI Visual Quality Score (IMMUTABLE)
+ *    - Image composition, lighting, styling
+ *    - From AI Vision analysis
+ *    - Never changes during optimization
+ *
+ * 2. Etsy Technical Compliance Score (MUTABLE)
+ *    - Aspect ratio, resolution, file size, format, color profile
+ *    - Deterministic calculation from image properties
+ *    - Improves during optimization
+ *
+ * Final Score = (Visual Quality × 0.6) + (Etsy Compliance × 0.4)
+ * Persists BOTH scores to DB for deterministic retrieval
  */
 export async function POST(request: NextRequest) {
   const requestId = randomUUID().substring(0, 8);
-  console.log(`[${requestId}] Listing analysis started (AI scoring authoritative)`);
+  console.log(`[${requestId}] Listing analysis started (two-engine model: AI visual + Etsy compliance)`);
 
   try {
     // ===========================================
@@ -57,9 +70,10 @@ export async function POST(request: NextRequest) {
     }
     
     // ===========================================
-    // 2. ANALYZE EACH IMAGE (AI IS SINGLE SOURCE OF TRUTH)
+    // 2. ANALYZE EACH IMAGE (TWO-ENGINE MODEL)
     // ===========================================
     const imageResults: ImageAnalysisResult[] = [];
+    const technicalSpecs: ImageTechnicalSpecs[] = [];
     
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
@@ -71,12 +85,30 @@ export async function POST(request: NextRequest) {
         // Convert File to Buffer
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        
-        // Convert buffer to base64 string
+
+        // ===========================================
+        // ENGINE 1: EXTRACT TECHNICAL SPECS (MUTABLE)
+        // ===========================================
+        const metadata = await sharp(buffer).metadata();
+        const specs: ImageTechnicalSpecs = {
+          width: metadata.width || 0,
+          height: metadata.height || 0,
+          fileSizeBytes: buffer.length,
+          colorProfile: metadata.space || 'srgb',
+          format: metadata.format || 'jpeg',
+          ppi: metadata.density || 72,
+        };
+        technicalSpecs.push(specs);
+
+        const etsyCompliance = calculateEtsyCompliance(specs);
+        console.log(`[${requestId}] Image ${i + 1}: Etsy compliance = ${etsyCompliance.overallCompliance}%`);
+
+        // ===========================================
+        // ENGINE 2: AI VISUAL QUALITY (IMMUTABLE)
+        // ===========================================
         const imageBase64 = buffer.toString('base64');
         const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-        
-        // Run AI Vision analysis - SINGLE SOURCE OF TRUTH FOR SCORES
+
         let visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
         
         // HARD ERROR if AI score missing - one retry then fail
@@ -93,9 +125,15 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        const aiScore = visionResponse.ai_score;
-        console.log(`[${requestId}] Image ${i + 1}: AI Vision complete, AI score = ${aiScore}`);
-        
+        const visualQuality = visionResponse.ai_score;
+        console.log(`[${requestId}] Image ${i + 1}: AI visual quality = ${visualQuality}`);
+
+        // ===========================================
+        // CALCULATE FINAL SCORE (WEIGHTED COMBINATION)
+        // ===========================================
+        const finalScore = calculateFinalScore(visualQuality, etsyCompliance.overallCompliance);
+        console.log(`[${requestId}] Image ${i + 1}: Final score = ${finalScore} (${visualQuality} visual × 0.6 + ${etsyCompliance.overallCompliance} compliance × 0.4)`);
+
         // Detect photo types from AI Vision response
         const photoTypes: string[] = visionResponse?.has_studio_shot ? ['studio_shot'] : [];
         if (visionResponse?.has_lifestyle_shot) photoTypes.push('lifestyle_shot');
@@ -104,37 +142,49 @@ export async function POST(request: NextRequest) {
         if (visionResponse?.has_group_shot) photoTypes.push('group_shot');
         if (visionResponse?.has_packaging_shot) photoTypes.push('packaging_shot');
         if (visionResponse?.has_process_shot) photoTypes.push('process_shot');
-        
-        // Build feedback from AI issues/strengths
+
+        // Build feedback from AI issues/strengths AND Etsy compliance
         const feedback: { rule: string; status: 'critical' | 'warning' | 'passed'; message: string }[] = [];
+
+        // AI visual feedback
         if (visionResponse?.ai_issues) {
           visionResponse.ai_issues.forEach((issue: string) => {
-            feedback.push({ rule: 'ai_analysis', status: 'warning', message: issue });
+            feedback.push({ rule: 'ai_visual_quality', status: 'warning', message: issue });
           });
         }
         if (visionResponse?.ai_strengths) {
           visionResponse.ai_strengths.forEach((strength: string) => {
-            feedback.push({ rule: 'ai_analysis', status: 'passed', message: strength });
+            feedback.push({ rule: 'ai_visual_quality', status: 'passed', message: strength });
           });
         }
-        
-        // Add to results - AI SCORE IS AUTHORITATIVE
+
+        // Etsy compliance feedback
+        Object.entries(etsyCompliance.breakdown).forEach(([key, value]) => {
+          if (value.score < 70) {
+            feedback.push({ rule: 'etsy_compliance', status: 'warning', message: value.message });
+          } else if (value.score >= 95) {
+            feedback.push({ rule: 'etsy_compliance', status: 'passed', message: value.message });
+          }
+        });
+
+        // Store results with BOTH scores
         imageResults.push({
           imageIndex: i,
-          score: aiScore,  // AI score directly - NO FALLBACK
+          score: finalScore,  // Final combined score
+          visualQuality,  // AI visual quality (immutable)
+          etsyCompliance: etsyCompliance.overallCompliance,  // Technical compliance (mutable)
           feedback,
           photoTypes,
-          technicalPoints: 0,  // Deprecated - AI handles scoring
-          photoTypePoints: 0,  // Deprecated - AI handles scoring
-          compositionPoints: 0, // Deprecated - AI handles scoring
+          technicalPoints: 0,  // Deprecated
+          photoTypePoints: 0,  // Deprecated
+          compositionPoints: 0, // Deprecated
           isMainImage,
           ai_issues: visionResponse?.ai_issues || [],
           ai_strengths: visionResponse?.ai_strengths || [],
           ai_caps_applied: visionResponse?.ai_caps_applied || [],
-          ai_optimization_recommendations: visionResponse?.ai_optimization_recommendations || []
+          ai_optimization_recommendations: visionResponse?.ai_optimization_recommendations || [],
+          etsyComplianceBreakdown: etsyCompliance.breakdown,
         });
-        
-        console.log(`[${requestId}] Image ${i + 1}: FINAL score = ${aiScore} (AI authoritative), Types = ${photoTypes.join(', ')}`);
         
       } catch (imageError: any) {
         console.error(`[${requestId}] Failed to analyze image ${i + 1}:`, imageError);
