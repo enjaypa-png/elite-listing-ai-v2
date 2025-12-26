@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { ImageAttributes } from '@/lib/database-scoring';
-import { AIVisionResponse } from '@/lib/ai-vision';
+import { AIVisionResponse, analyzeImageWithVision } from '@/lib/ai-vision';
 import { prisma } from '@/lib/prisma';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -210,26 +210,54 @@ export async function POST(request: NextRequest) {
         const imageAnalysis = analysisImageResults[i];
         
         const { optimizedBuffer, improvements } = await optimizeImageBuffer(buffer, originalAttrs, imageAnalysis);
-        
+
         const optimizedMetadata = await sharp(optimizedBuffer).metadata();
         const warnings: string[] = [];
         const squareSafeCheck = validateSquareSafe(optimizedMetadata.width || 0, optimizedMetadata.height || 0, isMainImage);
         if (!squareSafeCheck.isSquareSafe && squareSafeCheck.warning) warnings.push(squareSafeCheck.warning);
-        
+
+        // ===========================================
+        // RE-ANALYZE OPTIMIZED IMAGE TO GET NEW SCORE
+        // ===========================================
+        console.log(`[${requestId}] Re-analyzing optimized image ${i + 1} to measure improvement...`);
+
+        let newScore = originalScore;
+        let scoreImprovement = 0;
+
+        try {
+          // Convert optimized buffer to base64 for AI Vision
+          const optimizedBase64 = optimizedBuffer.toString('base64');
+
+          // Re-analyze with AI Vision
+          const reanalysisResult = await analyzeImageWithVision(optimizedBase64, 'image/jpeg');
+
+          if (reanalysisResult?.ai_score !== undefined && reanalysisResult.ai_score !== null) {
+            newScore = reanalysisResult.ai_score;
+            scoreImprovement = newScore - originalScore;
+
+            console.log(`[${requestId}] Image ${i + 1} re-analysis: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement})`);
+          } else {
+            console.warn(`[${requestId}] Image ${i + 1}: AI re-analysis returned no score, using original`);
+          }
+        } catch (reanalysisError: any) {
+          console.error(`[${requestId}] Image ${i + 1}: Re-analysis failed:`, reanalysisError.message);
+          warnings.push('Could not re-analyze optimized image');
+        }
+
         const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
         await supabase.storage.from('product-images').upload(filename, optimizedBuffer, { contentType: 'image/jpeg', cacheControl: 'no-cache' });
         const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(filename);
-        
+
         optimizedResults.push({
           imageIndex: i,
           isMainImage,
           originalScore,
-          newScore: originalScore, // Score unchanged - optimization is technical only
-          scoreImprovement: 0,
+          newScore,
+          scoreImprovement,
           optimizedUrl: urlData.publicUrl,
           improvements,
           warnings,
-          alreadyOptimized: originalScore >= 90,
+          alreadyOptimized: scoreImprovement <= 0, // If no improvement, already optimized
           metadata: {
             width: optimizedMetadata.width || 0,
             height: optimizedMetadata.height || 0,
@@ -253,17 +281,29 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-    
+
+    // ===========================================
+    // CALCULATE NEW LISTING SCORE
+    // ===========================================
+    // Calculate average of new scores (same formula as initial analysis)
+    const totalNewScore = optimizedResults.reduce((sum, result) => sum + result.newScore, 0);
+    const newListingScore = Math.round(totalNewScore / optimizedResults.length);
+    const overallImprovement = newListingScore - analysisListingScore;
+
+    console.log(`[${requestId}] Listing optimization complete: ${analysisListingScore} → ${newListingScore} (${overallImprovement >= 0 ? '+' : ''}${overallImprovement})`);
+
     return NextResponse.json({
       success: true,
       analysis_id,
       imageCount: imageFiles.length,
       originalListingScore: analysisListingScore,
-      newListingScore: analysisListingScore, // Score unchanged
-      overallImprovement: 0,
+      newListingScore,
+      overallImprovement,
       optimizedImages: optimizedResults,
       etsyCompliance: { colorProfile: 'sRGB', ppi: ETSY_PPI, aspectRatio: '4:3', maxFileSize: '1MB' },
-      message: 'Photos optimized for Etsy compliance (sRGB, 72 PPI, 4:3, compressed).',
+      message: overallImprovement > 0
+        ? `Photos optimized! Score improved by ${overallImprovement} points.`
+        : 'Photos optimized for Etsy compliance (sRGB, 72 PPI, 4:3, compressed).',
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: 'Optimization failed', details: error.message }, { status: 500 });
