@@ -146,10 +146,10 @@ export default function UploadPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
-    // Validate: 2-10 images
-    if (files.length < 2) {
-      alert('Please select at least 2 images for your listing.');
+
+    // Validate: 1-10 images
+    if (files.length < 1) {
+      alert('Please select at least 1 image.');
       return;
     }
     if (files.length > 10) {
@@ -420,7 +420,7 @@ export default function UploadPage() {
                       fontSize: tokens.typography.fontSize.base,
                       color: tokens.colors.textMuted
                     }}>
-                      Select 2-10 images • PNG, JPG, or WEBP (max 10MB each)
+                      Select 1-10 images • PNG, JPG, or WEBP (max 10MB each)
                     </p>
                     <p style={{
                       fontSize: tokens.typography.fontSize.sm,
@@ -565,7 +565,7 @@ export default function UploadPage() {
                     size="lg"
                     fullWidth
                     onClick={handleAnalyze}
-                    disabled={isAnalyzing || selectedFiles.length < 2}
+                    disabled={isAnalyzing || selectedFiles.length < 1}
                   >
                     {isAnalyzing ? (
                       <>
