@@ -190,6 +190,12 @@ export async function POST(request: NextRequest) {
           has_text_elements: visionResponse?.has_text_elements,
           text_readable: visionResponse?.text_readable,
           has_wrinkles: visionResponse?.has_wrinkles,
+
+          // Phase 2: Warm Lighting & White Background
+          has_warm_lighting: visionResponse?.has_warm_lighting,
+          lighting_temperature: visionResponse?.lighting_temperature,
+          background_is_pure_white: visionResponse?.background_is_pure_white,
+          background_purity_score: visionResponse?.background_purity_score,
         });
         
       } catch (imageError: any) {

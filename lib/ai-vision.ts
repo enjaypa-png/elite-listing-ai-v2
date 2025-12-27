@@ -55,11 +55,17 @@ export interface AIVisionResponse {
   // Product fill percentage (70-80% is ideal for Etsy)
   ai_product_fill_percent?: number;
 
-  // NEW: Etsy-specific preferences
+  // NEW: Etsy-specific preferences (Phase 1)
   ai_alt_text?: string;
   has_text_elements?: boolean;
   text_readable?: boolean;
   has_wrinkles?: boolean;
+
+  // Phase 2: Warm Lighting & White Background
+  has_warm_lighting?: boolean;  // Home & Living: warm, natural lighting
+  lighting_temperature?: 'warm' | 'cool' | 'neutral';  // Detected lighting temperature
+  background_is_pure_white?: boolean;  // Jewelry: clean white background (#FFFFFF)
+  background_purity_score?: number;  // 0-100, how close to pure white
 }
 
 // ===========================================
@@ -109,12 +115,16 @@ CATEGORY-SPECIFIC REQUIREMENTS (NON-NEGOTIABLE)
 ================================================
 HOME & LIVING
 - Lifestyle context, scale reference, styled props, warm lighting, clean background
-- Failures: industrial settings, harsh lighting, no room context
+- CRITICAL: Lighting must be warm and natural (golden hour, soft yellow tones, not cool/blue)
+- Warm lighting creates inviting atmosphere and increases conversion
+- Failures: industrial settings, harsh/cool lighting, no room context, blue-tinted lighting
 
 JEWELRY & ACCESSORIES
 - Clean white background, sharp focus, no glare, size reference, multiple angles
+- CRITICAL: Background must be pure white (#FFFFFF or near-white) for professional appearance
 - Product fills 70–80% of frame
-- Failures: blur, no scale, busy backgrounds
+- White background ensures jewelry details are clearly visible and maintains luxury aesthetic
+- Failures: blur, no scale, busy backgrounds, off-white or colored backgrounds
 
 CLOTHING / APPAREL
 - On-model or flat lay, full garment visible, texture visible, wrinkle-free
@@ -331,7 +341,11 @@ Return ONE JSON object:
       "altText": string,
       "hasTextElements": boolean,
       "textReadable": boolean,
-      "hasWrinkles": boolean
+      "hasWrinkles": boolean,
+      "hasWarmLighting": boolean,
+      "lightingTemperature": "warm" | "cool" | "neutral",
+      "backgroundIsPureWhite": boolean,
+      "backgroundPurityScore": number
     }
   ],
   "summary": {
@@ -347,6 +361,10 @@ IMPORTANT: For each image, generate:
 - hasTextElements: true if image contains readable text (labels, signs, etc)
 - textReadable: true if any text is clearly legible
 - hasWrinkles: true if fabric/clothing shows wrinkles or creases
+- hasWarmLighting: true if lighting is warm/golden (not cool/blue) - CRITICAL for Home & Living
+- lightingTemperature: "warm" (golden/yellow tones), "cool" (blue/white tones), or "neutral" (balanced)
+- backgroundIsPureWhite: true if background is pure white (#FFFFFF or near-white) - CRITICAL for Jewelry
+- backgroundPurityScore: 0-100 score of how close background is to pure white (100 = perfect white, <70 = off-white/colored)
 
 Return JSON ONLY. No markdown. No commentary.`;
 
@@ -623,11 +641,19 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
     // Product fill percentage (70-80% is ideal for Etsy)
     ai_product_fill_percent: typeof aiOutput.productFillPercent === 'number' ? aiOutput.productFillPercent : undefined,
 
-    // NEW: Etsy-specific preferences
+    // NEW: Etsy-specific preferences (Phase 1)
     ai_alt_text: typeof aiOutput.altText === 'string' ? aiOutput.altText : undefined,
     has_text_elements: typeof aiOutput.hasTextElements === 'boolean' ? aiOutput.hasTextElements : false,
     text_readable: typeof aiOutput.textReadable === 'boolean' ? aiOutput.textReadable : true,
     has_wrinkles: typeof aiOutput.hasWrinkles === 'boolean' ? aiOutput.hasWrinkles : false,
+
+    // Phase 2: Warm Lighting & White Background
+    has_warm_lighting: typeof aiOutput.hasWarmLighting === 'boolean' ? aiOutput.hasWarmLighting : false,
+    lighting_temperature: ['warm', 'cool', 'neutral'].includes(aiOutput.lightingTemperature)
+      ? aiOutput.lightingTemperature as 'warm' | 'cool' | 'neutral'
+      : 'neutral',
+    background_is_pure_white: typeof aiOutput.backgroundIsPureWhite === 'boolean' ? aiOutput.backgroundIsPureWhite : false,
+    background_purity_score: typeof aiOutput.backgroundPurityScore === 'number' ? aiOutput.backgroundPurityScore : 0,
   } as AIVisionResponse;
 }
 

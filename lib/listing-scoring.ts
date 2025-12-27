@@ -32,6 +32,12 @@ export interface ImageAnalysisResult {
   has_text_elements?: boolean;  // Image contains readable text
   text_readable?: boolean;  // Text is clearly legible (Paper & Party)
   has_wrinkles?: boolean;  // Fabric shows wrinkles (Clothing)
+
+  // Phase 2: Warm Lighting & White Background
+  has_warm_lighting?: boolean;  // Warm, natural lighting (Home & Living)
+  lighting_temperature?: 'warm' | 'cool' | 'neutral';  // Color temperature
+  background_is_pure_white?: boolean;  // Pure white background (Jewelry)
+  background_purity_score?: number;  // 0-100 purity score
 }
 
 export interface ListingScoreResult {
