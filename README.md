@@ -148,7 +148,7 @@ yarn dev
 
 ## 📦 Deployment
 
-Deployed on **Vercel**. Push to `rebuild-core-workflow` branch triggers auto-deploy.
+Deployed on **Vercel**. Push to `main` branch triggers auto-deploy.
 
 ---
 
@@ -200,5 +200,5 @@ Unused features moved to `/archive`:
 
 ---
 
-**Branch:** `rebuild-core-workflow`  
+**Branch:** `main`  
 **Last Updated:** December 2024
