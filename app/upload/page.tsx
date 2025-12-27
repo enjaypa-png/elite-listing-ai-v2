@@ -192,33 +192,28 @@ export default function UploadPage() {
     setIsAnalyzing(true);
 
     try {
-      // Compress all images before upload
-      console.log(`[Upload] Compressing ${selectedFiles.length} images...`);
-      const compressedFiles: File[] = [];
-      
+      // NO CLIENT-SIDE COMPRESSION - Send raw images for accurate before/after analysis
+      console.log(`[Upload] Analyzing ${selectedFiles.length} RAW images (no pre-compression)...`);
+
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        console.log(`[Upload] Image ${i + 1}: Original size ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-        
-        const compressed = await compressImage(file);
-        const compressedSizeMB = compressed.size / 1024 / 1024;
-        console.log(`[Upload] Image ${i + 1}: Compressed size ${compressedSizeMB.toFixed(2)} MB`);
-        
-        if (compressedSizeMB > 4) {
-          throw new Error(`Image ${i + 1} is too large. Please use smaller photos.`);
+        const fileSizeMB = file.size / 1024 / 1024;
+        console.log(`[Upload] Image ${i + 1}: ${fileSizeMB.toFixed(2)} MB`);
+
+        // Validate not absurdly large (>10MB)
+        if (fileSizeMB > 10) {
+          throw new Error(`Image ${i + 1} is too large (${fileSizeMB.toFixed(2)} MB). Maximum 10MB.`);
         }
-        
-        compressedFiles.push(compressed);
       }
-      
-      // Call new listing analysis endpoint with ALL images
+
+      // Call new listing analysis endpoint with ALL images (RAW, UNCOMPRESSED)
       const formData = new FormData();
-      compressedFiles.forEach((file, index) => {
+      selectedFiles.forEach((file, index) => {
         formData.append(`image_${index}`, file);
       });
       formData.append('category', 'single_image_scoring');
 
-      console.log(`[Upload] Calling /api/analyze-listing with ${compressedFiles.length} images`);
+      console.log(`[Upload] Calling /api/analyze-listing with ${selectedFiles.length} RAW images`);
 
       const analyzeResponse = await fetch('/api/analyze-listing', {
         method: 'POST',
@@ -265,26 +260,18 @@ export default function UploadPage() {
     
     setIsOptimizing(true);
     try {
-      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'images with analysis_id:', analysisResults.analysis_id);
-      
-      // Compress all images before sending
-      const compressedFiles: File[] = [];
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        const compressed = await compressImage(file);
-        compressedFiles.push(compressed);
-      }
-      
-      // Build FormData with all images
+      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'RAW images with analysis_id:', analysisResults.analysis_id);
+
+      // Send RAW images (same as analyzed) - NO client compression
       const formData = new FormData();
-      compressedFiles.forEach((file, index) => {
+      selectedFiles.forEach((file, index) => {
         formData.append(`image_${index}`, file);
       });
-      
+
       // Pass only analysis_id - scores are read from DB (deterministic)
       formData.append('analysis_id', analysisResults.analysis_id);
-      
-      console.log('[Listing Optimizer] Sending images with analysis_id (scores from DB)');
+
+      console.log('[Listing Optimizer] Sending RAW images with analysis_id (scores from DB)');
       
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',
