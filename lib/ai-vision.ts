@@ -54,6 +54,12 @@ export interface AIVisionResponse {
   
   // Product fill percentage (70-80% is ideal for Etsy)
   ai_product_fill_percent?: number;
+
+  // NEW: Etsy-specific preferences
+  ai_alt_text?: string;
+  has_text_elements?: boolean;
+  text_readable?: boolean;
+  has_wrinkles?: boolean;
 }
 
 // ===========================================
@@ -112,7 +118,8 @@ JEWELRY & ACCESSORIES
 
 CLOTHING / APPAREL
 - On-model or flat lay, full garment visible, texture visible, wrinkle-free
-- Failures: hanger shots, poor lighting
+- CRITICAL: Clothing must be wrinkle-free and well-pressed
+- Failures: hanger shots, poor lighting, visible wrinkles or creases
 
 CRAFT SUPPLIES & TOOLS
 - Clean shots, detail views, scale reference, texture visible, in-use context
@@ -120,7 +127,8 @@ CRAFT SUPPLIES & TOOLS
 
 PAPER & PARTY SUPPLIES
 - Flat lay, white background, readable text, even lighting
-- Failures: clutter, unreadable text
+- CRITICAL: All text must be clearly readable (labels, cards, invitations)
+- Failures: clutter, unreadable text, blurry text
 
 ART & COLLECTIBLES / WALL ART
 - Straight-on shot, even lighting, true color, frame or mockup shown
@@ -319,7 +327,11 @@ Return ONE JSON object:
       "issues": [string],
       "capsApplied": [string],
       "optimizationRecommendations": [string],
-      "similarAnchor": string
+      "similarAnchor": string,
+      "altText": string,
+      "hasTextElements": boolean,
+      "textReadable": boolean,
+      "hasWrinkles": boolean
     }
   ],
   "summary": {
@@ -329,6 +341,12 @@ Return ONE JSON object:
     "lowestScoringImage": number
   }
 }
+
+IMPORTANT: For each image, generate:
+- altText: SEO-optimized 125-character description for Etsy (example: "Handmade ceramic mug with blue glaze on wooden table, perfect for coffee lovers")
+- hasTextElements: true if image contains readable text (labels, signs, etc)
+- textReadable: true if any text is clearly legible
+- hasWrinkles: true if fabric/clothing shows wrinkles or creases
 
 Return JSON ONLY. No markdown. No commentary.`;
 
@@ -604,6 +622,12 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
     
     // Product fill percentage (70-80% is ideal for Etsy)
     ai_product_fill_percent: typeof aiOutput.productFillPercent === 'number' ? aiOutput.productFillPercent : undefined,
+
+    // NEW: Etsy-specific preferences
+    ai_alt_text: typeof aiOutput.altText === 'string' ? aiOutput.altText : undefined,
+    has_text_elements: typeof aiOutput.hasTextElements === 'boolean' ? aiOutput.hasTextElements : false,
+    text_readable: typeof aiOutput.textReadable === 'boolean' ? aiOutput.textReadable : true,
+    has_wrinkles: typeof aiOutput.hasWrinkles === 'boolean' ? aiOutput.hasWrinkles : false,
   } as AIVisionResponse;
 }
 

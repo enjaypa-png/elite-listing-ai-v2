@@ -184,6 +184,12 @@ export async function POST(request: NextRequest) {
           ai_caps_applied: visionResponse?.ai_caps_applied || [],
           ai_optimization_recommendations: visionResponse?.ai_optimization_recommendations || [],
           etsyComplianceBreakdown: etsyCompliance.breakdown,
+
+          // Phase 1 Quick Wins - Etsy Preference Fields
+          ai_alt_text: visionResponse?.ai_alt_text,
+          has_text_elements: visionResponse?.has_text_elements,
+          text_readable: visionResponse?.text_readable,
+          has_wrinkles: visionResponse?.has_wrinkles,
         });
         
       } catch (imageError: any) {

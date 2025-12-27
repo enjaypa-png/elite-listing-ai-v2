@@ -20,6 +20,18 @@ export interface ImageAnalysisResult {
   compositionPoints: number;  // Deprecated
   isMainImage: boolean;
   etsyComplianceBreakdown?: any;  // Breakdown of compliance scores
+
+  // AI Vision Analysis Fields
+  ai_issues?: string[];
+  ai_strengths?: string[];
+  ai_caps_applied?: string[];
+  ai_optimization_recommendations?: string[];
+
+  // Etsy Preference Fields (Phase 1 Quick Wins)
+  ai_alt_text?: string;  // SEO-optimized alt text for accessibility
+  has_text_elements?: boolean;  // Image contains readable text
+  text_readable?: boolean;  // Text is clearly legible (Paper & Party)
+  has_wrinkles?: boolean;  // Fabric shows wrinkles (Clothing)
 }
 
 export interface ListingScoreResult {

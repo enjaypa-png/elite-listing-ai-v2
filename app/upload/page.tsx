@@ -785,14 +785,73 @@ export default function UploadPage() {
                           )}
                           
                           {result.isMainImage && (
-                            <div style={{
-                              fontSize: tokens.typography.fontSize.xs,
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              color: tokens.colors.primary,
-                              marginBottom: tokens.spacing[2]
-                            }}>
-                              MAIN IMAGE
-                            </div>
+                            <>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.xs,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: tokens.colors.primary,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                MAIN IMAGE
+                              </div>
+
+                              {/* Square Thumbnail Preview - How it appears in Etsy search */}
+                              <div style={{
+                                marginTop: tokens.spacing[2],
+                                marginBottom: tokens.spacing[3],
+                                padding: tokens.spacing[2],
+                                background: `${tokens.colors.primary}05`,
+                                borderRadius: tokens.radius.sm,
+                                border: `1px solid ${tokens.colors.primary}20`
+                              }}>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  fontWeight: tokens.typography.fontWeight.medium,
+                                  color: tokens.colors.text,
+                                  marginBottom: tokens.spacing[1]
+                                }}>
+                                  🔍 Search Result Preview (1:1)
+                                </div>
+                                <div style={{
+                                  fontSize: '10px',
+                                  color: tokens.colors.textMuted,
+                                  marginBottom: tokens.spacing[2]
+                                }}>
+                                  How this will appear in Etsy search results
+                                </div>
+
+                                {previews[index] && (
+                                  <div style={{
+                                    width: '100%',
+                                    aspectRatio: '1',
+                                    borderRadius: tokens.radius.sm,
+                                    overflow: 'hidden',
+                                    border: `1px solid ${tokens.colors.border}`,
+                                    position: 'relative'
+                                  }}>
+                                    <img
+                                      src={previews[index]}
+                                      alt="Square thumbnail preview"
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        objectPosition: 'center'
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                <div style={{
+                                  fontSize: '10px',
+                                  color: tokens.colors.warning,
+                                  marginTop: tokens.spacing[1],
+                                  fontStyle: 'italic'
+                                }}>
+                                  ⚠️ 4:3 images get center-cropped to square in search. Ensure product stays centered!
+                                </div>
+                              </div>
+                            </>
                           )}
                           <div style={{
                             fontSize: tokens.typography.fontSize['2xl'],
