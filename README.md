@@ -1,69 +1,76 @@
 # Elite Listing AI v2
 
-**AI-powered Etsy listing photo analyzer and optimizer** using the **R.A.N.K. 285™** scoring system with two-engine architecture.
+**AI-powered Etsy listing photo analyzer and optimizer** using **deterministic scoring** with MODE-based workflows.
 
-Upload 1-10 listing photos → Get AI-powered scores → Download optimized images with smart crop
+Upload 1-10 listing photos → Select MODE → Get three-output analysis → Download optimized images with smart crop
 
 ---
 
 ## 🎯 Core Features
 
-### Multi-Image Analysis & Optimization
+### Deterministic Scoring with MODE Selection
 - Upload **1-10 images** as a single Etsy listing (no minimum!)
-- **Two-Engine Scoring System**:
-  - **AI Visual Quality** (60% weight) - Immutable composition, lighting, styling analysis
-  - **Etsy Technical Compliance** (40% weight) - Mutable specs that improve with optimization
+- **Two Scoring Modes**:
+  - **📸 Optimize Images** - Score uploaded images only, no listing-level penalties
+  - **📋 Evaluate Full Listing** - Treat as complete listing, apply photo count multipliers
+- **Three-Output Architecture**:
+  - **A) Image Quality Score** (0-100) - Objective quality with fixed penalties
+  - **B) Listing Completeness** - Advisory photo count/type coverage (no score impact)
+  - **C) Conversion Headroom** - Prioritized upside actions with estimated impact
 - **Smart Crop** - Automatically zooms to achieve Etsy's recommended 70-80% product fill
-- **Issue Categorization** - Clearly shows which issues will auto-fix vs require manual editing
+- **Objective Detection** - AI detects only severe issues (blur, lighting, distinguishability)
 - Download optimized photos individually or as batch
 
 ### What Makes This Different
-- ✅ **No client-side compression** - Server handles everything for accurate before/after scores
-- ✅ **Immutable visual quality** - AI score never changes during optimization (honest scoring)
+- ✅ **Deterministic scoring** - Start at 100, apply only fixed penalties (no fuzzy logic)
+- ✅ **Explicit MODE selection** - Never infer intent from image count
+- ✅ **No category bias** - Universal quality rules, backgrounds/settings/props never penalized
+- ✅ **Transparent deductions** - See exactly why points were deducted with clear explanations
 - ✅ **Object detection** - Google Cloud Vision API finds product and optimizes framing
-- ✅ **Intelligent cropping** - Uses `fit: 'cover'` with entropy-based smart crop (preserves product fill)
 - ✅ **Real improvements** - Typical gains: +10 to +25 points (not inflated)
 
 ---
 
-## 📊 Two-Engine Scoring System
+## 📊 Deterministic Scoring System
 
-### Engine 1: AI Visual Quality (Immutable - 60% Weight)
-Powered by **Google Gemini 2.0 Flash**, evaluates:
-- Composition & framing
-- Lighting quality
-- Background/styling
-- Category-specific requirements
-- Product presentation
+### Start at 100, Apply Only Fixed Penalties
 
-**Calibration:**
-- Start at 50 (average Etsy baseline)
-- Adjust ±15 for strengths/weaknesses
-- Hard caps enforce category rules
+Every image starts at **100 points**. Deductions are applied ONLY for objective, measurable issues:
 
-### Engine 2: Etsy Technical Compliance (Mutable - 40% Weight)
-Deterministic scoring based on measurable specs:
-- **Aspect Ratio** - 4:3 recommended (100 pts if perfect)
-- **Resolution** - Shortest side ≥ 2000px (90-100 pts)
-- **File Size** - <1MB required, <500KB optimal (95-100 pts)
-- **Color Profile** - sRGB required (100 pts)
-- **Format** - JPEG optimal (100 pts)
+#### Technical Gates (Hard Requirements)
+| Gate | Penalty | Why |
+|------|---------|-----|
+| Width < 1000px | **-15** | Etsy minimum requirement |
+| Shortest side < 2000px | **-10** | Quality benchmark for zoom |
+| File size > 1MB | **-8** | Page load performance |
+| Color profile not sRGB | **-5** | Cross-device color accuracy |
+| PPI not 72 | **-3** | Web display standard |
+| Thumbnail crop unsafe (1st photo) | **-25** | Search visibility |
 
-**Final Score Formula:**
-```
-final_score = (visual_quality × 0.6) + (etsy_compliance × 0.4)
-```
+#### Soft Quality (AI-Detected Issues)
+| Issue | Penalty | Detection Criteria |
+|-------|---------|-------------------|
+| Severe blur | **-20** | Heavy artifacts, out of focus, unclear details |
+| Severe lighting | **-15** | Too dark, blown highlights, harsh shadows |
+| Product not distinguishable | **-12** | Unclear at thumbnail size |
 
-### Hard Caps (Override AI Score)
-| Issue | Max Score | Why |
-|-------|-----------|-----|
-| Pet Supplies without pet | 55 | Etsy ranking penalty |
-| Wall Art without room mockup | 60 | Category requirement |
-| Jewelry without scale reference | 78 | Returns prevention |
-| Cluttered/messy background | 75 | Trust reduction |
-| Bad lifestyle context | 70 | Hurts more than helps |
-| Raw/unfinished photo | 50 | Not product-ready |
-| Significantly blurry | 80 | Quality baseline |
+### Universal Category Safety Rule
+**NEVER penalize backgrounds, settings, skin tones, fabric, props, or lifestyle scenes.**
+
+These are stylistic choices with ZERO impact on objective quality. The AI detects them for advisory output only, but they never affect scores.
+
+### Photo Count Multipliers (Evaluate Full Listing Mode Only)
+
+| Photo Count | Multiplier | Why |
+|-------------|------------|-----|
+| 1-4 photos | **0.82×** | Below Etsy baseline |
+| 5 photos | **1.00×** | Baseline compliance |
+| 6-7 photos | **1.03×** | Good coverage |
+| 8 photos | **1.06×** | Optimal range |
+| 9 photos | **1.08×** | Excellent coverage |
+| 10 photos | **1.10×** | Maximum optimization |
+
+**Note:** Multipliers apply ONLY in `evaluate_full_listing` mode. In `optimize_images` mode, there are NO listing-level penalties or bonuses.
 
 ---
 
@@ -136,12 +143,13 @@ final_score = (visual_quality × 0.6) + (etsy_compliance × 0.4)
     /webhooks/stripe/route.ts   # Payment webhooks
 
 /lib
-  ai-vision.ts                  # 🧠 Gemini AI integration + scoring prompt
+  deterministic-scoring.ts      # 🎯 Core deterministic scoring engine (NEW)
+  ai-vision.ts                  # 🧠 Gemini AI objective detection (rewritten)
   object-detection.ts           # 📸 Google Vision product detection + smart crop
-  etsy-compliance-scoring.ts    # 📊 Deterministic compliance calculation
+  etsy-compliance-scoring.ts    # 📊 Legacy compliance calculation
   issue-categorization.ts       # ✨ Auto-fixable vs manual categorization
-  listing-scoring.ts            # 🧮 Listing-level aggregation
-  scoring-anchors.ts            # 📈 Calibration data (real Etsy listings)
+  listing-scoring.ts            # 🧮 Legacy listing-level aggregation
+  scoring-anchors.ts            # 📈 Legacy calibration data
   auth-*.ts                     # Auth utilities
   stripe.ts                     # Payment utilities
   supabase.ts                   # Database client
@@ -207,33 +215,42 @@ yarn dev
 
 Vercel auto-deploys on push to `main` branch.
 
-**Recent Production Fixes (Dec 2024):**
+**Recent Production Updates (Dec 2024-2025):**
+- ✅ **Deterministic scoring refactor** - Fixed penalties, MODE selection, A/B/C outputs
+- ✅ **Universal category safety** - Removed all category-specific hard caps
+- ✅ **Objective AI detection** - AI detects only severe issues (no scoring)
 - ✅ Removed client-side compression (was causing +2 bug)
 - ✅ Added smart crop for product fill optimization
 - ✅ Added issue categorization (auto-fix vs manual)
 - ✅ Fixed emoji display issues (Unicode → actual emojis)
 - ✅ Enabled single image upload (was 2-10, now 1-10)
-- ✅ Implemented two-engine scoring system
 
 ---
 
-## 📈 AI Calibration Data
+## 📈 Score Interpretation
 
-Calibrated with **real Etsy listings** across multiple categories:
-- **15+ listings, ~130 images analyzed**
-- **Score range:** 48-94
-- **Categories:** Home & Living, Jewelry, Vintage, Pet Supplies, Bath & Beauty, Craft Supplies, Clothing, Wall Art
+### Image Quality Score (0-100)
 
-### Score Interpretation
-| Range | Quality | Description |
-|-------|---------|-------------|
-| 90-98 | Exceptional | Top 1-5% of Etsy, professional photography |
-| 85-89 | Very Good | Best-seller quality, strong conversion potential |
-| 80-84 | Good | Technically competent, clear product presentation |
-| 70-79 | Acceptable | Minor issues, room for improvement |
-| 60-69 | Below Average | Multiple issues affecting buyer confidence |
-| 45-59 | Poor | Significant problems, recommend reshoot |
-| <45 | Failing | Would actively hurt sales and ranking |
+Deterministic scoring based on objective quality only:
+
+| Range | Quality | Typical Characteristics |
+|-------|---------|------------------------|
+| 95-100 | Exceptional | All gates passed, no deductions |
+| 85-94 | Very Good | Minor technical issues only (PPI, small file size) |
+| 75-84 | Good | Some technical gates failed or minor quality issues |
+| 65-74 | Acceptable | Multiple technical issues or one soft quality issue |
+| 50-64 | Below Average | Major technical failures or multiple quality issues |
+| 35-49 | Poor | Severe blur/lighting + technical failures |
+| <35 | Failing | Multiple severe issues, recommend reshoot |
+
+**Note:** Scores are deterministic - same image always gets same score. No calibration anchors or fuzzy logic.
+
+### Listing Completeness (Advisory Only)
+
+**B) Output** shows photo count and diversity recommendations but has **ZERO score impact**:
+- Optimal: 8-10 photos with diverse types (Studio, Lifestyle, Detail, Scale)
+- Baseline: 5+ photos
+- Below baseline: <5 photos (penalized in `evaluate_full_listing` mode via multiplier)
 
 ---
 
@@ -259,33 +276,50 @@ Calibrated with **real Etsy listings** across multiple categories:
 **Step-by-step process:**
 
 1. **Receive Raw Image** - No client compression (critical for accurate scoring)
-2. **AI Analysis** (Engine 1)
-   - Gemini 2.0 Flash evaluates visual quality
-   - Identifies strengths, issues, photo type
-   - Assigns immutable visual quality score
-3. **Technical Analysis** (Engine 2)
-   - Extract metadata (size, format, color profile)
-   - Calculate Etsy compliance score
-   - Combine: `(visual × 0.6) + (compliance × 0.4)`
-4. **Smart Crop** (if needed)
+2. **MODE Selection** - User explicitly selects workflow:
+   - `optimize_images`: Score images only, no listing penalties
+   - `evaluate_full_listing`: Apply photo count multipliers
+3. **AI Objective Detection**
+   - Gemini 2.0 Flash detects ONLY severe issues:
+     - Severe blur (heavy artifacts, out of focus)
+     - Severe lighting (too dark, blown out, harsh shadows)
+     - Product distinguishability (clear at thumbnail size?)
+     - Thumbnail crop safety (first photo only)
+   - NO scoring, NO subjective opinions
+   - Backgrounds/settings detected for advisory only
+4. **Technical Analysis**
+   - Extract metadata (width, height, file size, color profile, PPI)
+   - Check all technical gates
+   - Apply fixed penalties for failures
+5. **Deterministic Scoring**
+   - Start at 100 per image
+   - Deduct fixed penalties for failed gates
+   - Deduct for AI-detected severe issues
+   - Calculate average Image Quality Score
+   - Apply photo count multiplier (if evaluate_full_listing mode)
+6. **Three-Output Generation**
+   - **A)** Image Quality Score (0-100) with per-image breakdown
+   - **B)** Listing Completeness (advisory photo count/types)
+   - **C)** Conversion Headroom (prioritized upside actions)
+7. **Smart Crop** (if needed)
    - Detect product with Google Cloud Vision
    - Calculate current fill percentage
    - If < 70%, crop to achieve 75% fill
    - Center on product, maintain 4:3 ratio
-5. **Resize & Optimize**
+8. **Resize & Optimize**
    - Resize to 3000×2250px using `fit: 'cover'` + entropy
-   - Apply AI-triggered enhancements (sharpen, brighten, etc.)
    - Convert to sRGB JPEG
    - Compress to <1MB with mozjpeg
-6. **Recalculate Score**
-   - Visual quality: **unchanged** (immutable)
-   - Etsy compliance: **recalculated** (improved!)
-   - New final score shows real improvement
+   - Set 72 PPI metadata
+9. **Recalculate Score**
+   - Technical gates: **improved** (width, shortest side, file size, sRGB, PPI)
+   - AI detections: **unchanged** (blur, lighting are inherent to photo)
+   - New score reflects technical optimization only
 
 **Expected Improvements:**
-- Low-quality images: +10 to +25 points
-- Already-optimized images: +2 to +8 points
-- Professional photos: +0 to +5 points
+- Images with technical issues: +15 to +35 points (gates fixed)
+- Already-optimized images: +0 to +8 points (minor improvements)
+- Images with severe blur/lighting: Limited gains (inherent quality issues)
 
 ---
 
@@ -327,5 +361,5 @@ Proprietary - Elite Listing AI
 ---
 
 **Branch:** `main`
-**Last Updated:** December 2024
-**Version:** 2.0 (Two-Engine Architecture)
+**Last Updated:** December 2025
+**Version:** 3.0 (Deterministic Scoring with MODE Selection)
