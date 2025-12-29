@@ -14,24 +14,24 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Helper function to compress image before upload
-// Keep dimensions reasonable for Etsy (3000x2250 recommended max)
-async function compressImage(file: File, maxWidthOrHeight = 3000): Promise<File> {
+// Aggressive compression for Vercel 4.5MB limit (multiple images must fit)
+async function compressImage(file: File, maxWidthOrHeight = 2500): Promise<File> {
   return new Promise((resolve, reject) => {
-    // If file is already under 1MB, skip compression (Etsy limit)
-    if (file.size < 1 * 1024 * 1024) {
-      console.log('[Image Compression] Skipping - already under 1MB:', (file.size / 1024).toFixed(0) + 'KB');
+    // Always compress files over 500KB to stay under Vercel limits
+    if (file.size < 500 * 1024) {
+      console.log('[Image Compression] Skipping - already under 500KB:', (file.size / 1024).toFixed(0) + 'KB');
       resolve(file);
       return;
     }
-    
+
     // Create object URL from blob (no base64)
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
-    
+
     img.onload = () => {
       // Clean up object URL
       URL.revokeObjectURL(objectUrl);
-      
+
       const canvas = document.createElement('canvas');
       let width = img.width;
       let height = img.height;
@@ -61,7 +61,7 @@ async function compressImage(file: File, maxWidthOrHeight = 3000): Promise<File>
       
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to blob with quality 0.85 to preserve detail for Etsy
+      // Convert to blob with aggressive compression to fit Vercel 4.5MB limit
       canvas.toBlob(
         (blob) => {
           if (blob) {
@@ -82,7 +82,7 @@ async function compressImage(file: File, maxWidthOrHeight = 3000): Promise<File>
           }
         },
         'image/jpeg',
-        0.85  // Higher quality to preserve detail for Etsy optimization
+        0.65  // Aggressive compression to stay under Vercel limits
       );
     };
     
@@ -223,32 +223,33 @@ export default function UploadPage() {
     setIsAnalyzing(true);
 
     try {
-      // Compress oversized images client-side to avoid upload failures
+      // Compress ALL images client-side to stay under Vercel 4.5MB limit
       const processedFiles: File[] = [];
 
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        const fileSizeMB = file.size / 1024 / 1024;
-        console.log(`[Upload] Image ${i + 1}: ${fileSizeMB.toFixed(2)} MB`);
+        const fileSizeKB = file.size / 1024;
+        console.log(`[Upload] Image ${i + 1}: ${fileSizeKB.toFixed(0)} KB`);
 
-        // If file is over 10MB, compress it client-side
-        if (fileSizeMB > 10) {
-          console.log(`[Upload] Compressing oversized image ${i + 1}...`);
+        // Compress all images over 500KB to ensure total stays under 4.5MB
+        if (file.size > 500 * 1024) {
+          console.log(`[Upload] Compressing image ${i + 1}...`);
           try {
-            const compressedFile = await compressImage(file, 3000);
-            const compressedSizeMB = compressedFile.size / 1024 / 1024;
-            console.log(`[Upload] Compressed ${i + 1}: ${fileSizeMB.toFixed(2)}MB → ${compressedSizeMB.toFixed(2)}MB`);
+            const compressedFile = await compressImage(file, 2500);
+            const compressedSizeKB = compressedFile.size / 1024;
+            console.log(`[Upload] Compressed ${i + 1}: ${fileSizeKB.toFixed(0)}KB → ${compressedSizeKB.toFixed(0)}KB`);
             processedFiles.push(compressedFile);
           } catch (compressionError) {
             console.error('[Upload] Compression failed:', compressionError);
-            throw new Error(`Image ${i + 1} is too large (${fileSizeMB.toFixed(2)} MB) and compression failed. Please use a smaller image.`);
+            throw new Error(`Image ${i + 1} compression failed. Please try a different image.`);
           }
         } else {
+          console.log(`[Upload] Image ${i + 1} already optimized, skipping compression`);
           processedFiles.push(file);
         }
       }
 
-      console.log(`[Upload] Analyzing ${processedFiles.length} images (oversized files compressed)...`);
+      console.log(`[Upload] Analyzing ${processedFiles.length} images (compressed for upload)...`);
 
       // Call new listing analysis endpoint with processed images
       const formData = new FormData();
