@@ -1023,40 +1023,40 @@ export default function UploadPage() {
                   /* LEGACY FORMAT: Original Two-Engine Display */
                   <>
                     {/* Overall Listing Score */}
-                <div style={{
-                  padding: tokens.spacing[6],
-                  background: tokens.colors.background,
-                  borderRadius: tokens.radius.md,
-                  marginBottom: tokens.spacing[6],
-                  border: `2px solid ${tokens.colors.primary}`
-                }}>
-                  <div style={{
-                    fontSize: tokens.typography.fontSize['4xl'],
-                    fontWeight: tokens.typography.fontWeight.bold,
-                    color: tokens.colors.primary,
-                    textAlign: 'center',
-                    marginBottom: tokens.spacing[2]
-                  }}>
-                    {analysisResults.overallListingScore || analysisResults.score || 0}/100
-                  </div>
-                  <div style={{
-                    textAlign: 'center',
-                    color: tokens.colors.textMuted,
-                    fontSize: tokens.typography.fontSize.base,
-                    marginBottom: tokens.spacing[4]
-                  }}>
-                    Overall Listing Score
-                  </div>
-                  {analysisResults.imageCount && (
                     <div style={{
-                      textAlign: 'center',
-                      fontSize: tokens.typography.fontSize.sm,
-                      color: tokens.colors.textMuted
+                      padding: tokens.spacing[6],
+                      background: tokens.colors.background,
+                      borderRadius: tokens.radius.md,
+                      marginBottom: tokens.spacing[6],
+                      border: `2px solid ${tokens.colors.primary}`
                     }}>
-                      {analysisResults.imageCount} images analyzed
+                      <div style={{
+                        fontSize: tokens.typography.fontSize['4xl'],
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.primary,
+                        textAlign: 'center',
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        {analysisResults.overallListingScore || analysisResults.score || 0}/100
+                      </div>
+                      <div style={{
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                        fontSize: tokens.typography.fontSize.base,
+                        marginBottom: tokens.spacing[4]
+                      }}>
+                        Overall Listing Score
+                      </div>
+                      {analysisResults.imageCount && (
+                        <div style={{
+                          textAlign: 'center',
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted
+                        }}>
+                          {analysisResults.imageCount} images analyzed
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
                 
                 {/* Photo Type Variety */}
                 {analysisResults.detectedPhotoTypes && (
@@ -1835,6 +1835,8 @@ export default function UploadPage() {
                     Back to Dashboard
                   </Button>
                 </div>
+                  </>
+                )}
               </div>
             </Card>
           )}
