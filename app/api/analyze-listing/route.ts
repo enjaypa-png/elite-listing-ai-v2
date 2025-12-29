@@ -159,11 +159,26 @@ export async function POST(request: NextRequest) {
         imageQualityScore: scoringResult.imageQualityScore,
         photoCount: imageData.length
       });
+      // Persist analysis to database for optimize workflow
+      const analysis = await prisma.listingAnalysis.create({
+        data: {
+          overallListingScore: scoringResult.imageQualityScore,
+          mainImageScore: scoringResult.imageResults[0]?.score || 0,
+          averageImageScore: scoringResult.imageQualityScore,
+          imageScores: scoringResult.imageResults.map(r => r.score),
+          imageResults: scoringResult.imageResults,
+          detectedPhotoTypes: scoringResult.imageResults.map(r => r.photoType).filter(Boolean),
+          missingPhotoTypes: [],
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+        }
+      });
 
-      // Return A/B/C outputs
+      console.log(`[${requestId}] Analysis persisted with id: ${analysis.id}`);
+
       return NextResponse.json({
-        success: true,
-        mode: scoringResult.mode,
+  success: true,
+  analysis_id: analysis.id,
+  mode: scoringResult.mode,
 
         // A) Image Quality Score
         imageQualityScore: scoringResult.imageQualityScore,
