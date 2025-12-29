@@ -1,0 +1,219 @@
+From 26823bc0e88644d2d935839a6e1dc38b3258cc08 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 29 Dec 2025 07:59:15 +0000
+Subject: [PATCH 3/4] feat: integrate deterministic scoring in API route
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Add deterministic scoring path to analyze-listing API route.
+
+CHANGES:
+- Extract and validate MODE parameter from FormData
+- Add imports for deterministic-scoring module
+- Implement parallel paths: deterministic (when MODE provided) vs legacy
+- New path processes images and calls scoreListing() from deterministic-scoring.ts
+- Returns A/B/C outputs: Image Quality, Listing Completeness, Conversion Headroom
+- Legacy path preserved for backward compatibility (no MODE = old behavior)
+
+DETERMINISTIC PATH (when MODE provided):
+1. Extracts technical attributes (width, height, file size, color profile, PPI)
+2. Calls AI vision analysis (objective detection only)
+3. Maps AI response to aiAnalysis format
+4. Calls scoreListing(mode, imageData)
+5. Returns three separate output sections per spec
+
+RESPONSE FORMAT (deterministic):
+{
+  success: true,
+  mode: "optimize_images" | "evaluate_full_listing",
+  imageQualityScore: number,  // A) 0-100
+  imageResults: [...],         // Per-image breakdown with deductions
+  listingCompleteness: {...},  // B) Advisory photo count/types
+  conversionHeadroom: {...},   // C) Prioritized upside actions
+  photoCountMultiplier: number,  // Only in evaluate_full_listing mode
+  finalListingScore: number      // Only in evaluate_full_listing mode
+}
+
+TODO: Update AI response mapping when new AI prompt is deployed
+Currently uses safe defaults (no blur, no lighting issues) to allow testing.
+
+TESTED:
+- TypeScript compilation: ✅ No errors
+- Dev server: ✅ Starts successfully in 5.3s
+---
+ app/api/analyze-listing/route.ts | 136 ++++++++++++++++++++++++++++++-
+ 1 file changed, 132 insertions(+), 4 deletions(-)
+
+diff --git a/app/api/analyze-listing/route.ts b/app/api/analyze-listing/route.ts
+index 8a416cc..03ea4f8 100644
+--- a/app/api/analyze-listing/route.ts
++++ b/app/api/analyze-listing/route.ts
+@@ -8,6 +8,8 @@ import { analyzeImageWithVision } from '@/lib/ai-vision';
+ import { calculateListingScore, ImageAnalysisResult } from '@/lib/listing-scoring';
+ import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } from '@/lib/etsy-compliance-scoring';
+ import { prisma } from '@/lib/prisma';
++import { scoreListing, ScoringMode, scoreImage } from '@/lib/deterministic-scoring';
++import { ImageAttributes } from '@/lib/database-scoring';
+ 
+ /**
+  * POST /api/analyze-listing
+@@ -53,7 +55,19 @@ export async function POST(request: NextRequest) {
+     }
+     
+     console.log(`[${requestId}] Received ${imageFiles.length} images for listing analysis`);
+-    
++
++    // Extract MODE parameter (deterministic scoring spec)
++    const mode = formData.get('mode') as string | null;
++    console.log(`[${requestId}] MODE: ${mode || 'not specified (legacy path)'}`);
++
++    // Validate MODE if provided
++    if (mode && !['optimize_images', 'evaluate_full_listing'].includes(mode)) {
++      return NextResponse.json(
++        { success: false, error: 'INVALID_MODE', details: 'MODE must be "optimize_images" or "evaluate_full_listing"' },
++        { status: 400 }
++      );
++    }
++
+     // Validation
+     if (imageFiles.length === 0) {
+       return NextResponse.json(
+@@ -61,17 +75,131 @@ export async function POST(request: NextRequest) {
+         { status: 400 }
+       );
+     }
+-    
++
+     if (imageFiles.length > 10) {
+       return NextResponse.json(
+         { success: false, error: 'Maximum 10 images allowed per listing' },
+         { status: 400 }
+       );
+     }
+-    
++
++    // ===========================================
++    // NEW PATH: DETERMINISTIC SCORING (when MODE provided)
++    // ===========================================
++    if (mode) {
++      console.log(`[${requestId}] Using DETERMINISTIC scoring path (MODE: ${mode})`);
++
++      const imageData: Array<{
++        attributes: ImageAttributes;
++        aiAnalysis: {
++          hasSevereBlur: boolean;
++          hasSevereLighting: boolean;
++          isProductDistinguishable: boolean;
++          thumbnailCropSafe?: boolean;
++          altText: string;
++          detectedPhotoType?: string;
++        };
++      }> = [];
++
++      // Process each image
++      for (let i = 0; i < imageFiles.length; i++) {
++        const file = imageFiles[i];
++        console.log(`[${requestId}] Processing image ${i + 1}/${imageFiles.length} (${file.name})`);
++
++        // Convert File to Buffer
++        const arrayBuffer = await file.arrayBuffer();
++        const buffer = Buffer.from(arrayBuffer);
++
++        // Extract technical attributes
++        const metadata = await sharp(buffer).metadata();
++        const attributes: ImageAttributes = {
++          width_px: metadata.width || 0,
++          height_px: metadata.height || 0,
++          file_size_bytes: buffer.length,
++          aspect_ratio: metadata.width && metadata.height ? `${metadata.width}:${metadata.height}` : '0:0',
++          file_type: metadata.format || 'jpeg',
++          color_profile: metadata.space || 'srgb',
++          ppi: metadata.density || 72,
++          shortest_side: Math.min(metadata.width || 0, metadata.height || 0),
++          // Placeholder values for AI Vision attributes (not used in deterministic scoring)
++          has_clean_white_background: false,
++          is_product_centered: false,
++          has_good_lighting: false,
++          is_sharp_focus: false,
++          has_no_watermarks: true,
++          professional_appearance: false,
++          has_studio_shot: false,
++          has_lifestyle_shot: false,
++          has_scale_shot: false,
++          has_detail_shot: false,
++          has_group_shot: false,
++          has_packaging_shot: false,
++          has_process_shot: false,
++          shows_texture_or_craftsmanship: false,
++          product_clearly_visible: false,
++          appealing_context: false,
++          reference_object_visible: false,
++          size_comparison_clear: false,
++        };
++
++        // Get AI analysis (objective detection only)
++        const imageBase64 = buffer.toString('base64');
++        const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
++
++        const visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
++
++        // Map AI response to analysis format
++        // Note: New AI prompt returns boolean flags instead of scores
++        const aiAnalysis = {
++          hasSevereBlur: false,  // TODO: Extract from visionResponse when AI prompt updated
++          hasSevereLighting: false,  // TODO: Extract from visionResponse
++          isProductDistinguishable: true,  // TODO: Extract from visionResponse
++          thumbnailCropSafe: i === 0 ? true : undefined,  // TODO: Extract from visionResponse for first image
++          altText: visionResponse?.ai_alt_text || `Product image ${i + 1}`,
++          detectedPhotoType: visionResponse?.detected_photo_type || 'unknown',
++        };
++
++        imageData.push({ attributes, aiAnalysis });
++      }
++
++      // Run deterministic scoring
++      const scoringResult = scoreListing(mode as ScoringMode, imageData);
++
++      console.log(`[${requestId}] Deterministic scoring complete:`, {
++        mode: scoringResult.mode,
++        imageQualityScore: scoringResult.imageQualityScore,
++        photoCount: imageData.length
++      });
++
++      // Return A/B/C outputs
++      return NextResponse.json({
++        success: true,
++        mode: scoringResult.mode,
++
++        // A) Image Quality Score
++        imageQualityScore: scoringResult.imageQualityScore,
++        imageResults: scoringResult.imageResults,
++
++        // B) Listing Completeness
++        listingCompleteness: scoringResult.listingCompleteness,
++
++        // C) Conversion Headroom
++        conversionHeadroom: scoringResult.conversionHeadroom,
++
++        // Listing-level multipliers (only in evaluate_full_listing mode)
++        photoCountMultiplier: scoringResult.photoCountMultiplier,
++        redundancyPenalty: scoringResult.redundancyPenalty,
++        finalListingScore: scoringResult.finalListingScore,
++
++        imageCount: imageData.length
++      });
++    }
++
+     // ===========================================
+-    // 2. ANALYZE EACH IMAGE (TWO-ENGINE MODEL)
++    // LEGACY PATH: TWO-ENGINE MODEL (backward compatibility)
+     // ===========================================
++    console.log(`[${requestId}] Using LEGACY scoring path (no MODE specified)`);
++
+     const imageResults: ImageAnalysisResult[] = [];
+     const technicalSpecs: ImageTechnicalSpecs[] = [];
+     
+-- 
+2.43.0
+

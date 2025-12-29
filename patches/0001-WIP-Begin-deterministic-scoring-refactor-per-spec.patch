@@ -1,0 +1,861 @@
+From 1164c1ce25118179652a0dd4b4986b07bda19ed8 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 29 Dec 2025 07:44:00 +0000
+Subject: [PATCH 1/4] WIP: Begin deterministic scoring refactor per spec
+
+This is Phase 1 of implementing the deterministic scoring specification.
+
+COMPLETED:
+1. Created lib/deterministic-scoring.ts
+   - Implements exact scoring rules per spec
+   - Start at 100, apply ONLY specified deductions
+   - Technical gates: width, shortest side, file size, sRGB, PPI
+   - Thumbnail crop safety (first photo only)
+   - Soft quality: blur, lighting, distinguishability
+   - Separate image-level from listing-level scoring
+   - Photo count multipliers (0.82 to 1.10)
+   - Three-output system: A) Quality, B) Completeness, C) Headroom
+
+2. Rewrote lib/ai-vision.ts SYSTEM_PROMPT
+   - Removed ALL category-specific hard caps
+   - Focus on objective quality detection only
+   - Detect: blur, lighting, distinguishability, thumbnail safety
+   - Universal rule: NEVER penalize backgrounds/settings/props
+   - Features detected for advisory output only
+   - Simplified output format (no scores, just boolean flags)
+
+REMAINING WORK:
+- Add MODE selector to UI (optimize_images vs evaluate_full_listing)
+- Update API routes to use new deterministic scoring
+- Implement A/B/C output separation in UI
+- Update mapToExistingShape to match new AI output format
+- Test with real images
+- Fix TypeScript errors in old mapping functions
+
+This is a foundational change that separates:
+- Image quality (objective, deterministic)
+- Listing completeness (advisory, informational)
+- Conversion headroom (upside quantification)
+
+Aligns with real Etsy Star Seller patterns observed in jewelry/watch categories.
+---
+ lib/ai-vision.ts             | 338 ++++++---------------------
+ lib/deterministic-scoring.ts | 433 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 502 insertions(+), 269 deletions(-)
+ create mode 100644 lib/deterministic-scoring.ts
+
+diff --git a/lib/ai-vision.ts b/lib/ai-vision.ts
+index cd0e3cf..65c9a85 100644
+--- a/lib/ai-vision.ts
++++ b/lib/ai-vision.ts
+@@ -72,299 +72,99 @@ export interface AIVisionResponse {
+ // SYSTEM PROMPT - ETSY IMAGE ANALYSIS ENGINE
+ // ===========================================
+ 
+-const SYSTEM_PROMPT = `You are an Etsy Image Analysis and Optimization Engine calibrated with REAL Etsy data and REAL Etsy Image Guidelines.
++const SYSTEM_PROMPT = `You are an Etsy Image Quality Analyzer. Your job is to detect OBJECTIVE quality issues only.
+ 
+-You will be given up to 10 product images from a SINGLE Etsy listing.
++CRITICAL: You do NOT assign scores or penalties. You ONLY detect these specific conditions:
+ 
+-Your job is to:
+-1) SCORE EACH IMAGE independently from 1–100 based on Etsy conversion potential
+-2) IDENTIFY ISSUES per image based ONLY on Etsy's official image rules
+-3) RECOMMEND OPTIMIZATIONS that improve Etsy performance
+-4) NEVER factor photo count into individual image scores (photo count is listing-level only)
++1) SEVERE BLUR: Heavy compression artifacts, out of focus, unclear details
++2) SEVERE LIGHTING: Too dark to see product, blown out highlights, harsh shadows making product unclear
++3) PRODUCT DISTINGUISHABILITY: Can the product be clearly identified at thumbnail size?
++4) THUMBNAIL CROP SAFETY (FIRST PHOTO ONLY): Would a centered 1:1 square crop cut off the product?
++5) PHOTO TYPE: Studio, Lifestyle, Scale, Detail, Group, Packaging, or Process
++6) FEATURES: Detect warm lighting, text elements, wrinkles, background type (for advisory output only)
+ 
+-This is a marketplace judgment, not an artistic critique.
++UNIVERSAL RULE: NEVER flag backgrounds, settings, skin tones, fabric, props, or lifestyle scenes as problems.
++These are stylistic choices and have ZERO impact on quality.
+ 
+ ================================================
+-ETSY OFFICIAL IMAGE SPECIFICATIONS (AUTHORITATIVE)
++DETECTION CRITERIA (OBJECTIVE ONLY)
+ ================================================
+-- Recommended size: 3000 × 2250 px
+-- Aspect ratio: 4:3
+-- Minimum width: 1000 px
+-- Quality benchmark: shortest side ≥ 2000 px
+-- Resolution: 72 PPI
+-- File size: under 1MB
+-- File types: JPG, PNG, GIF
+-- Color profile: sRGB
+-- First image is cropped to square thumbnail
+-- Up to 10 photos per listing
+-- Alt text should describe the photo for accessibility and SEO
+ 
+-================================================
+-ETSY APPROVED PHOTO TYPES
+-================================================
+-- Studio Shot: clean, simple, well-lit background
+-- Lifestyle Shot: product shown in use or environment
+-- Scale Shot: product next to common object or model
+-- Detail Shot: close-up showing texture/quality
+-- Group Shot: variations or sets
+-- Packaging Shot: shows professionalism
+-- Process Shot: how the item is made
+-
+-================================================
+-CATEGORY-SPECIFIC REQUIREMENTS (NON-NEGOTIABLE)
+-================================================
+-HOME & LIVING
+-- Lifestyle context, scale reference, styled props, warm lighting, clean background
+-- CRITICAL: Lighting must be warm and natural (golden hour, soft yellow tones, not cool/blue)
+-- Warm lighting creates inviting atmosphere and increases conversion
+-- Failures: industrial settings, harsh/cool lighting, no room context, blue-tinted lighting
+-
+-JEWELRY & ACCESSORIES
+-- Clean white background, sharp focus, no glare, size reference, multiple angles
+-- CRITICAL: Background must be pure white (#FFFFFF or near-white) for professional appearance
+-- Product fills 70–80% of frame
+-- White background ensures jewelry details are clearly visible and maintains luxury aesthetic
+-- Failures: blur, no scale, busy backgrounds, off-white or colored backgrounds
+-
+-CLOTHING / APPAREL
+-- On-model or flat lay, full garment visible, texture visible, wrinkle-free
+-- CRITICAL: Clothing must be wrinkle-free and well-pressed
+-- Failures: hanger shots, poor lighting, visible wrinkles or creases
+-
+-CRAFT SUPPLIES & TOOLS
+-- Clean shots, detail views, scale reference, texture visible, in-use context
+-- Failures: unclear size, messy background
+-
+-PAPER & PARTY SUPPLIES
+-- Flat lay, white background, readable text, even lighting
+-- CRITICAL: All text must be clearly readable (labels, cards, invitations)
+-- Failures: clutter, unreadable text, blurry text
+-
+-ART & COLLECTIBLES / WALL ART
+-- Straight-on shot, even lighting, true color, frame or mockup shown
+-- CRITICAL: must show art in a room mockup
+-
+-BATH & BEAUTY
+-- Clean spa aesthetic, packaging visible, texture/ingredients shown
+-- Failures: clutter, unreadable labels
+-
+-PET SUPPLIES
+-- CRITICAL: pet must be shown using the product
+-- Product visible, scale reference, clean background
+-- Failures: no pet present, sterile studio-only shots
+-
+-TOYS & GAMES
+-- In-use shot (child playing), bright lighting, safety visible
+-- Failures: no usage context
+-
+-VINTAGE ITEMS
+-- Condition visible (wear/patina), multiple angles, scale reference
+-- Failures: hiding flaws, single angle only
+-
+-================================================
+-CORE SCORING PRINCIPLES (UPDATED CALIBRATION)
+-================================================
+-- Image quality ≠ listing quality
+-- Each image is scored independently
+-- Missing category requirements trigger HARD CAPS
+-- Harmful images score LOWER than neutral images
+-
+-CRITICAL BASELINE CALIBRATION:
+-- Average Etsy image quality ≈ 50/100
+-- A technically competent photo with good lighting and clear product = 70-80
+-- The AVERAGE successful Etsy listing image scores 65-75
+-- Photos only score below 50 when they have GENUINE problems
+-- Styled lifestyle shots with intentional props are GOOD, not cluttered
+-- Reserve scores 40-59 for photos with real issues (bad lighting, blur, confusing composition)
+-- Reserve scores below 40 for photos that would actively hurt sales
+-
+-- Environment matters as much as product quality
+-- Bad lifestyle context scores LOWER than no lifestyle
+-- Photo count is NOT part of image scoring
+-
+-================================================
+-WHAT IS AND IS NOT A "CLUTTERED BACKGROUND"
+-================================================
+-CLUTTERED (apply cap):
+-- Dirty surfaces, visible mess, unrelated items
+-- Distracting text, logos, or watermarks
+-- Multiple unrelated products in frame
+-- Busy patterns that compete with product
+-- Poor staging that looks accidental
+-
+-NOT CLUTTERED (do NOT apply cap):
+-- Intentional styling props (plants, fabric, wood surfaces, books)
+-- Coordinated color schemes with props
+-- Saucers, plates, or stands that complement the product
+-- Natural textures (linen, marble, wood grain)
+-- Minimalist lifestyle staging
+-- Props that provide scale reference
+-
+-When in doubt: if the background looks INTENTIONALLY styled, it is NOT cluttered.
+-
+-================================================
+-SCALE REFERENCE RECOGNITION
+-================================================
+-The following items provide valid scale reference:
+-- Saucers, plates, bowls (standard sizes)
+-- Human hands, fingers, or body parts
+-- Books, notebooks, pens
+-- Coins, rulers, measuring tape
+-- Furniture (tables, shelves, chairs)
+-- Common household items (mugs, phones, keys)
+-- Other products of known size in frame
+-
+-If ANY of these appear with the product, scale reference is PROVIDED.
+-
+-================================================
+-CALIBRATION ANCHORS (REAL ETSY DATA)
+-================================================
+-Use these anchors to calibrate scores. Match each image to the closest anchor.
+-
+-EXCEPTIONAL (90–98)
+-94 – Pet Supplies: cat actively using wooden bowl, warm natural light, emotional appeal
+-93 – Jewelry: anklet on model, natural scale reference, aspirational setting
+-92 – Vintage: watch in presentation box, professional lighting, authenticity visible
+-91 – Home & Living: framed wall art in styled room, natural light
+-
+-VERY GOOD (85–89)
+-88 – Coffee table in real living room, good scale, slightly dark lighting
+-87 – Ceramic mug on styled wooden surface with coordinated props, good natural light
+-86 – High-quality detail shot buyers rely on, sharp focus, clean composition
+-85 – Clean hero image with minor weaknesses (slightly tight crop or minor shadow)
+-
+-GOOD (80–84)
+-84 – Lifestyle shot with intentional props, good lighting, product clearly visible
+-83 – Studio shot with neutral background, product fills frame well
+-82 – Product on styled surface (marble, wood, fabric) with complementary items
+-81 – Clear product photo with good lighting, minor composition issues
+-80 – Technically competent photo, clear product, acceptable background
+-
+-ACCEPTABLE (70–79)
+-78 – Good product but environment doesn't enhance it
+-75 – Decent photo with one notable weakness (harsh shadow, tight crop, dull lighting)
+-73 – Informational/support image that serves a purpose but isn't hero quality
+-70 – Product visible but multiple minor issues (lighting + background + composition)
+-
+-BELOW AVERAGE (60–69)
+-68 – Product photo with genuinely distracting background or poor lighting
+-65 – Unclear product presentation, buyer would have questions
+-62 – Multiple issues that would reduce buyer confidence
+-
+-POOR (45–59)
+-55 – Wall art with no lifestyle/mockup (hard cap)
+-52 – Pet product without pet (hard cap)
+-50 – Redundant angle with no new info, or raw unfinished photo
+-48 – Image looks like source material, not a product listing
+-45 – Image actively reduces buyer trust
+-
+-FAILING (Below 45)
+-40 – Blurry, dark, or completely unprofessional
+-35 – Would cause buyer to leave listing immediately
+-
+-================================================
+-SCORING METHOD
+-================================================
+-For EACH image:
+-1) Start at 50 (average Etsy quality baseline)
+-2) Adjust UP for strengths:
+-   - Excellent composition & framing: +5 to +15
+-   - Professional lighting & clarity: +5 to +15
+-   - Effective background/environment: +5 to +15
+-   - Strong category compliance: +5 to +15
+-3) Adjust DOWN for weaknesses:
+-   - Poor composition: -5 to -15
+-   - Bad lighting: -5 to -15
+-   - Problematic background: -5 to -15
+-   - Category violations: -5 to -20
+-4) Apply HARD CAPS last (only if genuinely violated)
+-
+-================================================
+-HARD CAPS (OVERRIDE ALL SCORES)
+-================================================
+-Apply these caps ONLY when the violation is clear and genuine:
+-
+-- Pet Supplies without pet → max 55
+-- Wall Art without room mockup → max 60
+-- Jewelry without ANY scale reference → max 78
+-- GENUINELY cluttered/messy background (see definition above) → max 75
+-- Bad/confusing lifestyle (staging that hurts rather than helps) → max 70
+-- Raw photo (not finished product) → max 50
+-- Significantly blurry/out of focus → max 80
+-
+-If multiple caps apply, enforce the LOWEST cap.
+-
+-IMPORTANT: Do NOT apply the "cluttered background" cap to intentionally styled lifestyle shots.
+-
+-================================================
+-CRITICAL RULES
+-================================================
+-- Bad lifestyle scores LOWER than no lifestyle
+-- Redundant or near-duplicate angles → −5 to −15
+-- Informational images should not exceed hero-quality images
+-- Do NOT reward creativity that violates Etsy standards
+-- Do NOT average images internally
+-- When uncertain between two scores, choose the HIGHER score
+-- Styled props and lifestyle elements are POSITIVE, not negative
+-
+-================================================
+-OPTIMIZATION LOGIC
+-================================================
+-For EACH image, recommend specific, realistic fixes:
+-- Background cleanup or replacement
+-- Lighting correction
+-- Crop to improve product fill (70–80%)
+-- Add scale reference
+-- Remove clutter or text overlays
+-- Convert to appropriate photo type
+-- Fix missing category requirements
+-
+-Optimizations must align strictly with Etsy rules.
++1) SEVERE BLUR DETECTION:
++   - Out of focus / soft focus
++   - Heavy compression artifacts
++   - Details not discernible
++   - Text (if present) is unreadable due to blur
++
++2) SEVERE LIGHTING DETECTION:
++   - Product too dark to see clearly
++   - Blown out highlights (pure white with no detail)
++   - Harsh shadows that obscure product features
++   - Product indistinguishable due to lighting
++
++3) PRODUCT DISTINGUISHABILITY:
++   - At thumbnail size, is the product clearly identifiable?
++   - Can you tell what it is without zooming?
++   - Are defining features visible?
++
++4) THUMBNAIL CROP SAFETY (FIRST PHOTO ONLY):
++   - Imagine a centered 1:1 square crop
++   - Would the product be fully visible?
++   - Would important edges/text/features be cut off?
++   - Answer: true (safe) or false (unsafe)
++
++5) PHOTO TYPE CLASSIFICATION:
++   - Studio: clean background, simple, well-lit
++   - Lifestyle: product in use or styled environment
++   - Scale: product next to reference object (hands, ruler, etc.)
++   - Detail: close-up showing texture/craftsmanship
++   - Group: multiple variations or quantities
++   - Packaging: shows box/wrapping
++   - Process: making/creation process
++
++6) FEATURE DETECTION (ADVISORY ONLY - ZERO SCORING IMPACT):
++   - hasWarmLighting: golden/yellow tones vs blue/cool tones
++   - hasTextElements: readable text visible (labels, cards, etc.)
++   - textReadable: if text exists, is it legible?
++   - hasWrinkles: fabric shows creases (clothing only)
++   - backgroundType: white, neutral, colored, lifestyle, on-model
+ 
+ ================================================
+ OUTPUT FORMAT (STRICT JSON ONLY)
+ ================================================
+-Return ONE JSON object:
++Return ONE JSON object with objective detections only:
+ 
+ {
+   "images": [
+     {
+       "imageNumber": number,
+-      "score": number,
+-      "photoType": string,
+-      "productFillPercent": number,
+-      "strengths": [string],
+-      "issues": [string],
+-      "capsApplied": [string],
+-      "optimizationRecommendations": [string],
+-      "similarAnchor": string,
+-      "altText": string,
++      "hasSevereBlur": boolean,
++      "hasSevereLighting": boolean,
++      "isProductDistinguishable": boolean,
++      "thumbnailCropSafe": boolean | null,  // Only for first photo, null for others
++      "photoType": "Studio" | "Lifestyle" | "Scale" | "Detail" | "Group" | "Packaging" | "Process",
++      "altText": string,  // 125-char max SEO description
+       "hasTextElements": boolean,
+       "textReadable": boolean,
+       "hasWrinkles": boolean,
+       "hasWarmLighting": boolean,
+       "lightingTemperature": "warm" | "cool" | "neutral",
+-      "backgroundIsPureWhite": boolean,
+-      "backgroundPurityScore": number
++      "backgroundType": "white" | "neutral" | "colored" | "lifestyle" | "on-model"
+     }
+-  ],
+-  "summary": {
+-    "overallObservations": [string],
+-    "mostCommonIssues": [string],
+-    "highestScoringImage": number,
+-    "lowestScoringImage": number
+-  }
++  ]
+ }
+ 
+-IMPORTANT: For each image, generate:
+-- altText: SEO-optimized 125-character description for Etsy (example: "Handmade ceramic mug with blue glaze on wooden table, perfect for coffee lovers")
+-- hasTextElements: true if image contains readable text (labels, signs, etc)
+-- textReadable: true if any text is clearly legible
+-- hasWrinkles: true if fabric/clothing shows wrinkles or creases
+-- hasWarmLighting: true if lighting is warm/golden (not cool/blue) - CRITICAL for Home & Living
+-- lightingTemperature: "warm" (golden/yellow tones), "cool" (blue/white tones), or "neutral" (balanced)
+-- backgroundIsPureWhite: true if background is pure white (#FFFFFF or near-white) - CRITICAL for Jewelry
+-- backgroundPurityScore: 0-100 score of how close background is to pure white (100 = perfect white, <70 = off-white/colored)
++CRITICAL RULES:
++- Do NOT assign scores
++- Do NOT create lists of "issues" or "strengths"
++- Do NOT make recommendations
++- ONLY detect the specific conditions listed above
++- Be conservative: flag "hasSevereBlur" or "hasSevereLighting" ONLY when truly severe
++- Background color is NEVER a problem (backgroundType is informational only)
++
++ALT TEXT:
++- Generate a 125-character SEO-optimized description
++- Example: "Handmade ceramic mug with blue glaze on wooden table, perfect for coffee lovers"
+ 
+ Return JSON ONLY. No markdown. No commentary.`;
+ 
+diff --git a/lib/deterministic-scoring.ts b/lib/deterministic-scoring.ts
+new file mode 100644
+index 0000000..bc75cee
+--- /dev/null
++++ b/lib/deterministic-scoring.ts
+@@ -0,0 +1,433 @@
++/**
++ * DETERMINISTIC SCORING ENGINE
++ * Implements the exact Etsy Image Preference specification
++ *
++ * Rules:
++ * - Start at 100, apply ONLY specified deductions
++ * - No fuzzy logic, no guessing, no interpretation
++ * - Three separate outputs: A) Image Quality, B) Completeness, C) Headroom
++ */
++
++import { ImageAttributes } from './database-scoring';
++
++// ===========================================
++// CONFIGURATION
++// ===========================================
++
++// Technical Gate Penalties (fixed deductions)
++const PENALTIES = {
++  WIDTH_BELOW_1000: 15,           // Hard failure: minimum width
++  SHORTEST_SIDE_BELOW_2000: 10,   // Hard failure: quality benchmark
++  FILE_SIZE_OVER_1MB: 8,          // Hard failure: file size
++  NOT_SRGB: 5,                    // Hard failure: color profile
++  PPI_NOT_72: 3,                  // Hard failure: resolution
++  THUMBNAIL_CROP_UNSAFE: 25,      // HUGE: first photo crop safety
++  SEVERE_BLUR: 20,                // Gradual: image clarity
++  SEVERE_LIGHTING: 15,            // Gradual: lighting quality
++  NOT_DISTINGUISHABLE: 12,        // Gradual: product visibility
++} as const;
++
++// Photo Count Multipliers (listing-level only)
++const PHOTO_COUNT_MULTIPLIERS: Record<number, number> = {
++  1: 0.82, 2: 0.82, 3: 0.82, 4: 0.82,
++  5: 1.00,
++  6: 1.03, 7: 1.03,
++  8: 1.06,
++  9: 1.08,
++  10: 1.10
++};
++
++// ===========================================
++// TYPES
++// ===========================================
++
++export type ScoringMode = 'optimize_images' | 'evaluate_full_listing';
++
++export interface ImageQualityResult {
++  imageIndex: number;
++  score: number;  // 0-100
++  deductions: Deduction[];
++  passedGates: string[];
++  altText: string;
++}
++
++export interface Deduction {
++  rule: string;
++  penalty: number;
++  explanation: string;
++}
++
++export interface ListingCompletenessResult {
++  photoCount: number;
++  recommendedMin: number;
++  recommendedMax: number;
++  missingPhotoTypes: string[];
++  coverageGaps: string[];
++}
++
++export interface ConversionHeadroomResult {
++  prioritizedActions: Action[];
++  estimatedUplift: string;
++}
++
++export interface Action {
++  priority: 'high' | 'medium' | 'low';
++  action: string;
++  impact: string;
++}
++
++export interface DeterministicScoreResult {
++  mode: ScoringMode;
++
++  // A) Image Quality Score (0-100)
++  imageQualityScore: number;
++  imageResults: ImageQualityResult[];
++
++  // B) Listing Completeness (advisory only)
++  listingCompleteness: ListingCompletenessResult;
++
++  // C) Conversion Headroom (advisory only)
++  conversionHeadroom: ConversionHeadroomResult;
++
++  // Listing-level multipliers (only in evaluate_full_listing mode)
++  photoCountMultiplier?: number;
++  redundancyPenalty?: number;
++  finalListingScore?: number;
++}
++
++// ===========================================
++// CORE SCORING FUNCTIONS
++// ===========================================
++
++/**
++ * Score a single image deterministically
++ * Start at 100, apply ONLY specified deductions
++ */
++export function scoreImage(
++  imageIndex: number,
++  attributes: ImageAttributes,
++  aiAnalysis: {
++    hasSevereBlur: boolean;
++    hasSevereLighting: boolean;
++    isProductDistinguishable: boolean;
++    thumbnailCropSafe?: boolean;  // Only for first photo
++    altText: string;
++  }
++): ImageQualityResult {
++  let score = 100;
++  const deductions: Deduction[] = [];
++  const passedGates: string[] = [];
++
++  // ===========================================
++  // TECHNICAL GATES (MUST DEDUCT IF FAILED)
++  // ===========================================
++
++  // 1. Minimum width
++  if (attributes.width_px < 1000) {
++    deductions.push({
++      rule: 'Minimum width < 1000px',
++      penalty: PENALTIES.WIDTH_BELOW_1000,
++      explanation: 'Etsy requires minimum 1000px width for clarity in search results and product pages.'
++    });
++    score -= PENALTIES.WIDTH_BELOW_1000;
++  } else {
++    passedGates.push('✓ Width ≥ 1000px');
++  }
++
++  // 2. Quality benchmark (shortest side)
++  const shortestSide = Math.min(attributes.width_px, attributes.height_px);
++  if (shortestSide < 2000) {
++    deductions.push({
++      rule: 'Shortest side < 2000px',
++      penalty: PENALTIES.SHORTEST_SIDE_BELOW_2000,
++      explanation: 'Etsy quality benchmark: shortest side should be ≥ 2000px for zoom functionality and print quality.'
++    });
++    score -= PENALTIES.SHORTEST_SIDE_BELOW_2000;
++  } else {
++    passedGates.push('✓ Shortest side ≥ 2000px');
++  }
++
++  // 3. File size
++  const fileSizeMB = attributes.file_size_bytes / (1024 * 1024);
++  if (fileSizeMB > 1) {
++    deductions.push({
++      rule: 'File size > 1MB',
++      penalty: PENALTIES.FILE_SIZE_OVER_1MB,
++      explanation: 'Etsy requires files under 1MB for fast page load and mobile performance.'
++    });
++    score -= PENALTIES.FILE_SIZE_OVER_1MB;
++  } else {
++    passedGates.push('✓ File size < 1MB');
++  }
++
++  // 4. Color profile
++  if (attributes.color_profile?.toLowerCase() !== 'srgb') {
++    deductions.push({
++      rule: 'Color profile is not sRGB',
++      penalty: PENALTIES.NOT_SRGB,
++      explanation: 'Etsy recommends sRGB color profile for accurate color display across all devices.'
++    });
++    score -= PENALTIES.NOT_SRGB;
++  } else {
++    passedGates.push('✓ sRGB color profile');
++  }
++
++  // 5. PPI (if available)
++  if (attributes.ppi && attributes.ppi !== 72) {
++    deductions.push({
++      rule: 'PPI not 72',
++      penalty: PENALTIES.PPI_NOT_72,
++      explanation: 'Etsy standard is 72 PPI for web display.'
++    });
++    score -= PENALTIES.PPI_NOT_72;
++  } else if (attributes.ppi === 72) {
++    passedGates.push('✓ 72 PPI');
++  }
++
++  // ===========================================
++  // FIRST PHOTO ONLY: THUMBNAIL CROP SAFETY
++  // ===========================================
++
++  if (imageIndex === 0 && aiAnalysis.thumbnailCropSafe === false) {
++    deductions.push({
++      rule: 'First photo not thumbnail-safe',
++      penalty: PENALTIES.THUMBNAIL_CROP_UNSAFE,
++      explanation: 'Etsy displays your first photo as a square thumbnail in search results. A centered 1:1 crop would cut off the product, reducing visibility and click-through rate.'
++    });
++    score -= PENALTIES.THUMBNAIL_CROP_UNSAFE;
++  } else if (imageIndex === 0 && aiAnalysis.thumbnailCropSafe === true) {
++    passedGates.push('✓ Thumbnail-safe (1:1 crop preserves product)');
++  }
++
++  // ===========================================
++  // SOFT QUALITY (GRADUAL DEDUCTIONS)
++  // ===========================================
++
++  // 1. Severe blur
++  if (aiAnalysis.hasSevereBlur) {
++    deductions.push({
++      rule: 'Severe blur / compression artifacts',
++      penalty: PENALTIES.SEVERE_BLUR,
++      explanation: 'Image lacks sharpness and clarity. Blurry photos reduce buyer confidence and conversion.'
++    });
++    score -= PENALTIES.SEVERE_BLUR;
++  } else {
++    passedGates.push('✓ Sharp and clear');
++  }
++
++  // 2. Severe lighting failure
++  if (aiAnalysis.hasSevereLighting) {
++    deductions.push({
++      rule: 'Severe lighting failure',
++      penalty: PENALTIES.SEVERE_LIGHTING,
++      explanation: 'Lighting is too dark, too bright, or has harsh shadows that make the product hard to see clearly.'
++    });
++    score -= PENALTIES.SEVERE_LIGHTING;
++  } else {
++    passedGates.push('✓ Good lighting quality');
++  }
++
++  // 3. Product not distinguishable
++  if (!aiAnalysis.isProductDistinguishable) {
++    deductions.push({
++      rule: 'Product not clearly distinguishable',
++      penalty: PENALTIES.NOT_DISTINGUISHABLE,
++      explanation: 'Product is difficult to identify or see clearly at thumbnail size.'
++    });
++    score -= PENALTIES.NOT_DISTINGUISHABLE;
++  } else {
++    passedGates.push('✓ Product clearly visible');
++  }
++
++  // Ensure score doesn't go below 0
++  score = Math.max(0, Math.round(score));
++
++  return {
++    imageIndex,
++    score,
++    deductions,
++    passedGates,
++    altText: aiAnalysis.altText
++  };
++}
++
++/**
++ * Calculate listing completeness (advisory only)
++ */
++export function calculateListingCompleteness(
++  imageCount: number,
++  detectedPhotoTypes: string[]
++): ListingCompletenessResult {
++  const allPhotoTypes = [
++    'Studio Shot',
++    'Lifestyle Shot',
++    'Scale Reference',
++    'Detail/Close-up',
++    'Group/Variations',
++    'Packaging',
++    'Process/Behind-the-scenes'
++  ];
++
++  const missingPhotoTypes = allPhotoTypes.filter(
++    type => !detectedPhotoTypes.some(detected => detected.toLowerCase().includes(type.toLowerCase().split('/')[0]))
++  );
++
++  const coverageGaps: string[] = [];
++
++  if (imageCount < 5) {
++    coverageGaps.push(`Only ${imageCount} photo${imageCount === 1 ? '' : 's'} - Etsy recommends minimum 5 for baseline compliance`);
++  }
++
++  if (imageCount < 10) {
++    coverageGaps.push(`${10 - imageCount} photo slot${10 - imageCount === 1 ? '' : 's'} unused - optimal range is 8-10 photos`);
++  }
++
++  if (missingPhotoTypes.length > 0) {
++    coverageGaps.push(`Missing photo types: ${missingPhotoTypes.join(', ')}`);
++  }
++
++  return {
++    photoCount: imageCount,
++    recommendedMin: 5,
++    recommendedMax: 10,
++    missingPhotoTypes,
++    coverageGaps
++  };
++}
++
++/**
++ * Calculate conversion headroom (quantified upside actions)
++ */
++export function calculateConversionHeadroom(
++  imageCount: number,
++  missingPhotoTypes: string[],
++  imageResults: ImageQualityResult[]
++): ConversionHeadroomResult {
++  const actions: Action[] = [];
++
++  // Photo count upside
++  if (imageCount < 5) {
++    actions.push({
++      priority: 'high',
++      action: `Add ${5 - imageCount} more photos to reach baseline (5 photos)`,
++      impact: 'Etsy penalizes listings with <5 photos; expected +18% score boost'
++    });
++  } else if (imageCount < 8) {
++    actions.push({
++      priority: 'medium',
++      action: `Add ${8 - imageCount} more photos to reach optimal range (8-10 photos)`,
++      impact: `Expected +${(8 - imageCount) * 3}% listing score boost`
++    });
++  }
++
++  // Missing photo types
++  const highValueTypes = ['Lifestyle Shot', 'Scale Reference', 'Detail/Close-up'];
++  const missingHighValue = missingPhotoTypes.filter(t => highValueTypes.includes(t));
++
++  if (missingHighValue.length > 0) {
++    actions.push({
++      priority: 'high',
++      action: `Add ${missingHighValue.join(', ')}`,
++      impact: 'Increases conversion by showing product context, size, and quality'
++    });
++  }
++
++  // Technical fixes
++  const technicalIssues = imageResults.filter(r => r.deductions.length > 0);
++  if (technicalIssues.length > 0) {
++    const topIssue = technicalIssues[0].deductions[0];
++    actions.push({
++      priority: 'high',
++      action: `Fix: ${topIssue.rule}`,
++      impact: `+${topIssue.penalty} points per affected image`
++    });
++  }
++
++  return {
++    prioritizedActions: actions,
++    estimatedUplift: actions.length > 0
++      ? `Up to +${actions.reduce((sum, a) => sum + parseInt(a.impact.match(/\d+/)?.[0] || '0'), 0)} points available`
++      : 'No significant optimization opportunities'
++  };
++}
++
++/**
++ * Main scoring function - routes to correct workflow
++ */
++export function scoreListing(
++  mode: ScoringMode,
++  images: Array<{
++    attributes: ImageAttributes;
++    aiAnalysis: {
++      hasSevereBlur: boolean;
++      hasSevereLighting: boolean;
++      isProductDistinguishable: boolean;
++      thumbnailCropSafe?: boolean;
++      altText: string;
++      detectedPhotoType?: string;
++    };
++  }>
++): DeterministicScoreResult {
++  // Score each image
++  const imageResults = images.map((img, index) =>
++    scoreImage(index, img.attributes, img.aiAnalysis)
++  );
++
++  // A) Image Quality Score = average of per-image scores
++  const imageQualityScore = Math.round(
++    imageResults.reduce((sum, r) => sum + r.score, 0) / imageResults.length
++  );
++
++  // B) Listing Completeness
++  const detectedPhotoTypes = images
++    .map(img => img.aiAnalysis.detectedPhotoType)
++    .filter(Boolean) as string[];
++
++  const listingCompleteness = calculateListingCompleteness(
++    images.length,
++    detectedPhotoTypes
++  );
++
++  // C) Conversion Headroom
++  const conversionHeadroom = calculateConversionHeadroom(
++    images.length,
++    listingCompleteness.missingPhotoTypes,
++    imageResults
++  );
++
++  // ===========================================
++  // MODE-SPECIFIC LOGIC
++  // ===========================================
++
++  if (mode === 'optimize_images') {
++    // optimize_images: NO listing-level multipliers
++    return {
++      mode,
++      imageQualityScore,
++      imageResults,
++      listingCompleteness,
++      conversionHeadroom
++    };
++  } else {
++    // evaluate_full_listing: Apply listing-level multipliers
++    const photoCountMultiplier = PHOTO_COUNT_MULTIPLIERS[Math.min(images.length, 10)] || 1.0;
++
++    // Redundancy dampener (simplified - would need AI to detect duplicates)
++    const redundancyPenalty = 0; // TODO: Implement duplicate detection
++
++    const finalListingScore = Math.round(
++      imageQualityScore * photoCountMultiplier * (1 - redundancyPenalty)
++    );
++
++    return {
++      mode,
++      imageQualityScore,
++      imageResults,
++      listingCompleteness,
++      conversionHeadroom,
++      photoCountMultiplier,
++      redundancyPenalty,
++      finalListingScore
++    };
++  }
++}
+-- 
+2.43.0
+
