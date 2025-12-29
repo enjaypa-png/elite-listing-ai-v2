@@ -735,12 +735,294 @@ export default function UploadPage() {
                   fontSize: tokens.typography.fontSize['2xl'],
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text,
-                  marginBottom: tokens.spacing[6]
+                  marginBottom: tokens.spacing[2]
                 }}>
                   📊 Listing Analysis Results
                 </h2>
-                
-                {/* Overall Listing Score */}
+
+                {/* Mode Indicator */}
+                {analysisResults.mode && (
+                  <div style={{
+                    fontSize: tokens.typography.fontSize.sm,
+                    color: tokens.colors.textMuted,
+                    marginBottom: tokens.spacing[6]
+                  }}>
+                    Mode: {analysisResults.mode === 'optimize_images' ? '📸 Optimize Images' : '📋 Evaluate Full Listing'}
+                  </div>
+                )}
+
+                {/* NEW FORMAT: A/B/C Outputs (when MODE provided) */}
+                {analysisResults.mode ? (
+                  <>
+                    {/* A) IMAGE QUALITY SCORE */}
+                    <div style={{
+                      padding: tokens.spacing[6],
+                      background: tokens.colors.background,
+                      borderRadius: tokens.radius.md,
+                      marginBottom: tokens.spacing[4],
+                      border: `2px solid ${tokens.colors.primary}`
+                    }}>
+                      <div style={{
+                        fontSize: tokens.typography.fontSize.lg,
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.text,
+                        marginBottom: tokens.spacing[3]
+                      }}>
+                        A) Image Quality Score
+                      </div>
+                      <div style={{
+                        fontSize: tokens.typography.fontSize['4xl'],
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.primary,
+                        textAlign: 'center',
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        {analysisResults.imageQualityScore}/100
+                      </div>
+                      <div style={{
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                        fontSize: tokens.typography.fontSize.sm
+                      }}>
+                        Average of {analysisResults.imageCount} uploaded images
+                      </div>
+
+                      {/* Final Listing Score (only in evaluate_full_listing mode) */}
+                      {analysisResults.finalListingScore && (
+                        <div style={{
+                          marginTop: tokens.spacing[4],
+                          paddingTop: tokens.spacing[4],
+                          borderTop: `1px solid ${tokens.colors.border}`,
+                          textAlign: 'center'
+                        }}>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.textMuted,
+                            marginBottom: tokens.spacing[1]
+                          }}>
+                            Final Listing Score (with {analysisResults.photoCountMultiplier}× multiplier)
+                          </div>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize['2xl'],
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.success
+                          }}>
+                            {analysisResults.finalListingScore}/100
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Per-Image Breakdown */}
+                    {analysisResults.imageResults && analysisResults.imageResults.length > 0 && (
+                      <div style={{ marginBottom: tokens.spacing[4] }}>
+                        <h3 style={{
+                          fontSize: tokens.typography.fontSize.base,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          🖼️ Per-Image Breakdown
+                        </h3>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                          gap: tokens.spacing[3]
+                        }}>
+                          {analysisResults.imageResults.map((result: any, index: number) => (
+                            <div key={index} style={{
+                              padding: tokens.spacing[4],
+                              background: tokens.colors.surface,
+                              border: `1px solid ${tokens.colors.border}`,
+                              borderRadius: tokens.radius.md
+                            }}>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize['2xl'],
+                                fontWeight: tokens.typography.fontWeight.bold,
+                                color: result.score >= 80 ? tokens.colors.success : result.score >= 60 ? tokens.colors.warning : tokens.colors.danger,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                {result.score}/100
+                              </div>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.xs,
+                                color: tokens.colors.textMuted,
+                                marginBottom: tokens.spacing[3]
+                              }}>
+                                Image {index + 1}
+                              </div>
+
+                              {/* Passed Gates */}
+                              {result.passedGates && result.passedGates.length > 0 && (
+                                <div style={{ marginBottom: tokens.spacing[2] }}>
+                                  <div style={{
+                                    fontSize: tokens.typography.fontSize.xs,
+                                    color: tokens.colors.success,
+                                    fontWeight: tokens.typography.fontWeight.medium,
+                                    marginBottom: tokens.spacing[1]
+                                  }}>
+                                    Passed:
+                                  </div>
+                                  {result.passedGates.slice(0, 3).map((gate: string, i: number) => (
+                                    <div key={i} style={{
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      color: tokens.colors.textMuted
+                                    }}>
+                                      {gate}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Deductions */}
+                              {result.deductions && result.deductions.length > 0 && (
+                                <div>
+                                  <div style={{
+                                    fontSize: tokens.typography.fontSize.xs,
+                                    color: tokens.colors.danger,
+                                    fontWeight: tokens.typography.fontWeight.medium,
+                                    marginBottom: tokens.spacing[1]
+                                  }}>
+                                    Deductions:
+                                  </div>
+                                  {result.deductions.map((ded: any, i: number) => (
+                                    <div key={i} style={{
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      color: tokens.colors.textMuted,
+                                      marginBottom: tokens.spacing[1]
+                                    }}>
+                                      -{ded.penalty}: {ded.rule}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* B) LISTING COMPLETENESS */}
+                    {analysisResults.listingCompleteness && (
+                      <div style={{
+                        padding: tokens.spacing[5],
+                        background: `${tokens.colors.primary}08`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[4],
+                        border: `1px solid ${tokens.colors.border}`
+                      }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.lg,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          B) Listing Completeness
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[4]
+                        }}>
+                          Advisory only – no score impact
+                        </div>
+
+                        {/* Coverage Gaps */}
+                        {analysisResults.listingCompleteness.coverageGaps && analysisResults.listingCompleteness.coverageGaps.length > 0 && (
+                          <ul style={{ margin: 0, paddingLeft: tokens.spacing[5] }}>
+                            {analysisResults.listingCompleteness.coverageGaps.map((gap: string, i: number) => (
+                              <li key={i} style={{
+                                fontSize: tokens.typography.fontSize.sm,
+                                color: tokens.colors.text,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                {gap}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {analysisResults.listingCompleteness.coverageGaps?.length === 0 && (
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.success
+                          }}>
+                            ✅ No coverage gaps detected
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* C) CONVERSION HEADROOM */}
+                    {analysisResults.conversionHeadroom && (
+                      <div style={{
+                        padding: tokens.spacing[5],
+                        background: `${tokens.colors.success}08`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[6],
+                        border: `1px solid ${tokens.colors.success}30`
+                      }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.lg,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          C) Conversion Headroom
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[4]
+                        }}>
+                          Prioritized actions to increase score – {analysisResults.conversionHeadroom.estimatedUplift}
+                        </div>
+
+                        {/* Prioritized Actions */}
+                        {analysisResults.conversionHeadroom.prioritizedActions && analysisResults.conversionHeadroom.prioritizedActions.length > 0 && (
+                          <div>
+                            {analysisResults.conversionHeadroom.prioritizedActions.map((action: any, i: number) => (
+                              <div key={i} style={{
+                                padding: tokens.spacing[3],
+                                background: tokens.colors.background,
+                                borderRadius: tokens.radius.sm,
+                                marginBottom: tokens.spacing[2],
+                                borderLeft: `3px solid ${action.priority === 'high' ? tokens.colors.danger : action.priority === 'medium' ? tokens.colors.warning : tokens.colors.textMuted}`
+                              }}>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.sm,
+                                  fontWeight: tokens.typography.fontWeight.medium,
+                                  color: tokens.colors.text,
+                                  marginBottom: tokens.spacing[1]
+                                }}>
+                                  {action.action}
+                                </div>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.textMuted
+                                }}>
+                                  {action.impact}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {analysisResults.conversionHeadroom.prioritizedActions?.length === 0 && (
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.success
+                          }}>
+                            ✅ No significant optimization opportunities
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* LEGACY FORMAT: Original Two-Engine Display */
+                  <>
+                    {/* Overall Listing Score */}
                 <div style={{
                   padding: tokens.spacing[6],
                   background: tokens.colors.background,
