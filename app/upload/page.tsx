@@ -1085,7 +1085,64 @@ export default function UploadPage() {
                           )}
                         </Button>
                       </div>
+                    )}                     {/* DETERMINISTIC MODE: Optimized Results Display */}
+                    {optimizedListing && (
+                      <div style={{ marginTop: tokens.spacing[6] }}>
+                        <div style={{ textAlign: 'center', marginBottom: tokens.spacing[6] }}>
+                          <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', marginBottom: tokens.spacing[2] }}>✨</div>
+                          <h3 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.5rem)', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success, marginBottom: tokens.spacing[2] }}>
+                            Listing Photos Optimized!
+                          </h3>
+                          <p style={{ fontSize: tokens.typography.fontSize.base, color: tokens.colors.textMuted }}>
+                            {optimizedListing.message}
+                          </p>
+                        </div>
+
+                        <div style={{ padding: tokens.spacing[5], background: `${tokens.colors.primary}10`, borderRadius: tokens.radius.md, border: `1px solid ${tokens.colors.primary}30`, textAlign: 'center', marginBottom: tokens.spacing[6] }}>
+                          <div style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.textMuted, marginBottom: tokens.spacing[2] }}>Your Listing Score</div>
+                          <div style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: tokens.spacing[3] }}>
+                            <span>{optimizedListing.originalScore}</span>
+                            <span style={{ color: tokens.colors.textMuted }}>→</span>
+                            <span style={{ color: tokens.colors.success }}>{optimizedListing.newScore}</span>
+                            {optimizedListing.improvement > 0 && (
+                              <span style={{ fontSize: tokens.typography.fontSize.lg, color: tokens.colors.success, fontWeight: tokens.typography.fontWeight.semibold }}>
+                                (+{optimizedListing.improvement})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <h4 style={{ fontSize: tokens.typography.fontSize.base, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[3] }}>
+                          📥 Download Optimized Photos
+                        </h4>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: tokens.spacing[3], marginBottom: tokens.spacing[6] }}>
+                          {optimizedListing.images && optimizedListing.images.map((img: any, index: number) => (
+                            <div key={index} style={{ padding: tokens.spacing[3], background: tokens.colors.surface, border: `2px solid ${img.isMainImage ? tokens.colors.primary : tokens.colors.border}`, borderRadius: tokens.radius.md }}>
+                              {img.optimizedUrl && (
+                                <div style={{ width: '100%', aspectRatio: '4/3', marginBottom: tokens.spacing[2], borderRadius: tokens.radius.sm, overflow: 'hidden', border: `1px solid ${tokens.colors.border}` }}>
+                                  <img src={img.optimizedUrl} alt={`Optimized ${index + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                </div>
+                              )}
+                              {img.isMainImage && (
+                                <div style={{ fontSize: tokens.typography.fontSize.xs, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.primary, marginBottom: tokens.spacing[1] }}>MAIN IMAGE</div>
+                              )}
+                              <div style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Photo {index + 1}</div>
+                              {img.originalScore && img.optimizedScore && (
+                                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted, marginBottom: tokens.spacing[2] }}>
+                                  {img.originalScore} → <span style={{ color: tokens.colors.success, fontWeight: tokens.typography.fontWeight.semibold }}>{img.optimizedScore}</span>
+                                  {img.improvement > 0 && <span style={{ color: tokens.colors.success }}> (+{img.improvement})</span>}
+                                </div>
+                              )}
+                              <Button variant="primary" size="sm" fullWidth onClick={() => downloadImage(img.optimizedUrl, `optimized-${index + 1}.jpg`)} style={{ fontSize: tokens.typography.fontSize.xs }}>
+                                ⬇ Download
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
+
 
                   </>
                 ) : (
