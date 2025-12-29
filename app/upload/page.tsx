@@ -199,29 +199,42 @@ export default function UploadPage() {
     setIsAnalyzing(true);
 
     try {
-      // NO CLIENT-SIDE COMPRESSION - Send raw images for accurate before/after analysis
-      console.log(`[Upload] Analyzing ${selectedFiles.length} RAW images (no pre-compression)...`);
+      // Compress oversized images client-side to avoid upload failures
+      const processedFiles: File[] = [];
 
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
         const fileSizeMB = file.size / 1024 / 1024;
         console.log(`[Upload] Image ${i + 1}: ${fileSizeMB.toFixed(2)} MB`);
 
-        // Validate not absurdly large (>10MB)
+        // If file is over 10MB, compress it client-side
         if (fileSizeMB > 10) {
-          throw new Error(`Image ${i + 1} is too large (${fileSizeMB.toFixed(2)} MB). Maximum 10MB.`);
+          console.log(`[Upload] Compressing oversized image ${i + 1}...`);
+          try {
+            const compressedFile = await compressImage(file, 3000);
+            const compressedSizeMB = compressedFile.size / 1024 / 1024;
+            console.log(`[Upload] Compressed ${i + 1}: ${fileSizeMB.toFixed(2)}MB → ${compressedSizeMB.toFixed(2)}MB`);
+            processedFiles.push(compressedFile);
+          } catch (compressionError) {
+            console.error('[Upload] Compression failed:', compressionError);
+            throw new Error(`Image ${i + 1} is too large (${fileSizeMB.toFixed(2)} MB) and compression failed. Please use a smaller image.`);
+          }
+        } else {
+          processedFiles.push(file);
         }
       }
 
-      // Call new listing analysis endpoint with ALL images (RAW, UNCOMPRESSED)
+      console.log(`[Upload] Analyzing ${processedFiles.length} images (oversized files compressed)...`);
+
+      // Call new listing analysis endpoint with processed images
       const formData = new FormData();
-      selectedFiles.forEach((file, index) => {
+      processedFiles.forEach((file, index) => {
         formData.append(`image_${index}`, file);
       });
       formData.append('category', 'single_image_scoring');
       formData.append('mode', scoringMode);  // Pass scoring mode to API
 
-      console.log(`[Upload] Calling /api/analyze-listing with ${selectedFiles.length} RAW images (mode: ${scoringMode})`);
+      console.log(`[Upload] Calling /api/analyze-listing with ${processedFiles.length} images (mode: ${scoringMode})`);
 
       const analyzeResponse = await fetch('/api/analyze-listing', {
         method: 'POST',
