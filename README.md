@@ -1,35 +1,13 @@
 # Elite Listing AI v2
 
-<<<<<<< HEAD
-**AI-powered Etsy listing photo analyzer and optimizer** using the **R.A.N.K. 285™** scoring system with two-engine architecture.
-
-Upload 1-10 listing photos → Get AI-powered scores → Download optimized images with smart crop
-=======
 **AI-powered Etsy listing photo analyzer and optimizer** using **deterministic scoring** with MODE-based workflows.
 
 Upload 1-10 listing photos → Select MODE → Get three-output analysis → Download optimized images with smart crop
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 
 ---
 
 ## 🎯 Core Features
 
-<<<<<<< HEAD
-### Multi-Image Analysis & Optimization
-- Upload **1-10 images** as a single Etsy listing (no minimum!)
-- **Two-Engine Scoring System**:
-  - **AI Visual Quality** (60% weight) - Immutable composition, lighting, styling analysis
-  - **Etsy Technical Compliance** (40% weight) - Mutable specs that improve with optimization
-- **Smart Crop** - Automatically zooms to achieve Etsy's recommended 70-80% product fill
-- **Issue Categorization** - Clearly shows which issues will auto-fix vs require manual editing
-- Download optimized photos individually or as batch
-
-### What Makes This Different
-- ✅ **No client-side compression** - Server handles everything for accurate before/after scores
-- ✅ **Immutable visual quality** - AI score never changes during optimization (honest scoring)
-- ✅ **Object detection** - Google Cloud Vision API finds product and optimizes framing
-- ✅ **Intelligent cropping** - Uses `fit: 'cover'` with entropy-based smart crop (preserves product fill)
-=======
 ### Deterministic Scoring with MODE Selection
 - Upload **1-10 images** as a single Etsy listing (no minimum!)
 - **Two Scoring Modes**:
@@ -49,51 +27,10 @@ Upload 1-10 listing photos → Select MODE → Get three-output analysis → Dow
 - ✅ **No category bias** - Universal quality rules, backgrounds/settings/props never penalized
 - ✅ **Transparent deductions** - See exactly why points were deducted with clear explanations
 - ✅ **Object detection** - Google Cloud Vision API finds product and optimizes framing
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 - ✅ **Real improvements** - Typical gains: +10 to +25 points (not inflated)
 
 ---
 
-<<<<<<< HEAD
-## 📊 Two-Engine Scoring System
-
-### Engine 1: AI Visual Quality (Immutable - 60% Weight)
-Powered by **Google Gemini 2.0 Flash**, evaluates:
-- Composition & framing
-- Lighting quality
-- Background/styling
-- Category-specific requirements
-- Product presentation
-
-**Calibration:**
-- Start at 50 (average Etsy baseline)
-- Adjust ±15 for strengths/weaknesses
-- Hard caps enforce category rules
-
-### Engine 2: Etsy Technical Compliance (Mutable - 40% Weight)
-Deterministic scoring based on measurable specs:
-- **Aspect Ratio** - 4:3 recommended (100 pts if perfect)
-- **Resolution** - Shortest side ≥ 2000px (90-100 pts)
-- **File Size** - <1MB required, <500KB optimal (95-100 pts)
-- **Color Profile** - sRGB required (100 pts)
-- **Format** - JPEG optimal (100 pts)
-
-**Final Score Formula:**
-```
-final_score = (visual_quality × 0.6) + (etsy_compliance × 0.4)
-```
-
-### Hard Caps (Override AI Score)
-| Issue | Max Score | Why |
-|-------|-----------|-----|
-| Pet Supplies without pet | 55 | Etsy ranking penalty |
-| Wall Art without room mockup | 60 | Category requirement |
-| Jewelry without scale reference | 78 | Returns prevention |
-| Cluttered/messy background | 75 | Trust reduction |
-| Bad lifestyle context | 70 | Hurts more than helps |
-| Raw/unfinished photo | 50 | Not product-ready |
-| Significantly blurry | 80 | Quality baseline |
-=======
 ## 📊 Deterministic Scoring System
 
 ### Start at 100, Apply Only Fixed Penalties
@@ -134,7 +71,6 @@ These are stylistic choices with ZERO impact on objective quality. The AI detect
 | 10 photos | **1.10×** | Maximum optimization |
 
 **Note:** Multipliers apply ONLY in `evaluate_full_listing` mode. In `optimize_images` mode, there are NO listing-level penalties or bonuses.
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 
 ---
 
@@ -207,14 +143,6 @@ These are stylistic choices with ZERO impact on objective quality. The AI detect
     /webhooks/stripe/route.ts   # Payment webhooks
 
 /lib
-<<<<<<< HEAD
-  ai-vision.ts                  # 🧠 Gemini AI integration + scoring prompt
-  object-detection.ts           # 📸 Google Vision product detection + smart crop
-  etsy-compliance-scoring.ts    # 📊 Deterministic compliance calculation
-  issue-categorization.ts       # ✨ Auto-fixable vs manual categorization
-  listing-scoring.ts            # 🧮 Listing-level aggregation
-  scoring-anchors.ts            # 📈 Calibration data (real Etsy listings)
-=======
   deterministic-scoring.ts      # 🎯 Core deterministic scoring engine (NEW)
   ai-vision.ts                  # 🧠 Gemini AI objective detection (rewritten)
   object-detection.ts           # 📸 Google Vision product detection + smart crop
@@ -222,7 +150,6 @@ These are stylistic choices with ZERO impact on objective quality. The AI detect
   issue-categorization.ts       # ✨ Auto-fixable vs manual categorization
   listing-scoring.ts            # 🧮 Legacy listing-level aggregation
   scoring-anchors.ts            # 📈 Legacy calibration data
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
   auth-*.ts                     # Auth utilities
   stripe.ts                     # Payment utilities
   supabase.ts                   # Database client
@@ -284,56 +211,24 @@ yarn dev
 
 ## 📦 Deployment
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-Deployed on **Vercel**. Push to `main` branch triggers auto-deploy.
-=======
-=======
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 **Primary Branch:** `main`
 
 Vercel auto-deploys on push to `main` branch.
 
-<<<<<<< HEAD
-**Recent Production Fixes (Dec 2024):**
-=======
 **Recent Production Updates (Dec 2024-2025):**
 - ✅ **Deterministic scoring refactor** - Fixed penalties, MODE selection, A/B/C outputs
 - ✅ **Universal category safety** - Removed all category-specific hard caps
 - ✅ **Objective AI detection** - AI detects only severe issues (no scoring)
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 - ✅ Removed client-side compression (was causing +2 bug)
 - ✅ Added smart crop for product fill optimization
 - ✅ Added issue categorization (auto-fix vs manual)
 - ✅ Fixed emoji display issues (Unicode → actual emojis)
 - ✅ Enabled single image upload (was 2-10, now 1-10)
-<<<<<<< HEAD
-- ✅ Implemented two-engine scoring system
->>>>>>> f2f92a0 (docs: update README with two-engine architecture and recent improvements)
-=======
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 
 ---
 
 ## 📈 Score Interpretation
 
-<<<<<<< HEAD
-Calibrated with **real Etsy listings** across multiple categories:
-- **15+ listings, ~130 images analyzed**
-- **Score range:** 48-94
-- **Categories:** Home & Living, Jewelry, Vintage, Pet Supplies, Bath & Beauty, Craft Supplies, Clothing, Wall Art
-
-### Score Interpretation
-| Range | Quality | Description |
-|-------|---------|-------------|
-| 90-98 | Exceptional | Top 1-5% of Etsy, professional photography |
-| 85-89 | Very Good | Best-seller quality, strong conversion potential |
-| 80-84 | Good | Technically competent, clear product presentation |
-| 70-79 | Acceptable | Minor issues, room for improvement |
-| 60-69 | Below Average | Multiple issues affecting buyer confidence |
-| 45-59 | Poor | Significant problems, recommend reshoot |
-| <45 | Failing | Would actively hurt sales and ranking |
-=======
 ### Image Quality Score (0-100)
 
 Deterministic scoring based on objective quality only:
@@ -356,7 +251,6 @@ Deterministic scoring based on objective quality only:
 - Optimal: 8-10 photos with diverse types (Studio, Lifestyle, Detail, Scale)
 - Baseline: 5+ photos
 - Below baseline: <5 photos (penalized in `evaluate_full_listing` mode via multiplier)
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 
 ---
 
@@ -382,17 +276,6 @@ Deterministic scoring based on objective quality only:
 **Step-by-step process:**
 
 1. **Receive Raw Image** - No client compression (critical for accurate scoring)
-<<<<<<< HEAD
-2. **AI Analysis** (Engine 1)
-   - Gemini 2.0 Flash evaluates visual quality
-   - Identifies strengths, issues, photo type
-   - Assigns immutable visual quality score
-3. **Technical Analysis** (Engine 2)
-   - Extract metadata (size, format, color profile)
-   - Calculate Etsy compliance score
-   - Combine: `(visual × 0.6) + (compliance × 0.4)`
-4. **Smart Crop** (if needed)
-=======
 2. **MODE Selection** - User explicitly selects workflow:
    - `optimize_images`: Score images only, no listing penalties
    - `evaluate_full_listing`: Apply photo count multipliers
@@ -419,27 +302,10 @@ Deterministic scoring based on objective quality only:
    - **B)** Listing Completeness (advisory photo count/types)
    - **C)** Conversion Headroom (prioritized upside actions)
 7. **Smart Crop** (if needed)
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
    - Detect product with Google Cloud Vision
    - Calculate current fill percentage
    - If < 70%, crop to achieve 75% fill
    - Center on product, maintain 4:3 ratio
-<<<<<<< HEAD
-5. **Resize & Optimize**
-   - Resize to 3000×2250px using `fit: 'cover'` + entropy
-   - Apply AI-triggered enhancements (sharpen, brighten, etc.)
-   - Convert to sRGB JPEG
-   - Compress to <1MB with mozjpeg
-6. **Recalculate Score**
-   - Visual quality: **unchanged** (immutable)
-   - Etsy compliance: **recalculated** (improved!)
-   - New final score shows real improvement
-
-**Expected Improvements:**
-- Low-quality images: +10 to +25 points
-- Already-optimized images: +2 to +8 points
-- Professional photos: +0 to +5 points
-=======
 8. **Resize & Optimize**
    - Resize to 3000×2250px using `fit: 'cover'` + entropy
    - Convert to sRGB JPEG
@@ -454,7 +320,6 @@ Deterministic scoring based on objective quality only:
 - Images with technical issues: +15 to +35 points (gates fixed)
 - Already-optimized images: +0 to +8 points (minor improvements)
 - Images with severe blur/lighting: Limited gains (inherent quality issues)
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 
 ---
 
@@ -489,12 +354,6 @@ Legacy features moved to `/archive` (not used in current build):
 
 ---
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-**Branch:** `main`  
-=======
-=======
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
 ## 📝 License
 
 Proprietary - Elite Listing AI
@@ -502,11 +361,5 @@ Proprietary - Elite Listing AI
 ---
 
 **Branch:** `main`
-<<<<<<< HEAD
->>>>>>> f2f92a0 (docs: update README with two-engine architecture and recent improvements)
-**Last Updated:** December 2024
-**Version:** 2.0 (Two-Engine Architecture)
-=======
 **Last Updated:** December 2025
 **Version:** 3.0 (Deterministic Scoring with MODE Selection)
->>>>>>> claude/audit-dependencies-mjmh6ctqpkmgoe0o-bIQbw
