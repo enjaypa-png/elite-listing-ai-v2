@@ -95,6 +95,36 @@ async function compressImage(file: File, maxWidthOrHeight = 3000): Promise<File>
   });
 }
 
+// Helper function to convert technical deductions to plain English
+function deductionToPlainEnglish(rule: string): { text: string; icon: string; autoFixable: boolean } {
+  const lowerRule = rule.toLowerCase();
+
+  if (lowerRule.includes('thumbnail') || lowerRule.includes('crop')) {
+    return { text: 'Main photo is cropped poorly in search results', icon: '❌', autoFixable: true };
+  }
+  if (lowerRule.includes('blur') || lowerRule.includes('compression')) {
+    return { text: 'Photo appears blurry or pixelated', icon: '❌', autoFixable: false };
+  }
+  if (lowerRule.includes('distinguishable') || lowerRule.includes('visible')) {
+    return { text: 'Product is hard to see at a glance', icon: '❌', autoFixable: false };
+  }
+  if (lowerRule.includes('file size') || lowerRule.includes('1mb')) {
+    return { text: 'Image file is too large, slowing down your listing', icon: '❌', autoFixable: true };
+  }
+  if (lowerRule.includes('lighting') || lowerRule.includes('dark') || lowerRule.includes('bright')) {
+    return { text: 'Lighting issues (too dark or too bright)', icon: '❌', autoFixable: true };
+  }
+  if (lowerRule.includes('resolution') || lowerRule.includes('width') || lowerRule.includes('pixel')) {
+    return { text: 'Image resolution is too low', icon: '❌', autoFixable: false };
+  }
+  if (lowerRule.includes('color') || lowerRule.includes('srgb')) {
+    return { text: 'Color profile needs adjustment', icon: '✓', autoFixable: true };
+  }
+
+  // Default fallback
+  return { text: rule, icon: '❌', autoFixable: false };
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -659,63 +689,58 @@ export default function UploadPage() {
                 {/* NEW FORMAT: A/B/C Outputs (when MODE provided) */}
                 {analysisResults.mode ? (
                   <>
-                    {/* A) IMAGE QUALITY SCORE */}
+                    {/* PRIMARY SCORECARD */}
                     <div style={{
-                      padding: tokens.spacing[6],
-                      background: tokens.colors.background,
-                      borderRadius: tokens.radius.md,
-                      marginBottom: tokens.spacing[4],
-                      border: `2px solid ${tokens.colors.primary}`
+                      padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+                      background: `linear-gradient(135deg, ${tokens.colors.primary}08, ${tokens.colors.primary}15)`,
+                      borderRadius: tokens.radius.lg,
+                      marginBottom: tokens.spacing[6],
+                      border: `2px solid ${analysisResults.imageQualityScore >= 80 ? tokens.colors.success : analysisResults.imageQualityScore >= 60 ? tokens.colors.warning : tokens.colors.danger}`,
+                      textAlign: 'center'
                     }}>
                       <div style={{
-                        fontSize: tokens.typography.fontSize.lg,
-                        fontWeight: tokens.typography.fontWeight.semibold,
-                        color: tokens.colors.text,
-                        marginBottom: tokens.spacing[3]
-                      }}>
-                        A) Image Quality Score
-                      </div>
-                      <div style={{
-                        fontSize: tokens.typography.fontSize['4xl'],
+                        fontSize: 'clamp(3rem, 8vw, 5rem)',
                         fontWeight: tokens.typography.fontWeight.bold,
-                        color: tokens.colors.primary,
-                        textAlign: 'center',
-                        marginBottom: tokens.spacing[2]
+                        color: analysisResults.imageQualityScore >= 80 ? tokens.colors.success : analysisResults.imageQualityScore >= 60 ? tokens.colors.warning : tokens.colors.danger,
+                        marginBottom: tokens.spacing[2],
+                        lineHeight: 1
                       }}>
                         {analysisResults.imageQualityScore}/100
                       </div>
                       <div style={{
-                        textAlign: 'center',
-                        color: tokens.colors.textMuted,
-                        fontSize: tokens.typography.fontSize.sm
+                        fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: analysisResults.imageQualityScore >= 80 ? tokens.colors.success : analysisResults.imageQualityScore >= 60 ? tokens.colors.warning : tokens.colors.danger,
+                        marginBottom: tokens.spacing[4]
                       }}>
-                        Average of {analysisResults.imageCount} uploaded images
+                        {analysisResults.imageQualityScore >= 80 ? '✓ Excellent' : analysisResults.imageQualityScore >= 60 ? '⚠ Good' : '✗ Needs Improvement'}
                       </div>
 
-                      {/* Final Listing Score (only in evaluate_full_listing mode) */}
-                      {analysisResults.finalListingScore && (
-                        <div style={{
-                          marginTop: tokens.spacing[4],
-                          paddingTop: tokens.spacing[4],
-                          borderTop: `1px solid ${tokens.colors.border}`,
-                          textAlign: 'center'
-                        }}>
-                          <div style={{
-                            fontSize: tokens.typography.fontSize.sm,
-                            color: tokens.colors.textMuted,
-                            marginBottom: tokens.spacing[1]
-                          }}>
-                            Final Listing Score (with {analysisResults.photoCountMultiplier}× multiplier)
-                          </div>
-                          <div style={{
-                            fontSize: tokens.typography.fontSize['2xl'],
-                            fontWeight: tokens.typography.fontWeight.bold,
-                            color: tokens.colors.success
-                          }}>
-                            {analysisResults.finalListingScore}/100
-                          </div>
-                        </div>
-                      )}
+                      {/* Issue Summary */}
+                      <div style={{
+                        fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
+                        color: tokens.colors.text,
+                        marginBottom: tokens.spacing[5],
+                        padding: `${tokens.spacing[3]} ${tokens.spacing[4]}`,
+                        background: tokens.colors.surface,
+                        borderRadius: tokens.radius.md,
+                        maxWidth: '600px',
+                        margin: `0 auto ${tokens.spacing[5]} auto`
+                      }}>
+                        {(() => {
+                          const criticalCount = analysisResults.imageResults?.reduce((sum: number, img: any) =>
+                            sum + (img.deductions?.length || 0), 0) || 0;
+                          const opportunityCount = analysisResults.listingCompleteness?.missingPhotoTypes?.length || 0;
+                          return criticalCount > 0 || opportunityCount > 0 ? (
+                            <>
+                              We found <strong style={{ color: tokens.colors.danger }}>{criticalCount} critical issue{criticalCount !== 1 ? 's' : ''}</strong>
+                              {opportunityCount > 0 && <> and <strong style={{ color: tokens.colors.primary }}>{opportunityCount} opportunit{opportunityCount !== 1 ? 'ies' : 'y'}</strong></>} to improve your score.
+                            </>
+                          ) : (
+                            <>Your photos look great! 🎉</>
+                          );
+                        })()}
+                      </div>
                     </div>
 
                     {/* Per-Image Breakdown */}
@@ -779,26 +804,55 @@ export default function UploadPage() {
                                 </div>
                               )}
 
-                              {/* Deductions */}
+                              {/* Issues (Plain English) */}
                               {result.deductions && result.deductions.length > 0 && (
                                 <div>
                                   <div style={{
                                     fontSize: tokens.typography.fontSize.xs,
                                     color: tokens.colors.danger,
                                     fontWeight: tokens.typography.fontWeight.medium,
-                                    marginBottom: tokens.spacing[1]
+                                    marginBottom: tokens.spacing[2]
                                   }}>
-                                    Deductions:
+                                    Issues Found:
                                   </div>
-                                  {result.deductions.map((ded: any, i: number) => (
-                                    <div key={i} style={{
-                                      fontSize: tokens.typography.fontSize.xs,
-                                      color: tokens.colors.textMuted,
-                                      marginBottom: tokens.spacing[1]
-                                    }}>
-                                      -{ded.penalty}: {ded.rule}
-                                    </div>
-                                  ))}
+                                  {result.deductions.map((ded: any, i: number) => {
+                                    const plainEnglish = deductionToPlainEnglish(ded.rule);
+                                    return (
+                                      <div key={i} style={{
+                                        fontSize: tokens.typography.fontSize.xs,
+                                        color: tokens.colors.text,
+                                        marginBottom: tokens.spacing[1.5],
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        gap: tokens.spacing[2],
+                                        padding: tokens.spacing[1.5],
+                                        background: tokens.colors.surface,
+                                        borderRadius: tokens.radius.sm,
+                                        border: `1px solid ${tokens.colors.border}`
+                                      }}>
+                                        <span style={{ fontSize: '14px' }}>{plainEnglish.icon}</span>
+                                        <div style={{ flex: 1 }}>
+                                          <div>{plainEnglish.text}</div>
+                                          {plainEnglish.autoFixable && (
+                                            <div style={{
+                                              fontSize: '10px',
+                                              color: tokens.colors.success,
+                                              marginTop: tokens.spacing[0.5]
+                                            }}>
+                                              ✨ Auto-fixable
+                                            </div>
+                                          )}
+                                        </div>
+                                        <span style={{
+                                          fontSize: '11px',
+                                          color: tokens.colors.danger,
+                                          fontWeight: tokens.typography.fontWeight.semibold
+                                        }}>
+                                          -{ded.penalty}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
                             </div>
