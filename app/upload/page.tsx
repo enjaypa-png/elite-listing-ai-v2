@@ -1044,17 +1044,42 @@ export default function UploadPage() {
                           </p>
                         </div>
 
-                        <div style={{ padding: tokens.spacing[5], background: `${tokens.colors.primary}10`, borderRadius: tokens.radius.md, border: `1px solid ${tokens.colors.primary}30`, textAlign: 'center', marginBottom: tokens.spacing[6] }}>
-                          <div style={{ fontSize: tokens.typography.fontSize.sm, color: tokens.colors.textMuted, marginBottom: tokens.spacing[2] }}>Your Listing Score</div>
-                          <div style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: tokens.spacing[3] }}>
-                            <span>{optimizedListing.originalScore}</span>
-                            <span style={{ color: tokens.colors.textMuted }}>→</span>
-                            <span style={{ color: tokens.colors.success }}>{optimizedListing.newScore}</span>
-                            {optimizedListing.improvement > 0 && (
-                              <span style={{ fontSize: tokens.typography.fontSize.lg, color: tokens.colors.success, fontWeight: tokens.typography.fontWeight.semibold }}>
-                                (+{optimizedListing.improvement})
-                              </span>
-                            )}
+                        {/* Before/After Score Comparison */}
+                        <div style={{ padding: 'clamp(1.5rem, 4vw, 2.5rem)', background: `linear-gradient(135deg, ${tokens.colors.primary}08, ${tokens.colors.success}15)`, borderRadius: tokens.radius.lg, border: `2px solid ${tokens.colors.success}`, marginBottom: tokens.spacing[6] }}>
+                          <div style={{ fontSize: 'clamp(1.25rem, 3vw, 1.5rem)', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.text, textAlign: 'center', marginBottom: tokens.spacing[5] }}>
+                            Your Score Has Improved!
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'clamp(1rem, 3vw, 2rem)', flexWrap: 'wrap', marginBottom: tokens.spacing[4] }}>
+                            {/* BEFORE Box */}
+                            <div style={{ padding: 'clamp(1rem, 3vw, 1.5rem)', background: tokens.colors.surface, borderRadius: tokens.radius.md, border: `2px solid ${tokens.colors.border}`, minWidth: '140px', textAlign: 'center' }}>
+                              <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted, marginBottom: tokens.spacing[1], textTransform: 'uppercase', fontWeight: tokens.typography.fontWeight.semibold }}>Before</div>
+                              <div style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.danger, lineHeight: 1, marginBottom: tokens.spacing[1] }}>
+                                {optimizedListing.originalScore}
+                              </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted }}>
+                                {optimizedListing.originalScore >= 80 ? 'Excellent' : optimizedListing.originalScore >= 60 ? 'Good' : 'Needs Work'}
+                              </div>
+                            </div>
+
+                            {/* Arrow */}
+                            <div style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', color: tokens.colors.success }}>→</div>
+
+                            {/* AFTER Box */}
+                            <div style={{ padding: 'clamp(1rem, 3vw, 1.5rem)', background: `linear-gradient(135deg, ${tokens.colors.success}15, ${tokens.colors.success}25)`, borderRadius: tokens.radius.md, border: `2px solid ${tokens.colors.success}`, minWidth: '140px', textAlign: 'center' }}>
+                              <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted, marginBottom: tokens.spacing[1], textTransform: 'uppercase', fontWeight: tokens.typography.fontWeight.semibold }}>After</div>
+                              <div style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: tokens.typography.fontWeight.bold, color: tokens.colors.success, lineHeight: 1, marginBottom: tokens.spacing[1] }}>
+                                {optimizedListing.newScore}
+                              </div>
+                              <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.success, fontWeight: tokens.typography.fontWeight.semibold }}>
+                                {optimizedListing.newScore >= 80 ? 'Excellent' : optimizedListing.newScore >= 60 ? 'Good' : 'Better'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Improvement Badge */}
+                          <div style={{ textAlign: 'center', fontSize: 'clamp(1.125rem, 3vw, 1.5rem)', color: tokens.colors.success, fontWeight: tokens.typography.fontWeight.bold }}>
+                            🎉 You gained +{optimizedListing.improvement} points!
                           </div>
                         </div>
 
