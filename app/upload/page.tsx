@@ -1030,7 +1030,63 @@ export default function UploadPage() {
                           </div>
                         )}
                       </div>
+                    )}                     {/* DETERMINISTIC MODE: Optimize All Photos Section */}
+                    {!optimizedListing && (
+                      <div style={{
+                        marginTop: tokens.spacing[6],
+                        padding: 'clamp(1rem, 3vw, 1.5rem)',
+                        background: `linear-gradient(135deg, ${tokens.colors.primary}15, ${tokens.colors.success}15)`,
+                        borderRadius: tokens.radius.md,
+                        border: `2px solid ${tokens.colors.primary}`
+                      }}>
+                        <h3 style={{
+                          fontSize: 'clamp(1rem, 3vw, 1.25rem)',
+                          fontWeight: tokens.typography.fontWeight.bold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          🚀 Optimize All Photos
+                        </h3>
+                        <p style={{
+                          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[4]
+                        }}>
+                          Automatically optimize all {selectedFiles.length} photos for Etsy. We'll resize to 3000×2250, enhance lighting, sharpen details, and compress for fast loading.
+                        </p>
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          fullWidth
+                          onClick={handleOptimizeListing}
+                          disabled={isOptimizing || selectedFiles.length === 0}
+                          style={{
+                            minHeight: '56px',
+                            fontSize: 'clamp(1rem, 3vw, 1.125rem)',
+                            fontWeight: tokens.typography.fontWeight.bold
+                          }}
+                        >
+                          {isOptimizing ? (
+                            <>
+                              <div style={{
+                                display: 'inline-block',
+                                width: '20px',
+                                height: '20px',
+                                border: '3px solid rgba(255,255,255,0.3)',
+                                borderTopColor: '#FFFFFF',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite',
+                                marginRight: tokens.spacing[2]
+                              }} />
+                              Optimizing...
+                            </>
+                          ) : (
+                            <>✨ Optimize All Photos</>
+                          )}
+                        </Button>
+                      </div>
                     )}
+
                   </>
                 ) : (
                   /* LEGACY FORMAT: Original Two-Engine Display */
