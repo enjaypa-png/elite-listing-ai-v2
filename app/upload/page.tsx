@@ -107,7 +107,7 @@ export default function UploadPage() {
   const [optimizedListing, setOptimizedListing] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [scoringMode, setScoringMode] = useState<'optimize_images' | 'evaluate_full_listing' | null>(null);
+  const [scoringMode, setScoringMode] = useState<'optimize_images' | 'evaluate_full_listing' | null>('optimize_images'); // Auto-default to simple mode
 
   // Check auth status on mount
   useEffect(() => {
@@ -189,12 +189,6 @@ export default function UploadPage() {
 
   const handleAnalyze = async () => {
     if (selectedFiles.length === 0) return;
-
-    // CRITICAL: Validate MODE is selected
-    if (!scoringMode) {
-      alert('Please select a scoring mode: "Optimize Images" or "Evaluate Full Listing"');
-      return;
-    }
 
     setIsAnalyzing(true);
 
@@ -367,13 +361,13 @@ export default function UploadPage() {
             gap: tokens.spacing[3]
           }}>
             Photo Analysis
-            <InfoTooltip text="Upload a photo of your product so we can analyze it" />
+            <InfoTooltip text="Upload your listing photos so we can find optimization opportunities" />
           </h1>
           <p style={{
             fontSize: tokens.typography.fontSize.lg,
             color: tokens.colors.textMuted
           }}>
-            Our AI will analyze your photo for quality, lighting, and composition
+            Our AI will analyze your listing images to find hidden opportunities for improvement
           </p>
         </>
       }
@@ -568,115 +562,13 @@ export default function UploadPage() {
                     </Button>
                   </label>
 
-                  {/* MODE SELECTOR - REQUIRED */}
-                  <div style={{
-                    marginBottom: tokens.spacing[4],
-                    padding: tokens.spacing[4],
-                    background: `${tokens.colors.primary}08`,
-                    borderRadius: tokens.radius.md,
-                    border: `2px solid ${!scoringMode ? tokens.colors.primary : tokens.colors.border}`
-                  }}>
-                    <div style={{
-                      fontSize: tokens.typography.fontSize.sm,
-                      fontWeight: tokens.typography.fontWeight.semibold,
-                      color: tokens.colors.text,
-                      marginBottom: tokens.spacing[2]
-                    }}>
-                      ⚙️ Select Scoring Mode *
-                    </div>
-                    <div style={{
-                      fontSize: tokens.typography.fontSize.xs,
-                      color: tokens.colors.textMuted,
-                      marginBottom: tokens.spacing[3]
-                    }}>
-                      Choose how to evaluate your images
-                    </div>
-
-                    {/* Radio Buttons */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
-                      {/* Option 1: Optimize Images */}
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: tokens.spacing[2],
-                        padding: tokens.spacing[3],
-                        background: scoringMode === 'optimize_images' ? tokens.colors.surface : 'transparent',
-                        border: `2px solid ${scoringMode === 'optimize_images' ? tokens.colors.primary : tokens.colors.border}`,
-                        borderRadius: tokens.radius.sm,
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="radio"
-                          name="scoringMode"
-                          value="optimize_images"
-                          checked={scoringMode === 'optimize_images'}
-                          onChange={(e) => setScoringMode(e.target.value as any)}
-                          style={{ marginTop: '2px' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{
-                            fontSize: tokens.typography.fontSize.sm,
-                            fontWeight: tokens.typography.fontWeight.medium,
-                            color: tokens.colors.text,
-                            marginBottom: tokens.spacing[0.5]
-                          }}>
-                            📸 Optimize Images
-                          </div>
-                          <div style={{
-                            fontSize: tokens.typography.fontSize.xs,
-                            color: tokens.colors.textMuted
-                          }}>
-                            Score uploaded images only. Perfect for optimizing 1-3 photos. No penalties for missing images or photo types.
-                          </div>
-                        </div>
-                      </label>
-
-                      {/* Option 2: Evaluate Full Listing */}
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: tokens.spacing[2],
-                        padding: tokens.spacing[3],
-                        background: scoringMode === 'evaluate_full_listing' ? tokens.colors.surface : 'transparent',
-                        border: `2px solid ${scoringMode === 'evaluate_full_listing' ? tokens.colors.primary : tokens.colors.border}`,
-                        borderRadius: tokens.radius.sm,
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="radio"
-                          name="scoringMode"
-                          value="evaluate_full_listing"
-                          checked={scoringMode === 'evaluate_full_listing'}
-                          onChange={(e) => setScoringMode(e.target.value as any)}
-                          style={{ marginTop: '2px' }}
-                        />
-                        <div style={{ flex: 1 }}>
-                          <div style={{
-                            fontSize: tokens.typography.fontSize.sm,
-                            fontWeight: tokens.typography.fontWeight.medium,
-                            color: tokens.colors.text,
-                            marginBottom: tokens.spacing[0.5]
-                          }}>
-                            📋 Evaluate Full Listing
-                          </div>
-                          <div style={{
-                            fontSize: tokens.typography.fontSize.xs,
-                            color: tokens.colors.textMuted
-                          }}>
-                            Treat upload as complete Etsy listing. Applies photo count multipliers (5-10 photos recommended) and diversity bonuses.
-                          </div>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
                   {/* Analyze Listing Button */}
                   <Button
                     variant="primary"
                     size="lg"
                     fullWidth
                     onClick={handleAnalyze}
-                    disabled={isAnalyzing || selectedFiles.length < 1 || !scoringMode}
+                    disabled={isAnalyzing || selectedFiles.length < 1}
                   >
                     {isAnalyzing ? (
                       <>
@@ -688,11 +580,11 @@ export default function UploadPage() {
                           borderRadius: tokens.radius.full,
                           animation: 'spin 1s linear infinite'
                         }} />
-                        Analyzing your listing...
+                        Analyzing your photos...
                       </>
                     ) : (
                       <>
-                        {'Analyze Listing (' + selectedFiles.length + ' images)'}
+                        ✨ Analyze My Photos ({selectedFiles.length})
                       </>
                     )}
                   </Button>
