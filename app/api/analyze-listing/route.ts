@@ -136,12 +136,12 @@ export async function POST(request: NextRequest) {
         const visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
 
         // Map AI response to analysis format
-        // Note: New AI prompt returns boolean flags instead of scores
+        // Extract boolean flags from AI Vision response
         const aiAnalysis = {
-          hasSevereBlur: false,  // TODO: Extract from visionResponse when AI prompt updated
-          hasSevereLighting: false,  // TODO: Extract from visionResponse
-          isProductDistinguishable: true,  // TODO: Extract from visionResponse
-          thumbnailCropSafe: i === 0 ? true : undefined,  // TODO: Extract from visionResponse for first image
+          hasSevereBlur: visionResponse?.hasSevereBlur ?? false,
+          hasSevereLighting: visionResponse?.hasSevereLighting ?? false,
+          isProductDistinguishable: visionResponse?.isProductDistinguishable ?? true,
+          thumbnailCropSafe: i === 0 ? (visionResponse?.thumbnailCropSafe ?? true) : undefined,
           altText: visionResponse?.ai_alt_text || `Product image ${i + 1}`,
           detectedPhotoType: visionResponse?.detected_photo_type || 'unknown',
         };
