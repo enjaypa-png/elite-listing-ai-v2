@@ -66,6 +66,12 @@ export interface AIVisionResponse {
   lighting_temperature?: 'warm' | 'cool' | 'neutral';  // Detected lighting temperature
   background_is_pure_white?: boolean;  // Jewelry: clean white background (#FFFFFF)
   background_purity_score?: number;  // 0-100, how close to pure white
+
+  // Deterministic Scoring v3.0: Objective detection flags
+  hasSevereBlur?: boolean;  // Heavy artifacts, out of focus, unclear details
+  hasSevereLighting?: boolean;  // Too dark, blown highlights, harsh shadows
+  isProductDistinguishable?: boolean;  // Product clearly visible at thumbnail size
+  thumbnailCropSafe?: boolean;  // 1:1 crop preserves product (first photo only)
 }
 
 // ===========================================
@@ -454,6 +460,12 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
       : 'neutral',
     background_is_pure_white: typeof aiOutput.backgroundIsPureWhite === 'boolean' ? aiOutput.backgroundIsPureWhite : false,
     background_purity_score: typeof aiOutput.backgroundPurityScore === 'number' ? aiOutput.backgroundPurityScore : 0,
+
+    // Deterministic Scoring v3.0: Objective detection flags
+    hasSevereBlur: typeof aiOutput.hasSevereBlur === 'boolean' ? aiOutput.hasSevereBlur : false,
+    hasSevereLighting: typeof aiOutput.hasSevereLighting === 'boolean' ? aiOutput.hasSevereLighting : false,
+    isProductDistinguishable: typeof aiOutput.isProductDistinguishable === 'boolean' ? aiOutput.isProductDistinguishable : true,
+    thumbnailCropSafe: typeof aiOutput.thumbnailCropSafe === 'boolean' ? aiOutput.thumbnailCropSafe : (aiOutput.thumbnailCropSafe === null ? undefined : true),
   } as AIVisionResponse;
 }
 
