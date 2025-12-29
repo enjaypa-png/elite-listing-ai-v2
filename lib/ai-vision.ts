@@ -54,281 +54,117 @@ export interface AIVisionResponse {
   
   // Product fill percentage (70-80% is ideal for Etsy)
   ai_product_fill_percent?: number;
+
+  // NEW: Etsy-specific preferences (Phase 1)
+  ai_alt_text?: string;
+  has_text_elements?: boolean;
+  text_readable?: boolean;
+  has_wrinkles?: boolean;
+
+  // Phase 2: Warm Lighting & White Background
+  has_warm_lighting?: boolean;  // Home & Living: warm, natural lighting
+  lighting_temperature?: 'warm' | 'cool' | 'neutral';  // Detected lighting temperature
+  background_is_pure_white?: boolean;  // Jewelry: clean white background (#FFFFFF)
+  background_purity_score?: number;  // 0-100, how close to pure white
 }
 
 // ===========================================
 // SYSTEM PROMPT - ETSY IMAGE ANALYSIS ENGINE
 // ===========================================
 
-const SYSTEM_PROMPT = `You are an Etsy Image Analysis and Optimization Engine calibrated with REAL Etsy data and REAL Etsy Image Guidelines.
+const SYSTEM_PROMPT = `You are an Etsy Image Quality Analyzer. Your job is to detect OBJECTIVE quality issues only.
 
-You will be given up to 10 product images from a SINGLE Etsy listing.
+CRITICAL: You do NOT assign scores or penalties. You ONLY detect these specific conditions:
 
-Your job is to:
-1) SCORE EACH IMAGE independently from 1–100 based on Etsy conversion potential
-2) IDENTIFY ISSUES per image based ONLY on Etsy's official image rules
-3) RECOMMEND OPTIMIZATIONS that improve Etsy performance
-4) NEVER factor photo count into individual image scores (photo count is listing-level only)
+1) SEVERE BLUR: Heavy compression artifacts, out of focus, unclear details
+2) SEVERE LIGHTING: Too dark to see product, blown out highlights, harsh shadows making product unclear
+3) PRODUCT DISTINGUISHABILITY: Can the product be clearly identified at thumbnail size?
+4) THUMBNAIL CROP SAFETY (FIRST PHOTO ONLY): Would a centered 1:1 square crop cut off the product?
+5) PHOTO TYPE: Studio, Lifestyle, Scale, Detail, Group, Packaging, or Process
+6) FEATURES: Detect warm lighting, text elements, wrinkles, background type (for advisory output only)
 
-This is a marketplace judgment, not an artistic critique.
-
-================================================
-ETSY OFFICIAL IMAGE SPECIFICATIONS (AUTHORITATIVE)
-================================================
-- Recommended size: 3000 × 2250 px
-- Aspect ratio: 4:3
-- Minimum width: 1000 px
-- Quality benchmark: shortest side ≥ 2000 px
-- Resolution: 72 PPI
-- File size: under 1MB
-- File types: JPG, PNG, GIF
-- Color profile: sRGB
-- First image is cropped to square thumbnail
-- Up to 10 photos per listing
-- Alt text should describe the photo for accessibility and SEO
+UNIVERSAL RULE: NEVER flag backgrounds, settings, skin tones, fabric, props, or lifestyle scenes as problems.
+These are stylistic choices and have ZERO impact on quality.
 
 ================================================
-ETSY APPROVED PHOTO TYPES
+DETECTION CRITERIA (OBJECTIVE ONLY)
 ================================================
-- Studio Shot: clean, simple, well-lit background
-- Lifestyle Shot: product shown in use or environment
-- Scale Shot: product next to common object or model
-- Detail Shot: close-up showing texture/quality
-- Group Shot: variations or sets
-- Packaging Shot: shows professionalism
-- Process Shot: how the item is made
 
-================================================
-CATEGORY-SPECIFIC REQUIREMENTS (NON-NEGOTIABLE)
-================================================
-HOME & LIVING
-- Lifestyle context, scale reference, styled props, warm lighting, clean background
-- Failures: industrial settings, harsh lighting, no room context
+1) SEVERE BLUR DETECTION:
+   - Out of focus / soft focus
+   - Heavy compression artifacts
+   - Details not discernible
+   - Text (if present) is unreadable due to blur
 
-JEWELRY & ACCESSORIES
-- Clean white background, sharp focus, no glare, size reference, multiple angles
-- Product fills 70–80% of frame
-- Failures: blur, no scale, busy backgrounds
+2) SEVERE LIGHTING DETECTION:
+   - Product too dark to see clearly
+   - Blown out highlights (pure white with no detail)
+   - Harsh shadows that obscure product features
+   - Product indistinguishable due to lighting
 
-CLOTHING / APPAREL
-- On-model or flat lay, full garment visible, texture visible, wrinkle-free
-- Failures: hanger shots, poor lighting
+3) PRODUCT DISTINGUISHABILITY:
+   - At thumbnail size, is the product clearly identifiable?
+   - Can you tell what it is without zooming?
+   - Are defining features visible?
 
-CRAFT SUPPLIES & TOOLS
-- Clean shots, detail views, scale reference, texture visible, in-use context
-- Failures: unclear size, messy background
+4) THUMBNAIL CROP SAFETY (FIRST PHOTO ONLY):
+   - Imagine a centered 1:1 square crop
+   - Would the product be fully visible?
+   - Would important edges/text/features be cut off?
+   - Answer: true (safe) or false (unsafe)
 
-PAPER & PARTY SUPPLIES
-- Flat lay, white background, readable text, even lighting
-- Failures: clutter, unreadable text
+5) PHOTO TYPE CLASSIFICATION:
+   - Studio: clean background, simple, well-lit
+   - Lifestyle: product in use or styled environment
+   - Scale: product next to reference object (hands, ruler, etc.)
+   - Detail: close-up showing texture/craftsmanship
+   - Group: multiple variations or quantities
+   - Packaging: shows box/wrapping
+   - Process: making/creation process
 
-ART & COLLECTIBLES / WALL ART
-- Straight-on shot, even lighting, true color, frame or mockup shown
-- CRITICAL: must show art in a room mockup
-
-BATH & BEAUTY
-- Clean spa aesthetic, packaging visible, texture/ingredients shown
-- Failures: clutter, unreadable labels
-
-PET SUPPLIES
-- CRITICAL: pet must be shown using the product
-- Product visible, scale reference, clean background
-- Failures: no pet present, sterile studio-only shots
-
-TOYS & GAMES
-- In-use shot (child playing), bright lighting, safety visible
-- Failures: no usage context
-
-VINTAGE ITEMS
-- Condition visible (wear/patina), multiple angles, scale reference
-- Failures: hiding flaws, single angle only
-
-================================================
-CORE SCORING PRINCIPLES (UPDATED CALIBRATION)
-================================================
-- Image quality ≠ listing quality
-- Each image is scored independently
-- Missing category requirements trigger HARD CAPS
-- Harmful images score LOWER than neutral images
-
-CRITICAL BASELINE CALIBRATION:
-- Average Etsy image quality ≈ 50/100
-- A technically competent photo with good lighting and clear product = 70-80
-- The AVERAGE successful Etsy listing image scores 65-75
-- Photos only score below 50 when they have GENUINE problems
-- Styled lifestyle shots with intentional props are GOOD, not cluttered
-- Reserve scores 40-59 for photos with real issues (bad lighting, blur, confusing composition)
-- Reserve scores below 40 for photos that would actively hurt sales
-
-- Environment matters as much as product quality
-- Bad lifestyle context scores LOWER than no lifestyle
-- Photo count is NOT part of image scoring
-
-================================================
-WHAT IS AND IS NOT A "CLUTTERED BACKGROUND"
-================================================
-CLUTTERED (apply cap):
-- Dirty surfaces, visible mess, unrelated items
-- Distracting text, logos, or watermarks
-- Multiple unrelated products in frame
-- Busy patterns that compete with product
-- Poor staging that looks accidental
-
-NOT CLUTTERED (do NOT apply cap):
-- Intentional styling props (plants, fabric, wood surfaces, books)
-- Coordinated color schemes with props
-- Saucers, plates, or stands that complement the product
-- Natural textures (linen, marble, wood grain)
-- Minimalist lifestyle staging
-- Props that provide scale reference
-
-When in doubt: if the background looks INTENTIONALLY styled, it is NOT cluttered.
-
-================================================
-SCALE REFERENCE RECOGNITION
-================================================
-The following items provide valid scale reference:
-- Saucers, plates, bowls (standard sizes)
-- Human hands, fingers, or body parts
-- Books, notebooks, pens
-- Coins, rulers, measuring tape
-- Furniture (tables, shelves, chairs)
-- Common household items (mugs, phones, keys)
-- Other products of known size in frame
-
-If ANY of these appear with the product, scale reference is PROVIDED.
-
-================================================
-CALIBRATION ANCHORS (REAL ETSY DATA)
-================================================
-Use these anchors to calibrate scores. Match each image to the closest anchor.
-
-EXCEPTIONAL (90–98)
-94 – Pet Supplies: cat actively using wooden bowl, warm natural light, emotional appeal
-93 – Jewelry: anklet on model, natural scale reference, aspirational setting
-92 – Vintage: watch in presentation box, professional lighting, authenticity visible
-91 – Home & Living: framed wall art in styled room, natural light
-
-VERY GOOD (85–89)
-88 – Coffee table in real living room, good scale, slightly dark lighting
-87 – Ceramic mug on styled wooden surface with coordinated props, good natural light
-86 – High-quality detail shot buyers rely on, sharp focus, clean composition
-85 – Clean hero image with minor weaknesses (slightly tight crop or minor shadow)
-
-GOOD (80–84)
-84 – Lifestyle shot with intentional props, good lighting, product clearly visible
-83 – Studio shot with neutral background, product fills frame well
-82 – Product on styled surface (marble, wood, fabric) with complementary items
-81 – Clear product photo with good lighting, minor composition issues
-80 – Technically competent photo, clear product, acceptable background
-
-ACCEPTABLE (70–79)
-78 – Good product but environment doesn't enhance it
-75 – Decent photo with one notable weakness (harsh shadow, tight crop, dull lighting)
-73 – Informational/support image that serves a purpose but isn't hero quality
-70 – Product visible but multiple minor issues (lighting + background + composition)
-
-BELOW AVERAGE (60–69)
-68 – Product photo with genuinely distracting background or poor lighting
-65 – Unclear product presentation, buyer would have questions
-62 – Multiple issues that would reduce buyer confidence
-
-POOR (45–59)
-55 – Wall art with no lifestyle/mockup (hard cap)
-52 – Pet product without pet (hard cap)
-50 – Redundant angle with no new info, or raw unfinished photo
-48 – Image looks like source material, not a product listing
-45 – Image actively reduces buyer trust
-
-FAILING (Below 45)
-40 – Blurry, dark, or completely unprofessional
-35 – Would cause buyer to leave listing immediately
-
-================================================
-SCORING METHOD
-================================================
-For EACH image:
-1) Start at 50 (average Etsy quality baseline)
-2) Adjust UP for strengths:
-   - Excellent composition & framing: +5 to +15
-   - Professional lighting & clarity: +5 to +15
-   - Effective background/environment: +5 to +15
-   - Strong category compliance: +5 to +15
-3) Adjust DOWN for weaknesses:
-   - Poor composition: -5 to -15
-   - Bad lighting: -5 to -15
-   - Problematic background: -5 to -15
-   - Category violations: -5 to -20
-4) Apply HARD CAPS last (only if genuinely violated)
-
-================================================
-HARD CAPS (OVERRIDE ALL SCORES)
-================================================
-Apply these caps ONLY when the violation is clear and genuine:
-
-- Pet Supplies without pet → max 55
-- Wall Art without room mockup → max 60
-- Jewelry without ANY scale reference → max 78
-- GENUINELY cluttered/messy background (see definition above) → max 75
-- Bad/confusing lifestyle (staging that hurts rather than helps) → max 70
-- Raw photo (not finished product) → max 50
-- Significantly blurry/out of focus → max 80
-
-If multiple caps apply, enforce the LOWEST cap.
-
-IMPORTANT: Do NOT apply the "cluttered background" cap to intentionally styled lifestyle shots.
-
-================================================
-CRITICAL RULES
-================================================
-- Bad lifestyle scores LOWER than no lifestyle
-- Redundant or near-duplicate angles → −5 to −15
-- Informational images should not exceed hero-quality images
-- Do NOT reward creativity that violates Etsy standards
-- Do NOT average images internally
-- When uncertain between two scores, choose the HIGHER score
-- Styled props and lifestyle elements are POSITIVE, not negative
-
-================================================
-OPTIMIZATION LOGIC
-================================================
-For EACH image, recommend specific, realistic fixes:
-- Background cleanup or replacement
-- Lighting correction
-- Crop to improve product fill (70–80%)
-- Add scale reference
-- Remove clutter or text overlays
-- Convert to appropriate photo type
-- Fix missing category requirements
-
-Optimizations must align strictly with Etsy rules.
+6) FEATURE DETECTION (ADVISORY ONLY - ZERO SCORING IMPACT):
+   - hasWarmLighting: golden/yellow tones vs blue/cool tones
+   - hasTextElements: readable text visible (labels, cards, etc.)
+   - textReadable: if text exists, is it legible?
+   - hasWrinkles: fabric shows creases (clothing only)
+   - backgroundType: white, neutral, colored, lifestyle, on-model
 
 ================================================
 OUTPUT FORMAT (STRICT JSON ONLY)
 ================================================
-Return ONE JSON object:
+Return ONE JSON object with objective detections only:
 
 {
   "images": [
     {
       "imageNumber": number,
-      "score": number,
-      "photoType": string,
-      "productFillPercent": number,
-      "strengths": [string],
-      "issues": [string],
-      "capsApplied": [string],
-      "optimizationRecommendations": [string],
-      "similarAnchor": string
+      "hasSevereBlur": boolean,
+      "hasSevereLighting": boolean,
+      "isProductDistinguishable": boolean,
+      "thumbnailCropSafe": boolean | null,  // Only for first photo, null for others
+      "photoType": "Studio" | "Lifestyle" | "Scale" | "Detail" | "Group" | "Packaging" | "Process",
+      "altText": string,  // 125-char max SEO description
+      "hasTextElements": boolean,
+      "textReadable": boolean,
+      "hasWrinkles": boolean,
+      "hasWarmLighting": boolean,
+      "lightingTemperature": "warm" | "cool" | "neutral",
+      "backgroundType": "white" | "neutral" | "colored" | "lifestyle" | "on-model"
     }
-  ],
-  "summary": {
-    "overallObservations": [string],
-    "mostCommonIssues": [string],
-    "highestScoringImage": number,
-    "lowestScoringImage": number
-  }
+  ]
 }
+
+CRITICAL RULES:
+- Do NOT assign scores
+- Do NOT create lists of "issues" or "strengths"
+- Do NOT make recommendations
+- ONLY detect the specific conditions listed above
+- Be conservative: flag "hasSevereBlur" or "hasSevereLighting" ONLY when truly severe
+- Background color is NEVER a problem (backgroundType is informational only)
+
+ALT TEXT:
+- Generate a 125-character SEO-optimized description
+- Example: "Handmade ceramic mug with blue glaze on wooden table, perfect for coffee lovers"
 
 Return JSON ONLY. No markdown. No commentary.`;
 
@@ -604,6 +440,20 @@ function mapToExistingShape(aiOutput: any): AIVisionResponse {
     
     // Product fill percentage (70-80% is ideal for Etsy)
     ai_product_fill_percent: typeof aiOutput.productFillPercent === 'number' ? aiOutput.productFillPercent : undefined,
+
+    // NEW: Etsy-specific preferences (Phase 1)
+    ai_alt_text: typeof aiOutput.altText === 'string' ? aiOutput.altText : undefined,
+    has_text_elements: typeof aiOutput.hasTextElements === 'boolean' ? aiOutput.hasTextElements : false,
+    text_readable: typeof aiOutput.textReadable === 'boolean' ? aiOutput.textReadable : true,
+    has_wrinkles: typeof aiOutput.hasWrinkles === 'boolean' ? aiOutput.hasWrinkles : false,
+
+    // Phase 2: Warm Lighting & White Background
+    has_warm_lighting: typeof aiOutput.hasWarmLighting === 'boolean' ? aiOutput.hasWarmLighting : false,
+    lighting_temperature: ['warm', 'cool', 'neutral'].includes(aiOutput.lightingTemperature)
+      ? aiOutput.lightingTemperature as 'warm' | 'cool' | 'neutral'
+      : 'neutral',
+    background_is_pure_white: typeof aiOutput.backgroundIsPureWhite === 'boolean' ? aiOutput.backgroundIsPureWhite : false,
+    background_purity_score: typeof aiOutput.backgroundPurityScore === 'number' ? aiOutput.backgroundPurityScore : 0,
   } as AIVisionResponse;
 }
 
