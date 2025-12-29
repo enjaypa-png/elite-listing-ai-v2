@@ -107,6 +107,7 @@ export default function UploadPage() {
   const [optimizedListing, setOptimizedListing] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [scoringMode, setScoringMode] = useState<'optimize_images' | 'evaluate_full_listing' | null>(null);
 
   // Check auth status on mount
   useEffect(() => {
@@ -189,6 +190,12 @@ export default function UploadPage() {
   const handleAnalyze = async () => {
     if (selectedFiles.length === 0) return;
 
+    // CRITICAL: Validate MODE is selected
+    if (!scoringMode) {
+      alert('Please select a scoring mode: "Optimize Images" or "Evaluate Full Listing"');
+      return;
+    }
+
     setIsAnalyzing(true);
 
     try {
@@ -212,8 +219,9 @@ export default function UploadPage() {
         formData.append(`image_${index}`, file);
       });
       formData.append('category', 'single_image_scoring');
+      formData.append('mode', scoringMode);  // Pass scoring mode to API
 
-      console.log(`[Upload] Calling /api/analyze-listing with ${selectedFiles.length} RAW images`);
+      console.log(`[Upload] Calling /api/analyze-listing with ${selectedFiles.length} RAW images (mode: ${scoringMode})`);
 
       const analyzeResponse = await fetch('/api/analyze-listing', {
         method: 'POST',
@@ -547,13 +555,115 @@ export default function UploadPage() {
                     </Button>
                   </label>
 
+                  {/* MODE SELECTOR - REQUIRED */}
+                  <div style={{
+                    marginBottom: tokens.spacing[4],
+                    padding: tokens.spacing[4],
+                    background: `${tokens.colors.primary}08`,
+                    borderRadius: tokens.radius.md,
+                    border: `2px solid ${!scoringMode ? tokens.colors.primary : tokens.colors.border}`
+                  }}>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.sm,
+                      fontWeight: tokens.typography.fontWeight.semibold,
+                      color: tokens.colors.text,
+                      marginBottom: tokens.spacing[2]
+                    }}>
+                      ⚙️ Select Scoring Mode *
+                    </div>
+                    <div style={{
+                      fontSize: tokens.typography.fontSize.xs,
+                      color: tokens.colors.textMuted,
+                      marginBottom: tokens.spacing[3]
+                    }}>
+                      Choose how to evaluate your images
+                    </div>
+
+                    {/* Radio Buttons */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: tokens.spacing[2] }}>
+                      {/* Option 1: Optimize Images */}
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: tokens.spacing[2],
+                        padding: tokens.spacing[3],
+                        background: scoringMode === 'optimize_images' ? tokens.colors.surface : 'transparent',
+                        border: `2px solid ${scoringMode === 'optimize_images' ? tokens.colors.primary : tokens.colors.border}`,
+                        borderRadius: tokens.radius.sm,
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="radio"
+                          name="scoringMode"
+                          value="optimize_images"
+                          checked={scoringMode === 'optimize_images'}
+                          onChange={(e) => setScoringMode(e.target.value as any)}
+                          style={{ marginTop: '2px' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            fontWeight: tokens.typography.fontWeight.medium,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[0.5]
+                          }}>
+                            📸 Optimize Images
+                          </div>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.xs,
+                            color: tokens.colors.textMuted
+                          }}>
+                            Score uploaded images only. Perfect for optimizing 1-3 photos. No penalties for missing images or photo types.
+                          </div>
+                        </div>
+                      </label>
+
+                      {/* Option 2: Evaluate Full Listing */}
+                      <label style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: tokens.spacing[2],
+                        padding: tokens.spacing[3],
+                        background: scoringMode === 'evaluate_full_listing' ? tokens.colors.surface : 'transparent',
+                        border: `2px solid ${scoringMode === 'evaluate_full_listing' ? tokens.colors.primary : tokens.colors.border}`,
+                        borderRadius: tokens.radius.sm,
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="radio"
+                          name="scoringMode"
+                          value="evaluate_full_listing"
+                          checked={scoringMode === 'evaluate_full_listing'}
+                          onChange={(e) => setScoringMode(e.target.value as any)}
+                          style={{ marginTop: '2px' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            fontWeight: tokens.typography.fontWeight.medium,
+                            color: tokens.colors.text,
+                            marginBottom: tokens.spacing[0.5]
+                          }}>
+                            📋 Evaluate Full Listing
+                          </div>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.xs,
+                            color: tokens.colors.textMuted
+                          }}>
+                            Treat upload as complete Etsy listing. Applies photo count multipliers (5-10 photos recommended) and diversity bonuses.
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
                   {/* Analyze Listing Button */}
                   <Button
                     variant="primary"
                     size="lg"
                     fullWidth
                     onClick={handleAnalyze}
-                    disabled={isAnalyzing || selectedFiles.length < 1}
+                    disabled={isAnalyzing || selectedFiles.length < 1 || !scoringMode}
                   >
                     {isAnalyzing ? (
                       <>
@@ -625,46 +735,328 @@ export default function UploadPage() {
                   fontSize: tokens.typography.fontSize['2xl'],
                   fontWeight: tokens.typography.fontWeight.semibold,
                   color: tokens.colors.text,
-                  marginBottom: tokens.spacing[6]
+                  marginBottom: tokens.spacing[2]
                 }}>
                   📊 Listing Analysis Results
                 </h2>
-                
-                {/* Overall Listing Score */}
-                <div style={{
-                  padding: tokens.spacing[6],
-                  background: tokens.colors.background,
-                  borderRadius: tokens.radius.md,
-                  marginBottom: tokens.spacing[6],
-                  border: `2px solid ${tokens.colors.primary}`
-                }}>
+
+                {/* Mode Indicator */}
+                {analysisResults.mode && (
                   <div style={{
-                    fontSize: tokens.typography.fontSize['4xl'],
-                    fontWeight: tokens.typography.fontWeight.bold,
-                    color: tokens.colors.primary,
-                    textAlign: 'center',
-                    marginBottom: tokens.spacing[2]
-                  }}>
-                    {analysisResults.overallListingScore || analysisResults.score || 0}/100
-                  </div>
-                  <div style={{
-                    textAlign: 'center',
+                    fontSize: tokens.typography.fontSize.sm,
                     color: tokens.colors.textMuted,
-                    fontSize: tokens.typography.fontSize.base,
-                    marginBottom: tokens.spacing[4]
+                    marginBottom: tokens.spacing[6]
                   }}>
-                    Overall Listing Score
+                    Mode: {analysisResults.mode === 'optimize_images' ? '📸 Optimize Images' : '📋 Evaluate Full Listing'}
                   </div>
-                  {analysisResults.imageCount && (
+                )}
+
+                {/* NEW FORMAT: A/B/C Outputs (when MODE provided) */}
+                {analysisResults.mode ? (
+                  <>
+                    {/* A) IMAGE QUALITY SCORE */}
                     <div style={{
-                      textAlign: 'center',
-                      fontSize: tokens.typography.fontSize.sm,
-                      color: tokens.colors.textMuted
+                      padding: tokens.spacing[6],
+                      background: tokens.colors.background,
+                      borderRadius: tokens.radius.md,
+                      marginBottom: tokens.spacing[4],
+                      border: `2px solid ${tokens.colors.primary}`
                     }}>
-                      {analysisResults.imageCount} images analyzed
+                      <div style={{
+                        fontSize: tokens.typography.fontSize.lg,
+                        fontWeight: tokens.typography.fontWeight.semibold,
+                        color: tokens.colors.text,
+                        marginBottom: tokens.spacing[3]
+                      }}>
+                        A) Image Quality Score
+                      </div>
+                      <div style={{
+                        fontSize: tokens.typography.fontSize['4xl'],
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.primary,
+                        textAlign: 'center',
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        {analysisResults.imageQualityScore}/100
+                      </div>
+                      <div style={{
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                        fontSize: tokens.typography.fontSize.sm
+                      }}>
+                        Average of {analysisResults.imageCount} uploaded images
+                      </div>
+
+                      {/* Final Listing Score (only in evaluate_full_listing mode) */}
+                      {analysisResults.finalListingScore && (
+                        <div style={{
+                          marginTop: tokens.spacing[4],
+                          paddingTop: tokens.spacing[4],
+                          borderTop: `1px solid ${tokens.colors.border}`,
+                          textAlign: 'center'
+                        }}>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.textMuted,
+                            marginBottom: tokens.spacing[1]
+                          }}>
+                            Final Listing Score (with {analysisResults.photoCountMultiplier}× multiplier)
+                          </div>
+                          <div style={{
+                            fontSize: tokens.typography.fontSize['2xl'],
+                            fontWeight: tokens.typography.fontWeight.bold,
+                            color: tokens.colors.success
+                          }}>
+                            {analysisResults.finalListingScore}/100
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    {/* Per-Image Breakdown */}
+                    {analysisResults.imageResults && analysisResults.imageResults.length > 0 && (
+                      <div style={{ marginBottom: tokens.spacing[4] }}>
+                        <h3 style={{
+                          fontSize: tokens.typography.fontSize.base,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          🖼️ Per-Image Breakdown
+                        </h3>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                          gap: tokens.spacing[3]
+                        }}>
+                          {analysisResults.imageResults.map((result: any, index: number) => (
+                            <div key={index} style={{
+                              padding: tokens.spacing[4],
+                              background: tokens.colors.surface,
+                              border: `1px solid ${tokens.colors.border}`,
+                              borderRadius: tokens.radius.md
+                            }}>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize['2xl'],
+                                fontWeight: tokens.typography.fontWeight.bold,
+                                color: result.score >= 80 ? tokens.colors.success : result.score >= 60 ? tokens.colors.warning : tokens.colors.danger,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                {result.score}/100
+                              </div>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.xs,
+                                color: tokens.colors.textMuted,
+                                marginBottom: tokens.spacing[3]
+                              }}>
+                                Image {index + 1}
+                              </div>
+
+                              {/* Passed Gates */}
+                              {result.passedGates && result.passedGates.length > 0 && (
+                                <div style={{ marginBottom: tokens.spacing[2] }}>
+                                  <div style={{
+                                    fontSize: tokens.typography.fontSize.xs,
+                                    color: tokens.colors.success,
+                                    fontWeight: tokens.typography.fontWeight.medium,
+                                    marginBottom: tokens.spacing[1]
+                                  }}>
+                                    Passed:
+                                  </div>
+                                  {result.passedGates.slice(0, 3).map((gate: string, i: number) => (
+                                    <div key={i} style={{
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      color: tokens.colors.textMuted
+                                    }}>
+                                      {gate}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Deductions */}
+                              {result.deductions && result.deductions.length > 0 && (
+                                <div>
+                                  <div style={{
+                                    fontSize: tokens.typography.fontSize.xs,
+                                    color: tokens.colors.danger,
+                                    fontWeight: tokens.typography.fontWeight.medium,
+                                    marginBottom: tokens.spacing[1]
+                                  }}>
+                                    Deductions:
+                                  </div>
+                                  {result.deductions.map((ded: any, i: number) => (
+                                    <div key={i} style={{
+                                      fontSize: tokens.typography.fontSize.xs,
+                                      color: tokens.colors.textMuted,
+                                      marginBottom: tokens.spacing[1]
+                                    }}>
+                                      -{ded.penalty}: {ded.rule}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* B) LISTING COMPLETENESS */}
+                    {analysisResults.listingCompleteness && (
+                      <div style={{
+                        padding: tokens.spacing[5],
+                        background: `${tokens.colors.primary}08`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[4],
+                        border: `1px solid ${tokens.colors.border}`
+                      }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.lg,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          B) Listing Completeness
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[4]
+                        }}>
+                          Advisory only – no score impact
+                        </div>
+
+                        {/* Coverage Gaps */}
+                        {analysisResults.listingCompleteness.coverageGaps && analysisResults.listingCompleteness.coverageGaps.length > 0 && (
+                          <ul style={{ margin: 0, paddingLeft: tokens.spacing[5] }}>
+                            {analysisResults.listingCompleteness.coverageGaps.map((gap: string, i: number) => (
+                              <li key={i} style={{
+                                fontSize: tokens.typography.fontSize.sm,
+                                color: tokens.colors.text,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                {gap}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+
+                        {analysisResults.listingCompleteness.coverageGaps?.length === 0 && (
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.success
+                          }}>
+                            ✅ No coverage gaps detected
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* C) CONVERSION HEADROOM */}
+                    {analysisResults.conversionHeadroom && (
+                      <div style={{
+                        padding: tokens.spacing[5],
+                        background: `${tokens.colors.success}08`,
+                        borderRadius: tokens.radius.md,
+                        marginBottom: tokens.spacing[6],
+                        border: `1px solid ${tokens.colors.success}30`
+                      }}>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.lg,
+                          fontWeight: tokens.typography.fontWeight.semibold,
+                          color: tokens.colors.text,
+                          marginBottom: tokens.spacing[3]
+                        }}>
+                          C) Conversion Headroom
+                        </div>
+                        <div style={{
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted,
+                          marginBottom: tokens.spacing[4]
+                        }}>
+                          Prioritized actions to increase score – {analysisResults.conversionHeadroom.estimatedUplift}
+                        </div>
+
+                        {/* Prioritized Actions */}
+                        {analysisResults.conversionHeadroom.prioritizedActions && analysisResults.conversionHeadroom.prioritizedActions.length > 0 && (
+                          <div>
+                            {analysisResults.conversionHeadroom.prioritizedActions.map((action: any, i: number) => (
+                              <div key={i} style={{
+                                padding: tokens.spacing[3],
+                                background: tokens.colors.background,
+                                borderRadius: tokens.radius.sm,
+                                marginBottom: tokens.spacing[2],
+                                borderLeft: `3px solid ${action.priority === 'high' ? tokens.colors.danger : action.priority === 'medium' ? tokens.colors.warning : tokens.colors.textMuted}`
+                              }}>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.sm,
+                                  fontWeight: tokens.typography.fontWeight.medium,
+                                  color: tokens.colors.text,
+                                  marginBottom: tokens.spacing[1]
+                                }}>
+                                  {action.action}
+                                </div>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  color: tokens.colors.textMuted
+                                }}>
+                                  {action.impact}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {analysisResults.conversionHeadroom.prioritizedActions?.length === 0 && (
+                          <div style={{
+                            fontSize: tokens.typography.fontSize.sm,
+                            color: tokens.colors.success
+                          }}>
+                            ✅ No significant optimization opportunities
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* LEGACY FORMAT: Original Two-Engine Display */
+                  <>
+                    {/* Overall Listing Score */}
+                    <div style={{
+                      padding: tokens.spacing[6],
+                      background: tokens.colors.background,
+                      borderRadius: tokens.radius.md,
+                      marginBottom: tokens.spacing[6],
+                      border: `2px solid ${tokens.colors.primary}`
+                    }}>
+                      <div style={{
+                        fontSize: tokens.typography.fontSize['4xl'],
+                        fontWeight: tokens.typography.fontWeight.bold,
+                        color: tokens.colors.primary,
+                        textAlign: 'center',
+                        marginBottom: tokens.spacing[2]
+                      }}>
+                        {analysisResults.overallListingScore || analysisResults.score || 0}/100
+                      </div>
+                      <div style={{
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                        fontSize: tokens.typography.fontSize.base,
+                        marginBottom: tokens.spacing[4]
+                      }}>
+                        Overall Listing Score
+                      </div>
+                      {analysisResults.imageCount && (
+                        <div style={{
+                          textAlign: 'center',
+                          fontSize: tokens.typography.fontSize.sm,
+                          color: tokens.colors.textMuted
+                        }}>
+                          {analysisResults.imageCount} images analyzed
+                        </div>
+                      )}
+                    </div>
                 
                 {/* Photo Type Variety */}
                 {analysisResults.detectedPhotoTypes && (
@@ -785,14 +1177,73 @@ export default function UploadPage() {
                           )}
                           
                           {result.isMainImage && (
-                            <div style={{
-                              fontSize: tokens.typography.fontSize.xs,
-                              fontWeight: tokens.typography.fontWeight.semibold,
-                              color: tokens.colors.primary,
-                              marginBottom: tokens.spacing[2]
-                            }}>
-                              MAIN IMAGE
-                            </div>
+                            <>
+                              <div style={{
+                                fontSize: tokens.typography.fontSize.xs,
+                                fontWeight: tokens.typography.fontWeight.semibold,
+                                color: tokens.colors.primary,
+                                marginBottom: tokens.spacing[2]
+                              }}>
+                                MAIN IMAGE
+                              </div>
+
+                              {/* Square Thumbnail Preview - How it appears in Etsy search */}
+                              <div style={{
+                                marginTop: tokens.spacing[2],
+                                marginBottom: tokens.spacing[3],
+                                padding: tokens.spacing[2],
+                                background: `${tokens.colors.primary}05`,
+                                borderRadius: tokens.radius.sm,
+                                border: `1px solid ${tokens.colors.primary}20`
+                              }}>
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  fontWeight: tokens.typography.fontWeight.medium,
+                                  color: tokens.colors.text,
+                                  marginBottom: tokens.spacing[1]
+                                }}>
+                                  🔍 Search Result Preview (1:1)
+                                </div>
+                                <div style={{
+                                  fontSize: '10px',
+                                  color: tokens.colors.textMuted,
+                                  marginBottom: tokens.spacing[2]
+                                }}>
+                                  How this will appear in Etsy search results
+                                </div>
+
+                                {previews[index] && (
+                                  <div style={{
+                                    width: '100%',
+                                    aspectRatio: '1',
+                                    borderRadius: tokens.radius.sm,
+                                    overflow: 'hidden',
+                                    border: `1px solid ${tokens.colors.border}`,
+                                    position: 'relative'
+                                  }}>
+                                    <img
+                                      src={previews[index]}
+                                      alt="Square thumbnail preview"
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover',
+                                        objectPosition: 'center'
+                                      }}
+                                    />
+                                  </div>
+                                )}
+
+                                <div style={{
+                                  fontSize: '10px',
+                                  color: tokens.colors.warning,
+                                  marginTop: tokens.spacing[1],
+                                  fontStyle: 'italic'
+                                }}>
+                                  ⚠️ 4:3 images get center-cropped to square in search. Ensure product stays centered!
+                                </div>
+                              </div>
+                            </>
                           )}
                           <div style={{
                             fontSize: tokens.typography.fontSize['2xl'],
@@ -1384,6 +1835,8 @@ export default function UploadPage() {
                     Back to Dashboard
                   </Button>
                 </div>
+                  </>
+                )}
               </div>
             </Card>
           )}
