@@ -151,13 +151,6 @@ export async function POST(request: NextRequest) {
           // First photo thumbnail safety - assume safe unless AI indicates cropping issues
           thumbnailCropSafe: i === 0 ? visionResponse?.is_product_centered !== false : undefined,
 
-        // Map AI response to analysis format
-        // Extract boolean flags from AI Vision response
-        const aiAnalysis = {
-          hasSevereBlur: visionResponse?.hasSevereBlur ?? false,
-          hasSevereLighting: visionResponse?.hasSevereLighting ?? false,
-          isProductDistinguishable: visionResponse?.isProductDistinguishable ?? true,
-          thumbnailCropSafe: i === 0 ? (visionResponse?.thumbnailCropSafe ?? true) : undefined,
           altText: visionResponse?.ai_alt_text || `Product image ${i + 1}`,
           detectedPhotoType: visionResponse?.detected_photo_type || 'unknown',
         };
@@ -183,7 +176,7 @@ export async function POST(request: NextRequest) {
           averageImageScore: scoringResult.imageQualityScore,
           imageScores: scoringResult.imageResults.map(r => r.score),
           imageResults: scoringResult.imageResults,
-          detectedPhotoTypes: scoringResult.imageResults.map(r => r.photoType).filter(Boolean),
+          detectedPhotoTypes: imageData.map(img => img.aiAnalysis.detectedPhotoType).filter(Boolean),
           missingPhotoTypes: [],
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         }

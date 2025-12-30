@@ -26,15 +26,6 @@ const PENALTIES = {
   SEVERE_BLUR: 30,                // Gradual: image clarity (was 20)
   SEVERE_LIGHTING: 25,            // Gradual: lighting quality (was 15)
   NOT_DISTINGUISHABLE: 20,        // Gradual: product visibility (was 12)
-  WIDTH_BELOW_1000: 15,           // Hard failure: minimum width
-  SHORTEST_SIDE_BELOW_2000: 10,   // Hard failure: quality benchmark
-  FILE_SIZE_OVER_1MB: 8,          // Hard failure: file size
-  NOT_SRGB: 5,                    // Hard failure: color profile
-  PPI_NOT_72: 3,                  // Hard failure: resolution
-  THUMBNAIL_CROP_UNSAFE: 25,      // HUGE: first photo crop safety
-  SEVERE_BLUR: 20,                // Gradual: image clarity
-  SEVERE_LIGHTING: 15,            // Gradual: lighting quality
-  NOT_DISTINGUISHABLE: 12,        // Gradual: product visibility
   NON_IDEAL_ASPECT_RATIO: 3,      // Minor: not exactly 4:3
   FILE_SIZE_TOO_SMALL: 2,         // Minor: file size < 100KB (over-compressed)
 } as const;
@@ -301,6 +292,9 @@ export function scoreImage(
 
   if (excellencePenalty === 0) {
     passedGates.push('✓ Exceptional quality - exceeds all excellence thresholds');
+  }
+
+  // ===========================================
   // QUALITY PENALTIES (MAKE 100/100 HARDER)
   // ===========================================
 
