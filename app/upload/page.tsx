@@ -128,6 +128,7 @@ function deductionToPlainEnglish(rule: string): { text: string; icon: string; au
 export default function UploadPage() {
   const router = useRouter();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [compressedFiles, setCompressedFiles] = useState<File[]>([]); // Store compressed files for optimization
   const [previews, setPreviews] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
@@ -188,12 +189,15 @@ export default function UploadPage() {
       alert('Maximum 10 images allowed per listing.');
       return;
     }
-    
+
     // Cleanup old preview URLs
     previews.forEach(preview => URL.revokeObjectURL(preview));
-    
+
     setSelectedFiles(files);
-    
+    setCompressedFiles([]); // Clear compressed files when new files are selected
+    setAnalysisResults(null); // Clear analysis results when new files are selected
+    setOptimizedListing(null); // Clear optimized results when new files are selected
+
     // Create previews for all files
     const objectUrls = files.map(file => URL.createObjectURL(file));
     setPreviews(objectUrls);
@@ -251,6 +255,9 @@ export default function UploadPage() {
 
       console.log(`[Upload] Analyzing ${processedFiles.length} images (compressed for upload)...`);
 
+      // Store compressed files for later optimization
+      setCompressedFiles(processedFiles);
+
       // Call new listing analysis endpoint with processed images
       const formData = new FormData();
       processedFiles.forEach((file, index) => {
@@ -295,37 +302,53 @@ export default function UploadPage() {
   };
 
   const handleOptimizeListing = async () => {
-    // Check if we have analysis results and images
-    if (!analysisResults || selectedFiles.length === 0) return;
-    
+    // Check if we have analysis results and compressed images
+    if (!analysisResults || compressedFiles.length === 0) return;
+
     // REQUIRE analysis_id - scores are read from DB
     if (!analysisResults?.analysis_id) {
       alert('No analysis found. Please analyze your photos first.');
       return;
     }
-    
+
     setIsOptimizing(true);
     try {
-      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'RAW images with analysis_id:', analysisResults.analysis_id);
+      console.log('[Listing Optimizer] Starting optimization of', compressedFiles.length, 'compressed images with analysis_id:', analysisResults.analysis_id);
 
-      // Send RAW images (same as analyzed) - NO client compression
+      // Send compressed images (same as analyzed) to stay under Vercel 4.5MB limit
       const formData = new FormData();
-      selectedFiles.forEach((file, index) => {
+      compressedFiles.forEach((file, index) => {
         formData.append(`image_${index}`, file);
       });
 
       // Pass only analysis_id - scores are read from DB (deterministic)
       formData.append('analysis_id', analysisResults.analysis_id);
 
-      console.log('[Listing Optimizer] Sending RAW images with analysis_id (scores from DB)');
-      
+      console.log('[Listing Optimizer] Sending compressed images with analysis_id (scores from DB)');
+
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',
         body: formData
       });
-      
+
+      // Handle non-JSON responses (like 413 Payload Too Large)
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Optimization failed');
+        } else {
+          // Non-JSON error (likely HTML error page)
+          const errorText = await response.text();
+          if (response.status === 413) {
+            throw new Error('Images too large. Please use smaller images.');
+          }
+          throw new Error(`Optimization failed (${response.status}): ${errorText.substring(0, 100)}`);
+        }
+      }
+
       const data = await response.json();
-      
+
       if (data.success) {
         console.log('[Listing Optimizer] Complete:', data);
         setOptimizedListing({
