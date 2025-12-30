@@ -10,6 +10,7 @@ import { AIVisionResponse } from '@/lib/ai-vision';
 import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } from '@/lib/etsy-compliance-scoring';
 import { prisma } from '@/lib/prisma';
 import { detectProduct, calculateSmartCrop, needsSmartCrop } from '@/lib/object-detection';
+import { scoreImage } from '@/lib/deterministic-scoring';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -80,8 +81,8 @@ async function optimizeImageBuffer(
   const improvements: string[] = [];
   let pipeline = sharp(buffer);
 
-  // STEP 1: SMART CROP FOR PRODUCT FILL (NEW!)
-  // Detect product and crop to achieve 70-80% fill if needed
+  // STEP 1: SMART CROP FOR PRODUCT FILL (CONSERVATIVE)
+  // Detect product and crop to achieve better product fill
   const imageBase64 = buffer.toString('base64');
   const productDetection = await detectProduct(
     imageBase64,
@@ -90,47 +91,56 @@ async function optimizeImageBuffer(
   );
 
   if (productDetection && needsSmartCrop(productDetection.productFillPercent)) {
-    console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - applying smart crop`);
+    // Calculate required zoom factor
+    const targetFill = 60; // Conservative target (was 75%)
+    const requiredZoom = Math.sqrt(targetFill / productDetection.productFillPercent);
 
-    const cropBox = calculateSmartCrop(
-      originalAttributes.width_px,
-      originalAttributes.height_px,
-      productDetection.boundingBox,
-      75, // Target 75% fill (middle of 70-80% range)
-      4 / 3 // Etsy's recommended aspect ratio
-    );
+    // Only apply smart crop if zoom is reasonable (<= 1.8x)
+    // Aggressive zoom (>1.8x) risks cutting off product edges
+    if (requiredZoom <= 1.8) {
+      console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - applying smart crop (zoom: ${requiredZoom.toFixed(2)}x)`);
 
-    // Apply smart crop
-    pipeline = pipeline.extract({
-      left: cropBox.x,
-      top: cropBox.y,
-      width: cropBox.width,
-      height: cropBox.height,
-    });
+      const cropBox = calculateSmartCrop(
+        originalAttributes.width_px,
+        originalAttributes.height_px,
+        productDetection.boundingBox,
+        targetFill, // Target 60% fill (conservative)
+        4 / 3 // Etsy's recommended aspect ratio
+      );
 
-    improvements.push(`✅ Smart crop applied - product now fills ${75}% of frame (was ${productDetection.productFillPercent.toFixed(0)}%)`);
+      // Apply smart crop
+      pipeline = pipeline.extract({
+        left: cropBox.x,
+        top: cropBox.y,
+        width: cropBox.width,
+        height: cropBox.height,
+      });
 
-    // Update dimensions for subsequent operations
-    originalAttributes.width_px = cropBox.width;
-    originalAttributes.height_px = cropBox.height;
-    originalAttributes.shortest_side = Math.min(cropBox.width, cropBox.height);
+      improvements.push(`✅ Smart crop applied - product now fills ${targetFill}% of frame (was ${productDetection.productFillPercent.toFixed(0)}%)`);
+
+      // Update dimensions for subsequent operations
+      originalAttributes.width_px = cropBox.width;
+      originalAttributes.height_px = cropBox.height;
+      originalAttributes.shortest_side = Math.min(cropBox.width, cropBox.height);
+    } else {
+      console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% but zoom would be ${requiredZoom.toFixed(2)}x - skipping to avoid cutting off product`);
+      improvements.push(`⚠️ Image is very zoomed out (${productDetection.productFillPercent.toFixed(0)}% fill) - consider retaking photo closer to product`);
+    }
   } else if (productDetection) {
     console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - no crop needed`);
   }
 
   // STEP 2: RESIZE TO ETSY DIMENSIONS
+  // Always resize to meet Etsy requirements: 3000×2250 (4:3), shortest side ≥ 2000px
   const needsResize = originalAttributes.shortest_side < ETSY_MIN_SHORTEST_SIDE || originalAttributes.aspect_ratio !== '4:3';
   if (needsResize) {
-    let targetWidth = ETSY_TARGET_WIDTH;
-    let targetHeight = ETSY_TARGET_HEIGHT;
-    if (originalAttributes.width_px < targetWidth / 1.5) {
-      const scale = Math.min(1.5, ETSY_MIN_SHORTEST_SIDE / originalAttributes.shortest_side);
-      targetWidth = Math.round(originalAttributes.width_px * scale);
-      targetHeight = Math.round(targetWidth / (4/3));
-    }
-    // Use 'cover' to crop edges if aspect ratio doesn't match
-    pipeline = pipeline.resize(targetWidth, targetHeight, { fit: 'cover', position: 'entropy' });
-    improvements.push('✅ Resized to Etsy optimal dimensions (4:3, cropped to fill)');
+    // Always use full Etsy target dimensions to ensure quality requirements are met
+    // Sharp's 'cover' mode will handle cropping to fit the aspect ratio
+    pipeline = pipeline.resize(ETSY_TARGET_WIDTH, ETSY_TARGET_HEIGHT, {
+      fit: 'cover',
+      position: 'entropy'
+    });
+    improvements.push('✅ Resized to Etsy optimal dimensions (3000×2250, 4:3)');
   }
   
   pipeline = pipeline.toColorspace('srgb');
@@ -276,34 +286,89 @@ export async function POST(request: NextRequest) {
         if (!squareSafeCheck.isSquareSafe && squareSafeCheck.warning) warnings.push(squareSafeCheck.warning);
 
         // ===========================================
-        // TWO-ENGINE MODEL: RECALCULATE ETSY COMPLIANCE ONLY
+        // SCORING: Detect if deterministic or two-engine model
         // ===========================================
-        // Visual quality is IMMUTABLE - we keep the original AI score
-        // Only technical compliance changes during optimization
+        let newScore: number;
+        let scoreImprovement: number;
 
-        const originalVisualQuality = imageAnalysis.visualQuality || originalScore; // Fallback for old data
-        const originalEtsyCompliance = imageAnalysis.etsyCompliance || 0;
+        // Check if analysis used DETERMINISTIC scoring (has deductions/passedGates)
+        if (imageAnalysis.deductions !== undefined) {
+          console.log(`[${requestId}] Image ${i + 1}: Using DETERMINISTIC re-scoring`);
 
-        console.log(`[${requestId}] Image ${i + 1}: Original scores - Visual: ${originalVisualQuality}, Compliance: ${originalEtsyCompliance}`);
+          // Extract optimized image attributes
+          const optimizedAttrs: ImageAttributes = {
+            width_px: optimizedMetadata.width || 0,
+            height_px: optimizedMetadata.height || 0,
+            file_size_bytes: optimizedBuffer.length,
+            aspect_ratio: `${optimizedMetadata.width}:${optimizedMetadata.height}`,
+            file_type: 'jpeg',
+            color_profile: optimizedMetadata.space || 'srgb',
+            ppi: ETSY_PPI,
+            shortest_side: Math.min(optimizedMetadata.width || 0, optimizedMetadata.height || 0),
+            // Placeholder values (not used in deterministic scoring)
+            has_clean_white_background: false,
+            is_product_centered: false,
+            has_good_lighting: false,
+            is_sharp_focus: false,
+            has_no_watermarks: true,
+            professional_appearance: false,
+            has_studio_shot: false,
+            has_lifestyle_shot: false,
+            has_scale_shot: false,
+            has_detail_shot: false,
+            has_group_shot: false,
+            has_packaging_shot: false,
+            has_process_shot: false,
+            shows_texture_or_craftsmanship: false,
+            product_clearly_visible: false,
+            appealing_context: false,
+            reference_object_visible: false,
+            size_comparison_clear: false,
+          };
 
-        // Extract new technical specs from optimized image
-        const newSpecs: ImageTechnicalSpecs = {
-          width: optimizedMetadata.width || 0,
-          height: optimizedMetadata.height || 0,
-          fileSizeBytes: optimizedBuffer.length,
-          colorProfile: optimizedMetadata.space || 'srgb',
-          format: 'jpeg',
-          ppi: ETSY_PPI,
-        };
+          // Re-use original AI analysis (visual quality is immutable)
+          const aiAnalysis = {
+            hasSevereBlur: imageAnalysis.hasSevereBlur ?? false,
+            hasSevereLighting: imageAnalysis.hasSevereLighting ?? false,
+            isProductDistinguishable: imageAnalysis.isProductDistinguishable ?? true,
+            thumbnailCropSafe: isMainImage ? (imageAnalysis.thumbnailCropSafe ?? true) : undefined,
+            altText: imageAnalysis.altText || `Optimized image ${i + 1}`,
+          };
 
-        const newEtsyCompliance = calculateEtsyCompliance(newSpecs);
-        console.log(`[${requestId}] Image ${i + 1}: New Etsy compliance = ${newEtsyCompliance.overallCompliance}% (was ${originalEtsyCompliance}%)`);
+          // Re-run deterministic scoring on optimized image
+          const optimizedResult = scoreImage(i, optimizedAttrs, aiAnalysis);
+          newScore = optimizedResult.score;
+          scoreImprovement = newScore - originalScore;
 
-        // Calculate new final score: Visual quality (unchanged) + New compliance
-        const newScore = calculateFinalScore(originalVisualQuality, newEtsyCompliance.overallCompliance);
-        const scoreImprovement = newScore - originalScore;
+          console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement})`);
+        } else {
+          // LEGACY: Two-engine model (for backward compatibility)
+          console.log(`[${requestId}] Image ${i + 1}: Using TWO-ENGINE model (legacy)`);
 
-        console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement}) [Visual: ${originalVisualQuality} unchanged, Compliance: ${originalEtsyCompliance} → ${newEtsyCompliance.overallCompliance}]`);
+          const originalVisualQuality = imageAnalysis.visualQuality || originalScore;
+          const originalEtsyCompliance = imageAnalysis.etsyCompliance || 0;
+
+          console.log(`[${requestId}] Image ${i + 1}: Original scores - Visual: ${originalVisualQuality}, Compliance: ${originalEtsyCompliance}`);
+
+          // Extract new technical specs from optimized image
+          const newSpecs: ImageTechnicalSpecs = {
+            width: optimizedMetadata.width || 0,
+            height: optimizedMetadata.height || 0,
+            fileSizeBytes: optimizedBuffer.length,
+            colorProfile: optimizedMetadata.space || 'srgb',
+            format: 'jpeg',
+            ppi: ETSY_PPI,
+          };
+
+          const newEtsyCompliance = calculateEtsyCompliance(newSpecs);
+          console.log(`[${requestId}] Image ${i + 1}: New Etsy compliance = ${newEtsyCompliance.overallCompliance}% (was ${originalEtsyCompliance}%)`);
+
+          // Calculate new final score: Visual quality (unchanged) + New compliance
+          newScore = calculateFinalScore(originalVisualQuality, newEtsyCompliance.overallCompliance);
+          scoreImprovement = newScore - originalScore;
+
+          console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement}) [Visual: ${originalVisualQuality} unchanged, Compliance: ${originalEtsyCompliance} → ${newEtsyCompliance.overallCompliance}]`);
+        }
 
         const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
         await supabase.storage.from('product-images').upload(filename, optimizedBuffer, { contentType: 'image/jpeg', cacheControl: 'no-cache' });

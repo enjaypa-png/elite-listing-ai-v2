@@ -189,12 +189,15 @@ export default function UploadPage() {
       alert('Maximum 10 images allowed per listing.');
       return;
     }
-    
+
     // Cleanup old preview URLs
     previews.forEach(preview => URL.revokeObjectURL(preview));
-    
+
     setSelectedFiles(files);
-    
+    setCompressedFiles([]); // Clear compressed files when new files are selected
+    setAnalysisResults(null); // Clear analysis results when new files are selected
+    setOptimizedListing(null); // Clear optimized results when new files are selected
+
     // Create previews for all files
     const objectUrls = files.map(file => URL.createObjectURL(file));
     setPreviews(objectUrls);
@@ -252,6 +255,9 @@ export default function UploadPage() {
       }
 
       console.log(`[Upload] Analyzing ${processedFiles.length} images (compressed for upload)...`);
+
+      // Store compressed files for later optimization
+      setCompressedFiles(processedFiles);
 
       // Call new listing analysis endpoint with processed images
       const formData = new FormData();
@@ -327,9 +333,25 @@ export default function UploadPage() {
         method: 'POST',
         body: formData
       });
-      
+
+      // Handle non-JSON responses (like 413 Payload Too Large)
+      const contentType = response.headers.get('content-type');
+      if (!response.ok) {
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Optimization failed');
+        } else {
+          // Non-JSON error (likely HTML error page)
+          const errorText = await response.text();
+          if (response.status === 413) {
+            throw new Error('Images too large. Please use smaller images.');
+          }
+          throw new Error(`Optimization failed (${response.status}): ${errorText.substring(0, 100)}`);
+        }
+      }
+
       const data = await response.json();
-      
+
       if (data.success) {
         console.log('[Listing Optimizer] Complete:', data);
         setOptimizedListing({
@@ -1105,10 +1127,28 @@ export default function UploadPage() {
                                 <div style={{ fontSize: tokens.typography.fontSize.xs, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.primary, marginBottom: tokens.spacing[1] }}>MAIN IMAGE</div>
                               )}
                               <div style={{ fontSize: tokens.typography.fontSize.sm, fontWeight: tokens.typography.fontWeight.semibold, color: tokens.colors.text, marginBottom: tokens.spacing[1] }}>Photo {index + 1}</div>
-                              {img.originalScore && img.optimizedScore && (
-                                <div style={{ fontSize: tokens.typography.fontSize.xs, color: tokens.colors.textMuted, marginBottom: tokens.spacing[2] }}>
-                                  {img.originalScore} → <span style={{ color: tokens.colors.success, fontWeight: tokens.typography.fontWeight.semibold }}>{img.optimizedScore}</span>
-                                  {img.improvement > 0 && <span style={{ color: tokens.colors.success }}> (+{img.improvement})</span>}
+                              {img.originalScore !== undefined && img.newScore !== undefined && (
+                                <div style={{
+                                  fontSize: tokens.typography.fontSize.xs,
+                                  marginBottom: tokens.spacing[2],
+                                  padding: tokens.spacing[2],
+                                  background: img.scoreImprovement > 0 ? `${tokens.colors.success}10` : img.scoreImprovement < 0 ? `${tokens.colors.danger}10` : `${tokens.colors.textMuted}10`,
+                                  borderRadius: tokens.radius.sm,
+                                  border: `1px solid ${img.scoreImprovement > 0 ? tokens.colors.success : img.scoreImprovement < 0 ? tokens.colors.danger : tokens.colors.border}30`
+                                }}>
+                                  <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[0.5] }}>
+                                    {img.originalScore} → <span style={{ color: img.scoreImprovement > 0 ? tokens.colors.success : img.scoreImprovement < 0 ? tokens.colors.danger : tokens.colors.text, fontWeight: tokens.typography.fontWeight.bold }}>{img.newScore}</span>
+                                  </div>
+                                  {img.scoreImprovement !== 0 && (
+                                    <div style={{ fontSize: '10px', color: img.scoreImprovement > 0 ? tokens.colors.success : tokens.colors.danger, fontWeight: tokens.typography.fontWeight.semibold }}>
+                                      {img.scoreImprovement > 0 ? '↗' : '↘'} {img.scoreImprovement > 0 ? '+' : ''}{img.scoreImprovement} points
+                                    </div>
+                                  )}
+                                  {img.scoreImprovement === 0 && (
+                                    <div style={{ fontSize: '10px', color: tokens.colors.textMuted }}>
+                                      No change
+                                    </div>
+                                  )}
                                 </div>
                               )}
                               <Button variant="primary" size="sm" fullWidth onClick={() => downloadImage(img.optimizedUrl, `optimized-${index + 1}.jpg`)} style={{ fontSize: tokens.typography.fontSize.xs }}>
@@ -1814,23 +1854,24 @@ export default function UploadPage() {
                           
                           {/* Score Change */}
                           <div style={{
-                            fontSize: tokens.typography.fontSize.sm,
-                            color: tokens.colors.text,
-                            marginBottom: tokens.spacing[2]
+                            fontSize: tokens.typography.fontSize.xs,
+                            marginBottom: tokens.spacing[2],
+                            padding: tokens.spacing[2],
+                            background: img.scoreImprovement > 0 ? `${tokens.colors.success}10` : img.scoreImprovement < 0 ? `${tokens.colors.danger}10` : `${tokens.colors.textMuted}10`,
+                            borderRadius: tokens.radius.sm,
+                            border: `1px solid ${img.scoreImprovement > 0 ? tokens.colors.success : img.scoreImprovement < 0 ? tokens.colors.danger : tokens.colors.border}30`
                           }}>
-                            {img.alreadyOptimized ? (
-                              <span style={{ color: tokens.colors.success }}>
-                                ✓ Already optimized ({img.newScore}/100)
-                              </span>
+                            <div style={{ fontWeight: tokens.typography.fontWeight.semibold, marginBottom: tokens.spacing[0.5] }}>
+                              {img.originalScore} → <span style={{ color: img.scoreImprovement > 0 ? tokens.colors.success : img.scoreImprovement < 0 ? tokens.colors.danger : tokens.colors.text, fontWeight: tokens.typography.fontWeight.bold }}>{img.newScore}</span>
+                            </div>
+                            {img.scoreImprovement !== 0 ? (
+                              <div style={{ fontSize: '10px', color: img.scoreImprovement > 0 ? tokens.colors.success : tokens.colors.danger, fontWeight: tokens.typography.fontWeight.semibold }}>
+                                {img.scoreImprovement > 0 ? '↗' : '↘'} {img.scoreImprovement > 0 ? '+' : ''}{img.scoreImprovement} points
+                              </div>
                             ) : (
-                              <>
-                                {img.originalScore} → <span style={{ color: tokens.colors.success, fontWeight: 600 }}>{img.newScore}</span>
-                                {img.scoreImprovement > 0 && (
-                                  <span style={{ color: tokens.colors.success, fontSize: tokens.typography.fontSize.xs }}>
-                                    {' '}(+{img.scoreImprovement})
-                                  </span>
-                                )}
-                              </>
+                              <div style={{ fontSize: '10px', color: tokens.colors.textMuted }}>
+                                No change
+                              </div>
                             )}
                           </div>
                           

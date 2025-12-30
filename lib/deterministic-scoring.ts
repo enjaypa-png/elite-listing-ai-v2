@@ -15,16 +15,19 @@ import { ImageAttributes } from './database-scoring';
 // ===========================================
 
 // Technical Gate Penalties (fixed deductions)
+// ADJUSTED: Increased penalties to make 100 scores genuinely difficult to obtain
 const PENALTIES = {
-  WIDTH_BELOW_1000: 15,           // Hard failure: minimum width
-  SHORTEST_SIDE_BELOW_2000: 10,   // Hard failure: quality benchmark
-  FILE_SIZE_OVER_1MB: 8,          // Hard failure: file size
-  NOT_SRGB: 5,                    // Hard failure: color profile
-  PPI_NOT_72: 3,                  // Hard failure: resolution
-  THUMBNAIL_CROP_UNSAFE: 25,      // HUGE: first photo crop safety
-  SEVERE_BLUR: 20,                // Gradual: image clarity
-  SEVERE_LIGHTING: 15,            // Gradual: lighting quality
-  NOT_DISTINGUISHABLE: 12,        // Gradual: product visibility
+  WIDTH_BELOW_1000: 20,           // Hard failure: minimum width (was 15)
+  SHORTEST_SIDE_BELOW_2000: 15,   // Hard failure: quality benchmark (was 10)
+  FILE_SIZE_OVER_1MB: 12,         // Hard failure: file size (was 8)
+  NOT_SRGB: 8,                    // Hard failure: color profile (was 5)
+  PPI_NOT_72: 5,                  // Hard failure: resolution (was 3)
+  THUMBNAIL_CROP_UNSAFE: 30,      // HUGE: first photo crop safety (was 25)
+  SEVERE_BLUR: 30,                // Gradual: image clarity (was 20)
+  SEVERE_LIGHTING: 25,            // Gradual: lighting quality (was 15)
+  NOT_DISTINGUISHABLE: 20,        // Gradual: product visibility (was 12)
+  NON_IDEAL_ASPECT_RATIO: 3,      // Minor: not exactly 4:3
+  FILE_SIZE_TOO_SMALL: 2,         // Minor: file size < 100KB (over-compressed)
 } as const;
 
 // Photo Count Multipliers (listing-level only)
@@ -237,6 +240,89 @@ export function scoreImage(
     score -= PENALTIES.NOT_DISTINGUISHABLE;
   } else {
     passedGates.push('✓ Product clearly visible');
+  }
+
+  // ===========================================
+  // QUALITY CEILING (MAKES 100 GENUINELY RARE)
+  // ===========================================
+
+  // To score 100, an image must not only pass all gates, but also exceed excellence thresholds
+  // These are stricter than minimum requirements and cannot be auto-fixed by optimization
+
+  // Check for SUPER-resolution (beyond minimum 2000px shortest side)
+  const hasExceptionalResolution = shortestSide >= 2500;
+
+  // Check for optimal file size (compressed well but not too much)
+  const hasOptimalCompression = fileSizeMB >= 0.2 && fileSizeMB <= 0.6;
+
+  // Check for oversized dimensions (better than minimum 3000px width)
+  const hasExceptionalDimensions = attributes.width_px >= 3500;
+
+  // Count how many excellence markers are missing
+  let excellencePenalty = 0;
+
+  if (!hasExceptionalResolution) {
+    excellencePenalty += 3;
+    deductions.push({
+      rule: 'Resolution not exceptional',
+      penalty: 3,
+      explanation: `Shortest side is ${shortestSide}px (exceeds minimum 2000px but below exceptional 2500px threshold).`
+    });
+  }
+
+  if (!hasOptimalCompression) {
+    excellencePenalty += 3;
+    deductions.push({
+      rule: 'Compression not optimal',
+      penalty: 3,
+      explanation: `File size is ${fileSizeMB.toFixed(2)}MB (should be 200-600KB for optimal balance of quality and load speed).`
+    });
+  }
+
+  if (!hasExceptionalDimensions) {
+    excellencePenalty += 4;
+    deductions.push({
+      rule: 'Dimensions not exceptional',
+      penalty: 4,
+      explanation: `Width is ${attributes.width_px}px (exceeds minimum 1000px but below exceptional 3500px threshold).`
+    });
+  }
+
+  score -= excellencePenalty;
+
+  if (excellencePenalty === 0) {
+    passedGates.push('✓ Exceptional quality - exceeds all excellence thresholds');
+  }
+
+  // ===========================================
+  // QUALITY PENALTIES (MAKE 100/100 HARDER)
+  // ===========================================
+
+  // 4. Non-ideal aspect ratio (not exactly 4:3)
+  const aspectRatio = attributes.width_px / attributes.height_px;
+  const ideal43Ratio = 4 / 3;
+  const ratioDiff = Math.abs(aspectRatio - ideal43Ratio);
+
+  if (ratioDiff > 0.05) { // Allow 5% tolerance
+    deductions.push({
+      rule: 'Aspect ratio not exactly 4:3',
+      penalty: PENALTIES.NON_IDEAL_ASPECT_RATIO,
+      explanation: `Image aspect ratio is ${aspectRatio.toFixed(2)}:1 instead of Etsy's recommended 4:3 (1.33:1).`
+    });
+    score -= PENALTIES.NON_IDEAL_ASPECT_RATIO;
+  } else {
+    passedGates.push('✓ Perfect 4:3 aspect ratio');
+  }
+
+  // 5. File size too small (over-compressed)
+  const fileSizeKB = attributes.file_size_bytes / 1024;
+  if (fileSizeKB < 100) {
+    deductions.push({
+      rule: 'File size very small (<100KB)',
+      penalty: PENALTIES.FILE_SIZE_TOO_SMALL,
+      explanation: 'Image may be over-compressed, which can reduce quality and detail.'
+    });
+    score -= PENALTIES.FILE_SIZE_TOO_SMALL;
   }
 
   // Ensure score doesn't go below 0
