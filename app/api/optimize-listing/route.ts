@@ -120,18 +120,16 @@ async function optimizeImageBuffer(
   }
 
   // STEP 2: RESIZE TO ETSY DIMENSIONS
+  // Always resize to meet Etsy requirements: 3000×2250 (4:3), shortest side ≥ 2000px
   const needsResize = originalAttributes.shortest_side < ETSY_MIN_SHORTEST_SIDE || originalAttributes.aspect_ratio !== '4:3';
   if (needsResize) {
-    let targetWidth = ETSY_TARGET_WIDTH;
-    let targetHeight = ETSY_TARGET_HEIGHT;
-    if (originalAttributes.width_px < targetWidth / 1.5) {
-      const scale = Math.min(1.5, ETSY_MIN_SHORTEST_SIDE / originalAttributes.shortest_side);
-      targetWidth = Math.round(originalAttributes.width_px * scale);
-      targetHeight = Math.round(targetWidth / (4/3));
-    }
-    // Use 'cover' to crop edges if aspect ratio doesn't match
-    pipeline = pipeline.resize(targetWidth, targetHeight, { fit: 'cover', position: 'entropy' });
-    improvements.push('✅ Resized to Etsy optimal dimensions (4:3, cropped to fill)');
+    // Always use full Etsy target dimensions to ensure quality requirements are met
+    // Sharp's 'cover' mode will handle cropping to fit the aspect ratio
+    pipeline = pipeline.resize(ETSY_TARGET_WIDTH, ETSY_TARGET_HEIGHT, {
+      fit: 'cover',
+      position: 'entropy'
+    });
+    improvements.push('✅ Resized to Etsy optimal dimensions (3000×2250, 4:3)');
   }
   
   pipeline = pipeline.toColorspace('srgb');
