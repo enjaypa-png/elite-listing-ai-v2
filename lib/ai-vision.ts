@@ -362,6 +362,58 @@ export async function analyzeMultipleImages(
 // ===========================================
 
 function mapToExistingShape(aiOutput: any): AIVisionResponse {
+  // NEW FORMAT: Check if AI returned boolean flags directly (v3.0 format)
+  const hasNewFormat = 'hasSevereBlur' in aiOutput || 'hasSevereLighting' in aiOutput;
+
+  if (hasNewFormat) {
+    // Use new format flags directly
+    const photoType = (aiOutput.photoType || 'unknown').toLowerCase();
+    let detected_photo_type: AIVisionResponse['detected_photo_type'] = 'unknown';
+    if (photoType.includes('studio')) detected_photo_type = 'studio';
+    else if (photoType.includes('lifestyle')) detected_photo_type = 'lifestyle';
+    else if (photoType.includes('detail')) detected_photo_type = 'detail';
+    else if (photoType.includes('scale')) detected_photo_type = 'scale';
+    else if (photoType.includes('group')) detected_photo_type = 'group';
+    else if (photoType.includes('packaging')) detected_photo_type = 'packaging';
+    else if (photoType.includes('process')) detected_photo_type = 'process';
+
+    return {
+      // Invert the new format flags to match legacy format expectations
+      is_sharp_focus: !aiOutput.hasSevereBlur,
+      has_good_lighting: !aiOutput.hasSevereLighting,
+      product_clearly_visible: aiOutput.isProductDistinguishable !== false,
+      is_product_centered: aiOutput.thumbnailCropSafe !== false,
+
+      detected_photo_type,
+      has_studio_shot: photoType.includes('studio'),
+      has_lifestyle_shot: photoType.includes('lifestyle'),
+      has_scale_shot: photoType.includes('scale'),
+      has_detail_shot: photoType.includes('detail'),
+      has_group_shot: photoType.includes('group'),
+      has_packaging_shot: photoType.includes('packaging'),
+      has_process_shot: photoType.includes('process'),
+
+      // Defaults for other fields
+      has_clean_white_background: aiOutput.backgroundType === 'white',
+      has_no_watermarks: !aiOutput.hasTextElements,
+      professional_appearance: true,  // Assume true if no severe issues
+      shows_texture_or_craftsmanship: photoType.includes('detail'),
+      appealing_context: photoType.includes('lifestyle'),
+      reference_object_visible: photoType.includes('scale'),
+      size_comparison_clear: photoType.includes('scale'),
+
+      ai_score: undefined,
+      ai_confidence: 0.9,
+      ai_caps_applied: [],
+      ai_strengths: [],
+      ai_issues: [],
+      ai_recommendations: [],
+      ai_alt_text: aiOutput.altText || '',
+      ai_photo_type_classification: aiOutput.photoType || 'unknown',
+    };
+  }
+
+  // LEGACY FORMAT: Parse issues/strengths arrays
   const photoType = (aiOutput.photoType || 'unknown').toLowerCase();
   const issues = Array.isArray(aiOutput.issues) ? aiOutput.issues : [];
   const strengths = Array.isArray(aiOutput.strengths) ? aiOutput.strengths : [];

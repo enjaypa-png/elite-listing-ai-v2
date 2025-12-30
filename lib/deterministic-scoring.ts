@@ -15,18 +15,18 @@ import { ImageAttributes } from './database-scoring';
 // ===========================================
 
 // Technical Gate Penalties (fixed deductions)
-// ADJUSTED: Increased penalties to make 100 scores genuinely difficult to obtain
+// BALANCED: Penalties should be noticeable but not catastrophic for decent source images
 const PENALTIES = {
-  WIDTH_BELOW_1000: 20,           // Hard failure: minimum width (was 15)
-  SHORTEST_SIDE_BELOW_2000: 15,   // Hard failure: quality benchmark (was 10)
-  FILE_SIZE_OVER_1MB: 12,         // Hard failure: file size (was 8)
-  NOT_SRGB: 8,                    // Hard failure: color profile (was 5)
-  PPI_NOT_72: 5,                  // Hard failure: resolution (was 3)
-  THUMBNAIL_CROP_UNSAFE: 30,      // HUGE: first photo crop safety (was 25)
-  SEVERE_BLUR: 30,                // Gradual: image clarity (was 20)
-  SEVERE_LIGHTING: 25,            // Gradual: lighting quality (was 15)
-  NOT_DISTINGUISHABLE: 20,        // Gradual: product visibility (was 12)
-  NON_IDEAL_ASPECT_RATIO: 3,      // Minor: not exactly 4:3
+  WIDTH_BELOW_1000: 12,           // Hard failure: minimum width (auto-fixable)
+  SHORTEST_SIDE_BELOW_2000: 8,    // Hard failure: quality benchmark (auto-fixable)
+  FILE_SIZE_OVER_1MB: 6,          // Hard failure: file size (auto-fixable)
+  NOT_SRGB: 4,                    // Hard failure: color profile (auto-fixable)
+  PPI_NOT_72: 3,                  // Hard failure: resolution (auto-fixable)
+  THUMBNAIL_CROP_UNSAFE: 25,      // HUGE: first photo crop safety (can't auto-fix)
+  SEVERE_BLUR: 25,                // Gradual: image clarity (can't auto-fix)
+  SEVERE_LIGHTING: 20,            // Gradual: lighting quality (can't auto-fix)
+  NOT_DISTINGUISHABLE: 15,        // Gradual: product visibility (can't auto-fix)
+  NON_IDEAL_ASPECT_RATIO: 2,      // Minor: not exactly 4:3 (auto-fixable)
   FILE_SIZE_TOO_SMALL: 2,         // Minor: file size < 100KB (over-compressed)
 } as const;
 
@@ -262,28 +262,28 @@ export function scoreImage(
   let excellencePenalty = 0;
 
   if (!hasExceptionalResolution) {
-    excellencePenalty += 3;
+    excellencePenalty += 2;
     deductions.push({
       rule: 'Resolution not exceptional',
-      penalty: 3,
+      penalty: 2,
       explanation: `Shortest side is ${shortestSide}px (exceeds minimum 2000px but below exceptional 2500px threshold).`
     });
   }
 
   if (!hasOptimalCompression) {
-    excellencePenalty += 3;
+    excellencePenalty += 2;
     deductions.push({
       rule: 'Compression not optimal',
-      penalty: 3,
+      penalty: 2,
       explanation: `File size is ${fileSizeMB.toFixed(2)}MB (should be 200-600KB for optimal balance of quality and load speed).`
     });
   }
 
   if (!hasExceptionalDimensions) {
-    excellencePenalty += 4;
+    excellencePenalty += 3;
     deductions.push({
       rule: 'Dimensions not exceptional',
-      penalty: 4,
+      penalty: 3,
       explanation: `Width is ${attributes.width_px}px (exceeds minimum 1000px but below exceptional 3500px threshold).`
     });
   }
