@@ -26,6 +26,17 @@ const PENALTIES = {
   SEVERE_BLUR: 30,                // Gradual: image clarity (was 20)
   SEVERE_LIGHTING: 25,            // Gradual: lighting quality (was 15)
   NOT_DISTINGUISHABLE: 20,        // Gradual: product visibility (was 12)
+  WIDTH_BELOW_1000: 15,           // Hard failure: minimum width
+  SHORTEST_SIDE_BELOW_2000: 10,   // Hard failure: quality benchmark
+  FILE_SIZE_OVER_1MB: 8,          // Hard failure: file size
+  NOT_SRGB: 5,                    // Hard failure: color profile
+  PPI_NOT_72: 3,                  // Hard failure: resolution
+  THUMBNAIL_CROP_UNSAFE: 25,      // HUGE: first photo crop safety
+  SEVERE_BLUR: 20,                // Gradual: image clarity
+  SEVERE_LIGHTING: 15,            // Gradual: lighting quality
+  NOT_DISTINGUISHABLE: 12,        // Gradual: product visibility
+  NON_IDEAL_ASPECT_RATIO: 3,      // Minor: not exactly 4:3
+  FILE_SIZE_TOO_SMALL: 2,         // Minor: file size < 100KB (over-compressed)
 } as const;
 
 // Photo Count Multipliers (listing-level only)
@@ -290,6 +301,34 @@ export function scoreImage(
 
   if (excellencePenalty === 0) {
     passedGates.push('✓ Exceptional quality - exceeds all excellence thresholds');
+  // QUALITY PENALTIES (MAKE 100/100 HARDER)
+  // ===========================================
+
+  // 4. Non-ideal aspect ratio (not exactly 4:3)
+  const aspectRatio = attributes.width_px / attributes.height_px;
+  const ideal43Ratio = 4 / 3;
+  const ratioDiff = Math.abs(aspectRatio - ideal43Ratio);
+
+  if (ratioDiff > 0.05) { // Allow 5% tolerance
+    deductions.push({
+      rule: 'Aspect ratio not exactly 4:3',
+      penalty: PENALTIES.NON_IDEAL_ASPECT_RATIO,
+      explanation: `Image aspect ratio is ${aspectRatio.toFixed(2)}:1 instead of Etsy's recommended 4:3 (1.33:1).`
+    });
+    score -= PENALTIES.NON_IDEAL_ASPECT_RATIO;
+  } else {
+    passedGates.push('✓ Perfect 4:3 aspect ratio');
+  }
+
+  // 5. File size too small (over-compressed)
+  const fileSizeKB = attributes.file_size_bytes / 1024;
+  if (fileSizeKB < 100) {
+    deductions.push({
+      rule: 'File size very small (<100KB)',
+      penalty: PENALTIES.FILE_SIZE_TOO_SMALL,
+      explanation: 'Image may be over-compressed, which can reduce quality and detail.'
+    });
+    score -= PENALTIES.FILE_SIZE_TOO_SMALL;
   }
 
   // Ensure score doesn't go below 0
