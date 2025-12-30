@@ -128,7 +128,7 @@ function deductionToPlainEnglish(rule: string): { text: string; icon: string; au
 export default function UploadPage() {
   const router = useRouter();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [compressedFiles, setCompressedFiles] = useState<File[]>([]); // Store compressed files for optimization
+  const [compressedFiles, setCompressedFiles] = useState<File[]>([]); // Store compressed files after analysis
   const [previews, setPreviews] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
@@ -218,6 +218,7 @@ export default function UploadPage() {
     if (newFiles.length === 0) {
       setAnalysisResults(null);
       setOptimizedPhoto(null);
+      setCompressedFiles([]);
     }
   };
 
@@ -293,6 +294,8 @@ export default function UploadPage() {
 
       // Show results inline instead of redirecting
       setAnalysisResults(analysisData);
+      // Store compressed files for later use in optimize
+      setCompressedFiles(processedFiles);
       setIsAnalyzing(false);
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -302,7 +305,7 @@ export default function UploadPage() {
   };
 
   const handleOptimizeListing = async () => {
-    // Check if we have analysis results and compressed images
+    // Check if we have analysis results and images
     if (!analysisResults || compressedFiles.length === 0) return;
 
     // REQUIRE analysis_id - scores are read from DB
@@ -325,7 +328,7 @@ export default function UploadPage() {
       formData.append('analysis_id', analysisResults.analysis_id);
 
       console.log('[Listing Optimizer] Sending compressed images with analysis_id (scores from DB)');
-
+      
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',
         body: formData
@@ -394,6 +397,7 @@ export default function UploadPage() {
     setAnalysisResults(null);
     setPreviews([]);
     setSelectedFiles([]);
+    setCompressedFiles([]);
   };
 
   return (
