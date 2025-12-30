@@ -128,6 +128,7 @@ function deductionToPlainEnglish(rule: string): { text: string; icon: string; au
 export default function UploadPage() {
   const router = useRouter();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [compressedFiles, setCompressedFiles] = useState<File[]>([]); // Store compressed files after analysis
   const [previews, setPreviews] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
@@ -214,6 +215,7 @@ export default function UploadPage() {
     if (newFiles.length === 0) {
       setAnalysisResults(null);
       setOptimizedPhoto(null);
+      setCompressedFiles([]);
     }
   };
 
@@ -286,6 +288,8 @@ export default function UploadPage() {
 
       // Show results inline instead of redirecting
       setAnalysisResults(analysisData);
+      // Store compressed files for later use in optimize
+      setCompressedFiles(processedFiles);
       setIsAnalyzing(false);
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -296,28 +300,28 @@ export default function UploadPage() {
 
   const handleOptimizeListing = async () => {
     // Check if we have analysis results and images
-    if (!analysisResults || selectedFiles.length === 0) return;
-    
+    if (!analysisResults || compressedFiles.length === 0) return;
+
     // REQUIRE analysis_id - scores are read from DB
     if (!analysisResults?.analysis_id) {
       alert('No analysis found. Please analyze your photos first.');
       return;
     }
-    
+
     setIsOptimizing(true);
     try {
-      console.log('[Listing Optimizer] Starting optimization of', selectedFiles.length, 'RAW images with analysis_id:', analysisResults.analysis_id);
+      console.log('[Listing Optimizer] Starting optimization of', compressedFiles.length, 'compressed images with analysis_id:', analysisResults.analysis_id);
 
-      // Send RAW images (same as analyzed) - NO client compression
+      // Send compressed images (same as analyzed) to stay under Vercel 4.5MB limit
       const formData = new FormData();
-      selectedFiles.forEach((file, index) => {
+      compressedFiles.forEach((file, index) => {
         formData.append(`image_${index}`, file);
       });
 
       // Pass only analysis_id - scores are read from DB (deterministic)
       formData.append('analysis_id', analysisResults.analysis_id);
 
-      console.log('[Listing Optimizer] Sending RAW images with analysis_id (scores from DB)');
+      console.log('[Listing Optimizer] Sending compressed images with analysis_id (scores from DB)');
       
       const response = await fetch('/api/optimize-listing', {
         method: 'POST',
@@ -371,6 +375,7 @@ export default function UploadPage() {
     setAnalysisResults(null);
     setPreviews([]);
     setSelectedFiles([]);
+    setCompressedFiles([]);
   };
 
   return (
