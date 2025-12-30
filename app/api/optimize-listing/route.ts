@@ -10,6 +10,7 @@ import { AIVisionResponse } from '@/lib/ai-vision';
 import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } from '@/lib/etsy-compliance-scoring';
 import { prisma } from '@/lib/prisma';
 import { detectProduct, calculateSmartCrop, needsSmartCrop } from '@/lib/object-detection';
+import { scoreImage } from '@/lib/deterministic-scoring';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -276,34 +277,89 @@ export async function POST(request: NextRequest) {
         if (!squareSafeCheck.isSquareSafe && squareSafeCheck.warning) warnings.push(squareSafeCheck.warning);
 
         // ===========================================
-        // TWO-ENGINE MODEL: RECALCULATE ETSY COMPLIANCE ONLY
+        // SCORING: Detect if deterministic or two-engine model
         // ===========================================
-        // Visual quality is IMMUTABLE - we keep the original AI score
-        // Only technical compliance changes during optimization
+        let newScore: number;
+        let scoreImprovement: number;
 
-        const originalVisualQuality = imageAnalysis.visualQuality || originalScore; // Fallback for old data
-        const originalEtsyCompliance = imageAnalysis.etsyCompliance || 0;
+        // Check if analysis used DETERMINISTIC scoring (has deductions/passedGates)
+        if (imageAnalysis.deductions !== undefined) {
+          console.log(`[${requestId}] Image ${i + 1}: Using DETERMINISTIC re-scoring`);
 
-        console.log(`[${requestId}] Image ${i + 1}: Original scores - Visual: ${originalVisualQuality}, Compliance: ${originalEtsyCompliance}`);
+          // Extract optimized image attributes
+          const optimizedAttrs: ImageAttributes = {
+            width_px: optimizedMetadata.width || 0,
+            height_px: optimizedMetadata.height || 0,
+            file_size_bytes: optimizedBuffer.length,
+            aspect_ratio: `${optimizedMetadata.width}:${optimizedMetadata.height}`,
+            file_type: 'jpeg',
+            color_profile: optimizedMetadata.space || 'srgb',
+            ppi: ETSY_PPI,
+            shortest_side: Math.min(optimizedMetadata.width || 0, optimizedMetadata.height || 0),
+            // Placeholder values (not used in deterministic scoring)
+            has_clean_white_background: false,
+            is_product_centered: false,
+            has_good_lighting: false,
+            is_sharp_focus: false,
+            has_no_watermarks: true,
+            professional_appearance: false,
+            has_studio_shot: false,
+            has_lifestyle_shot: false,
+            has_scale_shot: false,
+            has_detail_shot: false,
+            has_group_shot: false,
+            has_packaging_shot: false,
+            has_process_shot: false,
+            shows_texture_or_craftsmanship: false,
+            product_clearly_visible: false,
+            appealing_context: false,
+            reference_object_visible: false,
+            size_comparison_clear: false,
+          };
 
-        // Extract new technical specs from optimized image
-        const newSpecs: ImageTechnicalSpecs = {
-          width: optimizedMetadata.width || 0,
-          height: optimizedMetadata.height || 0,
-          fileSizeBytes: optimizedBuffer.length,
-          colorProfile: optimizedMetadata.space || 'srgb',
-          format: 'jpeg',
-          ppi: ETSY_PPI,
-        };
+          // Re-use original AI analysis (visual quality is immutable)
+          const aiAnalysis = {
+            hasSevereBlur: imageAnalysis.hasSevereBlur ?? false,
+            hasSevereLighting: imageAnalysis.hasSevereLighting ?? false,
+            isProductDistinguishable: imageAnalysis.isProductDistinguishable ?? true,
+            thumbnailCropSafe: isMainImage ? (imageAnalysis.thumbnailCropSafe ?? true) : undefined,
+            altText: imageAnalysis.altText || `Optimized image ${i + 1}`,
+          };
 
-        const newEtsyCompliance = calculateEtsyCompliance(newSpecs);
-        console.log(`[${requestId}] Image ${i + 1}: New Etsy compliance = ${newEtsyCompliance.overallCompliance}% (was ${originalEtsyCompliance}%)`);
+          // Re-run deterministic scoring on optimized image
+          const optimizedResult = scoreImage(i, optimizedAttrs, aiAnalysis);
+          newScore = optimizedResult.score;
+          scoreImprovement = newScore - originalScore;
 
-        // Calculate new final score: Visual quality (unchanged) + New compliance
-        const newScore = calculateFinalScore(originalVisualQuality, newEtsyCompliance.overallCompliance);
-        const scoreImprovement = newScore - originalScore;
+          console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement})`);
+        } else {
+          // LEGACY: Two-engine model (for backward compatibility)
+          console.log(`[${requestId}] Image ${i + 1}: Using TWO-ENGINE model (legacy)`);
 
-        console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement}) [Visual: ${originalVisualQuality} unchanged, Compliance: ${originalEtsyCompliance} → ${newEtsyCompliance.overallCompliance}]`);
+          const originalVisualQuality = imageAnalysis.visualQuality || originalScore;
+          const originalEtsyCompliance = imageAnalysis.etsyCompliance || 0;
+
+          console.log(`[${requestId}] Image ${i + 1}: Original scores - Visual: ${originalVisualQuality}, Compliance: ${originalEtsyCompliance}`);
+
+          // Extract new technical specs from optimized image
+          const newSpecs: ImageTechnicalSpecs = {
+            width: optimizedMetadata.width || 0,
+            height: optimizedMetadata.height || 0,
+            fileSizeBytes: optimizedBuffer.length,
+            colorProfile: optimizedMetadata.space || 'srgb',
+            format: 'jpeg',
+            ppi: ETSY_PPI,
+          };
+
+          const newEtsyCompliance = calculateEtsyCompliance(newSpecs);
+          console.log(`[${requestId}] Image ${i + 1}: New Etsy compliance = ${newEtsyCompliance.overallCompliance}% (was ${originalEtsyCompliance}%)`);
+
+          // Calculate new final score: Visual quality (unchanged) + New compliance
+          newScore = calculateFinalScore(originalVisualQuality, newEtsyCompliance.overallCompliance);
+          scoreImprovement = newScore - originalScore;
+
+          console.log(`[${requestId}] Image ${i + 1}: ${originalScore} → ${newScore} (${scoreImprovement >= 0 ? '+' : ''}${scoreImprovement}) [Visual: ${originalVisualQuality} unchanged, Compliance: ${originalEtsyCompliance} → ${newEtsyCompliance.overallCompliance}]`);
+        }
 
         const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
         await supabase.storage.from('product-images').upload(filename, optimizedBuffer, { contentType: 'image/jpeg', cacheControl: 'no-cache' });
