@@ -105,7 +105,8 @@ export async function POST(request: NextRequest) {
           file_size_bytes: buffer.length,
           aspect_ratio: metadata.width && metadata.height ? `${metadata.width}:${metadata.height}` : '0:0',
           file_type: metadata.format || 'jpeg',
-          color_profile: metadata.space || 'srgb',
+          // Normalize color profile to lowercase for consistent scoring
+          color_profile: (metadata.space || 'srgb').toLowerCase(),
           ppi: metadata.density || 72,
           shortest_side: Math.min(metadata.width || 0, metadata.height || 0),
           // Placeholder values for AI Vision attributes (not used in deterministic scoring)

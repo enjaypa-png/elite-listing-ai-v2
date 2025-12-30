@@ -62,7 +62,9 @@ async function extractTechnicalAttributes(buffer: Buffer, fileType: string): Pro
   return {
     width_px: width, height_px: height, shortest_side: Math.min(width, height),
     file_size_bytes: buffer.length, aspect_ratio: aspectRatio,
-    file_type: fileType.replace('image/', ''), color_profile: metadata.space || 'sRGB',
+    file_type: fileType.replace('image/', ''),
+    // Normalize color profile to lowercase for consistent scoring
+    color_profile: (metadata.space || 'srgb').toLowerCase(),
     ppi: metadata.density || 72, has_clean_white_background: false, is_product_centered: false,
     has_good_lighting: false, is_sharp_focus: false, has_no_watermarks: true,
     professional_appearance: false, has_studio_shot: false, has_lifestyle_shot: false,
@@ -162,7 +164,19 @@ async function optimizeImageBuffer(
   if (Object.keys(modulateOptions).length > 0) pipeline = pipeline.modulate(modulateOptions);
   
   if (needsContrast) { pipeline = pipeline.linear(1.1, -(128 * 0.1)); improvements.push('✅ Contrast improved'); }
-  
+
+  // CRITICAL FIX: Preserve metadata (including ICC profile from toColorspace)
+  // while also setting PPI/density
+  pipeline = pipeline
+    .withMetadata()  // Preserve all metadata including sRGB ICC profile
+    .withExif({
+      IFD0: {
+        XResolution: ETSY_PPI,
+        YResolution: ETSY_PPI,
+        ResolutionUnit: 2  // 2 = inches
+      }
+    });
+
   // Optimize compression loop: try decreasing quality levels without re-decoding
   // This is 3-4x faster than creating new Sharp instances
   const qualityLevels = [85, 80, 75, 70];
@@ -172,8 +186,11 @@ async function optimizeImageBuffer(
   for (const q of qualityLevels) {
     quality = q;
     optimizedBuffer = await pipeline
-      .withMetadata({ density: ETSY_PPI })
-      .jpeg({ quality, progressive: true, mozjpeg: true })
+      .jpeg({
+        quality,
+        progressive: true,
+        mozjpeg: true
+      })
       .toBuffer();
 
     if (optimizedBuffer.length <= ETSY_MAX_FILE_SIZE) {
