@@ -85,18 +85,12 @@ async function optimizeImageBuffer(
 
   // STEP 1: SMART CROP FOR PRODUCT FILL (CONSERVATIVE)
   // Detect product and crop to achieve better product fill
-  let productDetection = null;
-  try {
-    const imageBase64 = buffer.toString('base64');
-    productDetection = await detectProduct(
-      imageBase64,
-      originalAttributes.width_px,
-      originalAttributes.height_px
-    );
-  } catch (detectionError: any) {
-    console.warn('[Smart Crop] Product detection failed:', detectionError.message);
-    // Continue without smart crop - not critical to optimization
-  }
+  const imageBase64 = buffer.toString('base64');
+  const productDetection = await detectProduct(
+    imageBase64,
+    originalAttributes.width_px,
+    originalAttributes.height_px
+  );
 
   if (productDetection && needsSmartCrop(productDetection.productFillPercent)) {
     // Calculate required zoom factor
@@ -212,19 +206,7 @@ async function optimizeImageBuffer(
   }
 
   improvements.push('✅ Etsy-compliant JPEG format');
-
-  // CRITICAL: Verify buffer is valid before returning
-  if (!optimizedBuffer || optimizedBuffer.length === 0) {
-    throw new Error('Optimization produced empty buffer');
-  }
-
-  if (optimizedBuffer.length < 10000) {
-    throw new Error(`Optimization produced suspiciously small buffer: ${optimizedBuffer.length} bytes`);
-  }
-
-  console.log(`[Optimization] Final buffer size: ${optimizedBuffer.length} bytes (${Math.round(optimizedBuffer.length / 1024)} KB)`);
-
-  return { optimizedBuffer, improvements };
+  return { optimizedBuffer: optimizedBuffer!, improvements };
 }
 
 export async function POST(request: NextRequest) {
@@ -406,20 +388,7 @@ export async function POST(request: NextRequest) {
         }
 
         const filename = `optimized-${requestId}-${i}-${Date.now()}.jpg`;
-
-        // CRITICAL: Add error handling for Supabase upload
-        console.log(`[${requestId}] Image ${i + 1}: Uploading ${optimizedBuffer.length} bytes to Supabase...`);
-        const uploadResult = await supabase.storage.from('product-images').upload(filename, optimizedBuffer, {
-          contentType: 'image/jpeg',
-          cacheControl: 'no-cache',
-          upsert: false  // Don't overwrite existing files
-        });
-
-        if (uploadResult.error) {
-          throw new Error(`Supabase upload failed: ${uploadResult.error.message}`);
-        }
-
-        console.log(`[${requestId}] Image ${i + 1}: Upload successful, getting public URL...`);
+        await supabase.storage.from('product-images').upload(filename, optimizedBuffer, { contentType: 'image/jpeg', cacheControl: 'no-cache' });
         const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(filename);
 
         optimizedResults.push({
