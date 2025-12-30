@@ -135,13 +135,22 @@ export async function POST(request: NextRequest) {
 
         const visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
 
-        // Map AI response to analysis format
-        // Extract boolean flags from AI Vision response
+        // Extract AI detections from response
+        // The AI should return hasSevereBlur, hasSevereLighting, isProductDistinguishable, thumbnailCropSafe
+        // For now, derive from legacy response format until AI prompt is fully deployed
         const aiAnalysis = {
-          hasSevereBlur: visionResponse?.hasSevereBlur ?? false,
-          hasSevereLighting: visionResponse?.hasSevereLighting ?? false,
-          isProductDistinguishable: visionResponse?.isProductDistinguishable ?? true,
-          thumbnailCropSafe: i === 0 ? (visionResponse?.thumbnailCropSafe ?? true) : undefined,
+          // Derive severe blur from legacy is_sharp_focus flag (inverted)
+          hasSevereBlur: visionResponse?.is_sharp_focus === false,
+
+          // Derive severe lighting from legacy has_good_lighting flag (inverted)
+          hasSevereLighting: visionResponse?.has_good_lighting === false,
+
+          // Derive distinguishability from legacy product_clearly_visible flag
+          isProductDistinguishable: visionResponse?.product_clearly_visible !== false,
+
+          // First photo thumbnail safety - assume safe unless AI indicates cropping issues
+          thumbnailCropSafe: i === 0 ? visionResponse?.is_product_centered !== false : undefined,
+
           altText: visionResponse?.ai_alt_text || `Product image ${i + 1}`,
           detectedPhotoType: visionResponse?.detected_photo_type || 'unknown',
         };
@@ -167,7 +176,7 @@ export async function POST(request: NextRequest) {
           averageImageScore: scoringResult.imageQualityScore,
           imageScores: scoringResult.imageResults.map(r => r.score),
           imageResults: scoringResult.imageResults,
-          detectedPhotoTypes: scoringResult.imageResults.map(r => r.photoType).filter(Boolean),
+          detectedPhotoTypes: imageData.map(img => img.aiAnalysis.detectedPhotoType).filter(Boolean),
           missingPhotoTypes: [],
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         }
