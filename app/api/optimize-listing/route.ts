@@ -81,8 +81,8 @@ async function optimizeImageBuffer(
   const improvements: string[] = [];
   let pipeline = sharp(buffer);
 
-  // STEP 1: SMART CROP FOR PRODUCT FILL (NEW!)
-  // Detect product and crop to achieve 70-80% fill if needed
+  // STEP 1: SMART CROP FOR PRODUCT FILL (CONSERVATIVE)
+  // Detect product and crop to achieve better product fill
   const imageBase64 = buffer.toString('base64');
   const productDetection = await detectProduct(
     imageBase64,
@@ -91,30 +91,41 @@ async function optimizeImageBuffer(
   );
 
   if (productDetection && needsSmartCrop(productDetection.productFillPercent)) {
-    console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - applying smart crop`);
+    // Calculate required zoom factor
+    const targetFill = 60; // Conservative target (was 75%)
+    const requiredZoom = Math.sqrt(targetFill / productDetection.productFillPercent);
 
-    const cropBox = calculateSmartCrop(
-      originalAttributes.width_px,
-      originalAttributes.height_px,
-      productDetection.boundingBox,
-      75, // Target 75% fill (middle of 70-80% range)
-      4 / 3 // Etsy's recommended aspect ratio
-    );
+    // Only apply smart crop if zoom is reasonable (<= 1.8x)
+    // Aggressive zoom (>1.8x) risks cutting off product edges
+    if (requiredZoom <= 1.8) {
+      console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - applying smart crop (zoom: ${requiredZoom.toFixed(2)}x)`);
 
-    // Apply smart crop
-    pipeline = pipeline.extract({
-      left: cropBox.x,
-      top: cropBox.y,
-      width: cropBox.width,
-      height: cropBox.height,
-    });
+      const cropBox = calculateSmartCrop(
+        originalAttributes.width_px,
+        originalAttributes.height_px,
+        productDetection.boundingBox,
+        targetFill, // Target 60% fill (conservative)
+        4 / 3 // Etsy's recommended aspect ratio
+      );
 
-    improvements.push(`✅ Smart crop applied - product now fills ${75}% of frame (was ${productDetection.productFillPercent.toFixed(0)}%)`);
+      // Apply smart crop
+      pipeline = pipeline.extract({
+        left: cropBox.x,
+        top: cropBox.y,
+        width: cropBox.width,
+        height: cropBox.height,
+      });
 
-    // Update dimensions for subsequent operations
-    originalAttributes.width_px = cropBox.width;
-    originalAttributes.height_px = cropBox.height;
-    originalAttributes.shortest_side = Math.min(cropBox.width, cropBox.height);
+      improvements.push(`✅ Smart crop applied - product now fills ${targetFill}% of frame (was ${productDetection.productFillPercent.toFixed(0)}%)`);
+
+      // Update dimensions for subsequent operations
+      originalAttributes.width_px = cropBox.width;
+      originalAttributes.height_px = cropBox.height;
+      originalAttributes.shortest_side = Math.min(cropBox.width, cropBox.height);
+    } else {
+      console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% but zoom would be ${requiredZoom.toFixed(2)}x - skipping to avoid cutting off product`);
+      improvements.push(`⚠️ Image is very zoomed out (${productDetection.productFillPercent.toFixed(0)}% fill) - consider retaking photo closer to product`);
+    }
   } else if (productDetection) {
     console.log(`[Smart Crop] Product fill is ${productDetection.productFillPercent.toFixed(1)}% - no crop needed`);
   }
