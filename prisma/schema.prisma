@@ -181,9 +181,30 @@ model ListingAnalysis {
   missingPhotoTypes   Json     // Array of missing photo types
   createdAt           DateTime @default(now())
   expiresAt           DateTime // Auto-expire after 24 hours
-  
+
   @@index([createdAt])
+  @@index([expiresAt])
   @@map("listing_analyses")
+}
+
+model ImageAnalysisCache {
+  id                        String   @id @default(cuid())
+  imageHash                 String   @unique // SHA-256 hash of image buffer
+  width                     Int
+  height                    Int
+  fileSize                  Int
+  format                    String
+  hasSevereBlur             Boolean
+  hasSevereLighting         Boolean
+  isProductDistinguishable  Boolean
+  thumbnailCropSafe         Boolean? // Only for first images
+  aiAnalysisRaw             Json?    // Full AI Vision response
+  createdAt                 DateTime @default(now())
+  lastUsedAt                DateTime @default(now())
+  useCount                  Int      @default(1)
+
+  @@index([createdAt])
+  @@map("image_analysis_cache")
 }
 
 model Keyword {

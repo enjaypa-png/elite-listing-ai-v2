@@ -10,6 +10,7 @@ import { calculateEtsyCompliance, calculateFinalScore, ImageTechnicalSpecs } fro
 import { prisma } from '@/lib/prisma';
 import { scoreListing, ScoringMode, scoreImage } from '@/lib/deterministic-scoring';
 import { ImageAttributes } from '@/lib/database-scoring';
+import { analyzeImageDeterministic } from '@/lib/deterministic-image-analysis';
 
 /**
  * POST /api/analyze-listing
@@ -97,22 +98,33 @@ export async function POST(request: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
+        // ===========================================
+        // DETERMINISTIC ANALYSIS (Computer Vision Algorithms)
+        // ===========================================
+        // This ensures same image ALWAYS gets same score
+        const deterministicAnalysis = await analyzeImageDeterministic(buffer);
+
+        console.log(`[${requestId}] Image ${i + 1} deterministic analysis:`, {
+          blur: deterministicAnalysis.hasSevereBlur ? 'SEVERE' : `OK (score: ${deterministicAnalysis.blurScore})`,
+          lighting: deterministicAnalysis.hasSevereLighting ? 'SEVERE' : `OK (brightness: ${deterministicAnalysis.brightnessScore})`,
+          distinguishable: deterministicAnalysis.isProductDistinguishable ? 'YES' : 'NO',
+        });
+
         // Extract technical attributes
-        const metadata = await sharp(buffer).metadata();
         const attributes: ImageAttributes = {
-          width_px: metadata.width || 0,
-          height_px: metadata.height || 0,
-          file_size_bytes: buffer.length,
-          aspect_ratio: metadata.width && metadata.height ? `${metadata.width}:${metadata.height}` : '0:0',
-          file_type: metadata.format || 'jpeg',
-          color_profile: metadata.space || 'srgb',
-          ppi: metadata.density || 72,
-          shortest_side: Math.min(metadata.width || 0, metadata.height || 0),
+          width_px: deterministicAnalysis.width,
+          height_px: deterministicAnalysis.height,
+          file_size_bytes: deterministicAnalysis.size,
+          aspect_ratio: `${deterministicAnalysis.width}:${deterministicAnalysis.height}`,
+          file_type: deterministicAnalysis.format,
+          color_profile: deterministicAnalysis.colorSpace,
+          ppi: (await sharp(buffer).metadata()).density || 72,
+          shortest_side: Math.min(deterministicAnalysis.width, deterministicAnalysis.height),
           // Placeholder values for AI Vision attributes (not used in deterministic scoring)
           has_clean_white_background: false,
           is_product_centered: false,
-          has_good_lighting: false,
-          is_sharp_focus: false,
+          has_good_lighting: !deterministicAnalysis.hasSevereLighting,  // Derived from deterministic analysis
+          is_sharp_focus: !deterministicAnalysis.hasSevereBlur,  // Derived from deterministic analysis
           has_no_watermarks: true,
           professional_appearance: false,
           has_studio_shot: false,
@@ -123,36 +135,40 @@ export async function POST(request: NextRequest) {
           has_packaging_shot: false,
           has_process_shot: false,
           shows_texture_or_craftsmanship: false,
-          product_clearly_visible: false,
+          product_clearly_visible: deterministicAnalysis.isProductDistinguishable,
           appealing_context: false,
           reference_object_visible: false,
           size_comparison_clear: false,
         };
 
-        // Get AI analysis (objective detection only)
-        const imageBase64 = buffer.toString('base64');
-        const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+        // ===========================================
+        // OPTIONAL: AI ANALYSIS FOR ADVISORY FEATURES ONLY
+        // ===========================================
+        // Only call AI for photo type detection and alt text (NO SCORING IMPACT)
+        let aiPhotoType = 'unknown';
+        let aiAltText = `Product image ${i + 1}`;
 
-        const visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
+        // Skip AI call to save API costs - can be added back later for advisory features
+        // const imageBase64 = buffer.toString('base64');
+        // const mimeType = (file.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+        // const visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
+        // if (visionResponse) {
+        //   aiPhotoType = visionResponse.detected_photo_type || 'unknown';
+        //   aiAltText = visionResponse.ai_alt_text || aiAltText;
+        // }
 
-        // Extract AI detections from response
-        // The AI should return hasSevereBlur, hasSevereLighting, isProductDistinguishable, thumbnailCropSafe
-        // For now, derive from legacy response format until AI prompt is fully deployed
         const aiAnalysis = {
-          // Derive severe blur from legacy is_sharp_focus flag (inverted)
-          hasSevereBlur: visionResponse?.is_sharp_focus === false,
+          // USE DETERMINISTIC ANALYSIS (from computer vision algorithms)
+          hasSevereBlur: deterministicAnalysis.hasSevereBlur,
+          hasSevereLighting: deterministicAnalysis.hasSevereLighting,
+          isProductDistinguishable: deterministicAnalysis.isProductDistinguishable,
 
-          // Derive severe lighting from legacy has_good_lighting flag (inverted)
-          hasSevereLighting: visionResponse?.has_good_lighting === false,
+          // Thumbnail safety - assume safe for now (will enhance with object detection later)
+          thumbnailCropSafe: i === 0 ? true : undefined,
 
-          // Derive distinguishability from legacy product_clearly_visible flag
-          isProductDistinguishable: visionResponse?.product_clearly_visible !== false,
-
-          // First photo thumbnail safety - assume safe unless AI indicates cropping issues
-          thumbnailCropSafe: i === 0 ? visionResponse?.is_product_centered !== false : undefined,
-
-          altText: visionResponse?.ai_alt_text || `Product image ${i + 1}`,
-          detectedPhotoType: visionResponse?.detected_photo_type || 'unknown',
+          // Advisory features (no scoring impact)
+          altText: aiAltText,
+          detectedPhotoType: aiPhotoType,
         };
 
         return { attributes, aiAnalysis };
