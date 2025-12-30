@@ -148,13 +148,22 @@ export async function POST(request: NextRequest) {
 
         const visionResponse = await analyzeImageWithVision(imageBase64, mimeType);
 
-        // Map AI response to analysis format
-        // Note: New AI prompt returns boolean flags instead of scores
+        // Extract AI detections from response
+        // The AI should return hasSevereBlur, hasSevereLighting, isProductDistinguishable, thumbnailCropSafe
+        // For now, derive from legacy response format until AI prompt is fully deployed
         const aiAnalysis = {
-          hasSevereBlur: false,  // TODO: Extract from visionResponse when AI prompt updated
-          hasSevereLighting: false,  // TODO: Extract from visionResponse
-          isProductDistinguishable: true,  // TODO: Extract from visionResponse
-          thumbnailCropSafe: i === 0 ? true : undefined,  // TODO: Extract from visionResponse for first image
+          // Derive severe blur from legacy is_sharp_focus flag (inverted)
+          hasSevereBlur: visionResponse?.is_sharp_focus === false,
+
+          // Derive severe lighting from legacy has_good_lighting flag (inverted)
+          hasSevereLighting: visionResponse?.has_good_lighting === false,
+
+          // Derive distinguishability from legacy product_clearly_visible flag
+          isProductDistinguishable: visionResponse?.product_clearly_visible !== false,
+
+          // First photo thumbnail safety - assume safe unless AI indicates cropping issues
+          thumbnailCropSafe: i === 0 ? visionResponse?.is_product_centered !== false : undefined,
+
           altText: visionResponse?.ai_alt_text || `Product image ${i + 1}`,
           detectedPhotoType: visionResponse?.detected_photo_type || 'unknown',
         };
